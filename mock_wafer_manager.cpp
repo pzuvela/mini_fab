@@ -12,13 +12,13 @@ MockWaferManager::MockWaferManager(std::unique_ptr<Wafer> waferToReturn)
 
 bool MockWaferManager::addWafer(const Wafer& wafer)
 {
-	waferToReturn_ = nullptr;
 	waferToReturn_ = std::make_unique<Wafer>(wafer);
 	return true;
 }
 
     Wafer* MockWaferManager::findWafer(const std::string& waferId)
     {
+	if (waferToReturn_ == nullptr) return nullptr;
 	if (waferToReturn_->id != waferId) return nullptr;
 	return waferToReturn_.get();
     }
