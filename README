@@ -1,0 +1,1 @@
+MiniFab is a C++ semiconductor equipment-control simulator used to explore equipment state management, wafer tracking, process orchestration, fault recovery, concurrency, scheduling, and hardware abstraction.
