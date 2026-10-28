@@ -39,6 +39,7 @@ namespace MiniFab::Tests
 		WaferManager mgr;
 		mgr.addWafer(wafer_);
 		Wafer* wafer = mgr.findWafer(wafer_.id);
+		ASSERT_NE(wafer, nullptr);
 		EXPECT_EQ(*wafer, wafer_);
 	}
 
