@@ -11,7 +11,7 @@ namespace MiniFab::Tests
 	{
 	protected:
 		Wafer wafer{
-			.id = 1,
+			.id = "1",
 			.location = Location{
 				.station = Station::LoadPort,
 				.slot = 2
