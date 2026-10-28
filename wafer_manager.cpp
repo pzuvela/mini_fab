@@ -3,15 +3,10 @@
 #include <string>
 
 #include "domain/wafer.h"
-#include "iwafer_manager.h"
+#include "wafer_manager.h"
 
 
-class WaferManager : public IWaferManager
-{
-private:
-    std::unordered_map<std::string, std::unique_ptr<Wafer>> wafers_;
-public:
-    bool addWafer(const Wafer& wafer) override
+    bool WaferManager::addWafer(const Wafer& wafer)
     {
         std::pair<
             std::unordered_map<std::string, std::unique_ptr<Wafer>>::iterator,
@@ -24,7 +19,7 @@ public:
         return result.second;
     }
 
-    Wafer* findWafer(const std::string& waferId) override
+    Wafer* WaferManager::findWafer(const std::string& waferId)
     {
         std::unordered_map<std::string, std::unique_ptr<Wafer>>::iterator iterator = wafers_.find(waferId);
 
@@ -32,4 +27,4 @@ public:
 
         return iterator->second.get();
     }
-};
+
