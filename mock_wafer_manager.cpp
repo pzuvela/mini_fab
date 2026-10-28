@@ -1,6 +1,4 @@
-#include <unordered_map>
 #include <memory>
-#include <string>
 
 #include "domain/wafer.h"
 #include "mock_wafer_manager.h"
