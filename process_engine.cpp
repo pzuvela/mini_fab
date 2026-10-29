@@ -1,4 +1,6 @@
 #include <iostream>
+#include <thread>
+
 #include "process_engine.h"
 #include "iprocess_module.h"
 #include "iwafer_manager.h"
@@ -40,57 +42,105 @@ bool ProcessEngine::process(
 	return processModule_.process(wafer, recipe);
 }
 
+Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId)
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	if (state_ != EquipmentState::Idle) return nullptr;
+
+	Wafer* wafer = mgr_.findWafer(waferId);
+
+	if (wafer != nullptr) 
+	{
+		state_ = EquipmentState::Moving;
+	}
+
+	return wafer;
+}
+
+void ProcessEngine::setState(EquipmentState newState) 
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+	state_ = newState;
+}
+
+bool ProcessEngine::executeProcessWafer(
+	Wafer& wafer,
+	const Location& processModuleLocation,
+	const Recipe& recipe
+)
+{
+	bool isMovementSuccessful = run(wafer, processModuleLocation);
+
+	if (!isMovementSuccessful)
+	{
+		setState(EquipmentState::Faulted);
+		return false;
+	}
+
+	setState(EquipmentState::Processing);
+
+	bool isProcessSuccessful = process(wafer, recipe);
+
+	if (isProcessSuccessful)
+	{
+		setState(EquipmentState::Idle);
+	}
+	else
+	{
+		setState(EquipmentState::Faulted);
+	}
+
+	return isProcessSuccessful;
+}
+
 bool ProcessEngine::processWafer(
 	const std::string& waferId,
 	const Location& processModuleLocation,
 	const Recipe& recipe
 )
 {
-	if (state_ != EquipmentState::Idle)
-	{
+	Wafer* wafer = acceptWaferForProcessing(waferId);
+
+	if (wafer == nullptr)
 		return false;
-	}
 
-	Wafer* wafer = mgr_.findWafer(waferId);
+	return executeProcessWafer(
+		*wafer,
+		processModuleLocation,
+		recipe
+	);
+}
 
-	if (wafer == nullptr) 
-	{
-		return false;
-	}
+bool ProcessEngine::startProcessWafer(
+	const std::string& waferId,
+	const Location& processModuleLocation,
+	const Recipe& recipe
+) 
+{
+	Wafer* wafer = acceptWaferForProcessing(waferId);
 
-	state_ = EquipmentState::Moving;
+	if (wafer == nullptr) return false;
 
-	bool isMovementSuccessful = run(*wafer, processModuleLocation);
+	worker_ = std::jthread(
+		[this, wafer, processModuleLocation, recipe]()
+		{
+			this->executeProcessWafer(*wafer, processModuleLocation, recipe);
+		}
+	);
 
-	if (!isMovementSuccessful) 
-	{
-		state_ = EquipmentState::Faulted;
-		return false;
-	}
-
-	state_ = EquipmentState::Processing;
-
-	bool isProcessSuccessful = process(*wafer, recipe);
-
-	if (isProcessSuccessful)
-	{
-		state_ = EquipmentState::Idle;
-	}
-	else
-	{
-		state_ = EquipmentState::Faulted;
-	}
-
-	return isProcessSuccessful;
+	return true;
 }
 
 EquipmentState ProcessEngine::state() const 
 {
+	std::lock_guard<std::mutex> lock(mutex_);
 	return state_;
 }
 
 bool ProcessEngine::reset() 
 {
+	std::lock_guard<std::mutex> lock(mutex_);
 
 	if (state_ != EquipmentState::Faulted)
 	{

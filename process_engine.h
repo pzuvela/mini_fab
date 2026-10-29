@@ -1,3 +1,6 @@
+#include <mutex>
+#include <thread>
+
 #include "enums/equipment_state.h"
 #include "iwafer_manager.h"
 #include "irobot.h"
@@ -11,13 +14,8 @@ private:
     IRobot& robot_;
     IProcessModule& processModule_;
     EquipmentState state_ = EquipmentState::Idle;
-
-public:
-    ProcessEngine(
-        IWaferManager& waferManager,
-        IRobot& robot,
-        IProcessModule& processModule
-    );
+    mutable std::mutex mutex_;
+    std::jthread worker_;
 
     bool run(
         Wafer& wafer,
@@ -29,7 +27,30 @@ public:
         const Recipe& recipe
     );
 
+    bool executeProcessWafer(
+        Wafer& wafer,
+        const Location& processModuleLocation,
+        const Recipe& recipe
+    );
+
+    void setState(EquipmentState newState);
+
+    Wafer* acceptWaferForProcessing(const std::string& waferId);
+
+public:
+    ProcessEngine(
+        IWaferManager& waferManager,
+        IRobot& robot,
+        IProcessModule& processModule
+    );
+
     bool processWafer(
+        const std::string& waferId,
+        const Location& processModuleLocation,
+        const Recipe& recipe
+    );
+
+    bool startProcessWafer(
         const std::string& waferId,
         const Location& processModuleLocation,
         const Recipe& recipe

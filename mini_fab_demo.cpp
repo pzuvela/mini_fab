@@ -10,7 +10,7 @@
 #include "sim_process_module.h"
 
 
-void runRobot(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule) 
+void runProcessWafer(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule, Recipe& recipe) 
 {
     ProcessEngine engine(mgr, robot, processModule);
 
@@ -20,18 +20,22 @@ void runRobot(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule)
         Location{ Station::Aligner, 3 }
     };
 
+    mgr.addWafer(wafer);
+
     Location destination
     {
         Station::LoadPort,
         4
     };
 
-    engine.run(wafer, destination);
+    engine.processWafer("5", destination, recipe);
 }
 
 int main()
 {
     Wafer wafer{ "5", Location{ Station::Aligner, 3 } };
+
+    Recipe recipe{ .id = 1, .name = "Recipe1", .durationSeconds = 50.2 };
 
     MockWaferManager mgr{ std::make_unique<Wafer>(wafer)};
 
@@ -46,7 +50,7 @@ int main()
 
     for (const std::unique_ptr<IRobot>& robot : robots) 
     {
-        runRobot(mgr, *robot, processModule);
+        runProcessWafer(mgr, *robot, processModule, recipe);
     }
 
     return 0;

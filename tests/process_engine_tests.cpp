@@ -3,8 +3,10 @@
 #include "process_engine.h"
 #include "sim_process_module.h"
 #include "mock_process_module.h"
+#include "blocking_mock_process_module.h"
 #include "mock_robot.h"
 #include "mock_wafer_manager.h"
+#include "wafer_manager.h"
 #include "domain/wafer.h"
 #include "domain/location.h"
 #include "enums/equipment_state.h"
@@ -43,9 +45,12 @@ namespace MiniFab::Tests
         MockRobot robot{ true };
         ProcessEngine engine(mgr_, robot, processModule_);
 
-        engine.run(wafer_, destination_);
+        engine.processWafer(wafer_.id, destination_, recipe_);
 
-        EXPECT_EQ(wafer_.location, destination_);
+        Wafer* managedWafer = mgr_.findWafer(wafer_.id);
+
+        ASSERT_NE(managedWafer, nullptr);
+        EXPECT_EQ(managedWafer->location, destination_);
     }
 
     TEST_F(ProcessEngineTest, KeepsWaferLocationWhenRobotMoveFails)
@@ -54,29 +59,32 @@ namespace MiniFab::Tests
         ProcessEngine engine(mgr_, robot, processModule_);
         Location originalLocation = wafer_.location;
 
-        engine.run(wafer_, destination_);
+        engine.processWafer(wafer_.id, destination_, recipe_);
 
-        EXPECT_EQ(wafer_.location, originalLocation);
+        Wafer* managedWafer = mgr_.findWafer(wafer_.id);
+
+        ASSERT_NE(managedWafer, nullptr);
+        EXPECT_EQ(managedWafer->location, originalLocation);
     }
 
-    TEST_F(ProcessEngineTest, ProcessReturnsTrueWhenProcessModuleSucceeds)
+    TEST_F(ProcessEngineTest, ProcessWaferReturnsTrueWhenProcessModuleSucceeds)
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ true };
         ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isSuccessful = engine.process(wafer_, recipe_);
+        bool isSuccessful = engine.processWafer(wafer_.id, destination_, recipe_);
 
         EXPECT_TRUE(isSuccessful);
     }
 
-    TEST_F(ProcessEngineTest, ProcessReturnsFalseWhenProcessModuleFails)
+    TEST_F(ProcessEngineTest, ProcessWaferReturnsFalseWhenProcessModuleFails)
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ false };
         ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isSuccessful = engine.process(wafer_, recipe_);
+        bool isSuccessful = engine.processWafer(wafer_.id, destination_, recipe_);
 
         EXPECT_FALSE(isSuccessful);
     }
@@ -202,6 +210,39 @@ namespace MiniFab::Tests
         EXPECT_FALSE(isProcessed);
         EXPECT_FALSE(processModule.processWasCalled());
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
+    }
 
+    TEST_F(ProcessEngineTest, RejectsSecondWaferWhileAsyncProcessingIsActive) 
+    {
+        MockRobot robot{ true };
+        BlockingMockProcessModule processModule;
+
+        WaferManager mgr = WaferManager();
+
+        mgr.addWafer(wafer_);
+
+        ProcessEngine engine(mgr, robot, processModule);
+
+        mgr.addWafer(
+            Wafer{
+                .id = "Wafer2",
+                .location = Location{
+                    .station = Station::Aligner,
+                    .slot = 2
+                }
+            }
+        );
+
+        ASSERT_TRUE(
+            engine.startProcessWafer(wafer_.id, destination_, recipe_)
+        );
+
+        processModule.waitUntilProcessingStarts();
+
+        EXPECT_FALSE(
+            engine.startProcessWafer("Wafer2", destination_, recipe_)
+        );
+
+        processModule.release();
     }
 }
