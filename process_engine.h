@@ -1,4 +1,5 @@
 #include "enums/equipment_state.h"
+#include "iwafer_manager.h"
 #include "irobot.h"
 #include "iprocess_module.h"
 
@@ -6,12 +7,14 @@
 class ProcessEngine
 {
 private:
+    IWaferManager& mgr_;
     IRobot& robot_;
     IProcessModule& processModule_;
     EquipmentState state_ = EquipmentState::Idle;
 
 public:
     ProcessEngine(
+        IWaferManager& waferManager,
         IRobot& robot,
         IProcessModule& processModule
     );
@@ -27,7 +30,7 @@ public:
     );
 
     bool processWafer(
-        Wafer& wafer,
+        const std::string& waferId,
         const Location& processModuleLocation,
         const Recipe& recipe
     );

@@ -4,6 +4,7 @@
 #include "sim_process_module.h"
 #include "mock_process_module.h"
 #include "mock_robot.h"
+#include "mock_wafer_manager.h"
 #include "domain/wafer.h"
 #include "domain/location.h"
 #include "enums/equipment_state.h"
@@ -32,13 +33,15 @@ namespace MiniFab::Tests
             .durationSeconds = 55.2
         };
 
+        MockWaferManager mgr_{ std::make_unique<Wafer>(wafer_) };
+
         SimProcessModule processModule_;
     };
 
     TEST_F(ProcessEngineTest, UpdatesWaferLocationWhenRobotMoveSucceeds)
     {
         MockRobot robot{ true };
-        ProcessEngine engine(robot, processModule_);
+        ProcessEngine engine(mgr_, robot, processModule_);
 
         engine.run(wafer_, destination_);
 
@@ -48,7 +51,7 @@ namespace MiniFab::Tests
     TEST_F(ProcessEngineTest, KeepsWaferLocationWhenRobotMoveFails)
     {
         MockRobot robot{ false };
-        ProcessEngine engine(robot, processModule_);
+        ProcessEngine engine(mgr_, robot, processModule_);
         Location originalLocation = wafer_.location;
 
         engine.run(wafer_, destination_);
@@ -60,7 +63,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
 
         bool isSuccessful = engine.process(wafer_, recipe_);
 
@@ -71,7 +74,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ false };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
 
         bool isSuccessful = engine.process(wafer_, recipe_);
 
@@ -82,9 +85,9 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isProcessed = engine.processWafer(wafer_, destination_, recipe_);
+        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
 
         EXPECT_FALSE(isProcessed);
         EXPECT_FALSE(processModule.processWasCalled());
@@ -95,9 +98,9 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isProcessed = engine.processWafer(wafer_, destination_, recipe_);
+        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
 
         EXPECT_TRUE(isProcessed);
         EXPECT_TRUE(processModule.processWasCalled());
@@ -107,20 +110,23 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ false };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isProcessed = engine.processWafer(wafer_, destination_, recipe_);
+        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
+
+        Wafer* managedWafer = mgr_.findWafer(wafer_.id);
 
         EXPECT_FALSE(isProcessed);
         EXPECT_TRUE(processModule.processWasCalled());
-        EXPECT_EQ(destination_, wafer_.location);
+        ASSERT_NE(managedWafer, nullptr);
+        EXPECT_EQ(destination_, managedWafer->location);
     }
 
     TEST_F(ProcessEngineTest, IsIdleWhenCreated)
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
         
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
@@ -129,12 +135,12 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
 
-        engine.processWafer(wafer_, destination_, recipe_);
+        engine.processWafer(wafer_.id, destination_, recipe_);
         robot.setMoveShouldSucceed(true);
 
-        bool isProcessed = engine.processWafer(wafer_, destination_, recipe_);
+        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
 
         EXPECT_FALSE(isProcessed);
         EXPECT_EQ(engine.state(), EquipmentState::Faulted);
@@ -145,9 +151,9 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
 
-        engine.processWafer(wafer_, destination_, recipe_);
+        engine.processWafer(wafer_.id, destination_, recipe_);
 
         bool isResetSuccessful = engine.reset();
 
@@ -159,7 +165,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
 
         bool isResetSuccessful = engine.reset();
 
@@ -171,17 +177,31 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule);
 
-        engine.processWafer(wafer_, destination_, recipe_);
+        engine.processWafer(wafer_.id, destination_, recipe_);
         
         engine.reset();
         
         robot.setMoveShouldSucceed(true);
 
-        bool isProcessed = engine.processWafer(wafer_, destination_, recipe_);
+        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
 
         EXPECT_TRUE(isProcessed);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
+    }
+
+    TEST_F(ProcessEngineTest, DoesNotProcessWaferWhenWaferDoesNotExist) 
+    {
+        MockRobot robot{ true };
+        MockProcessModule processModule{ true };
+        ProcessEngine engine(mgr_, robot, processModule);
+
+        bool isProcessed = engine.processWafer("404", destination_, recipe_);
+
+        EXPECT_FALSE(isProcessed);
+        EXPECT_FALSE(processModule.processWasCalled());
+        EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
     }
 }

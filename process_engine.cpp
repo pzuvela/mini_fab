@@ -1,11 +1,12 @@
 #include <iostream>
 #include "process_engine.h"
 #include "iprocess_module.h"
+#include "iwafer_manager.h"
 
-ProcessEngine::ProcessEngine(IRobot& robot, IProcessModule& processModule)
-	: robot_(robot), processModule_(processModule)
+ProcessEngine::ProcessEngine(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule)
+	: mgr_(mgr), robot_(robot), processModule_(processModule)
 {
-	std::cout << "Instantiated robot & process module\n";
+	std::cout << "Instantiated wafer manager, robot & process module\n";
 }
 
 bool ProcessEngine::run(
@@ -40,7 +41,7 @@ bool ProcessEngine::process(
 }
 
 bool ProcessEngine::processWafer(
-	Wafer& wafer,
+	const std::string& waferId,
 	const Location& processModuleLocation,
 	const Recipe& recipe
 )
@@ -50,9 +51,16 @@ bool ProcessEngine::processWafer(
 		return false;
 	}
 
+	Wafer* wafer = mgr_.findWafer(waferId);
+
+	if (wafer == nullptr) 
+	{
+		return false;
+	}
+
 	state_ = EquipmentState::Moving;
 
-	bool isMovementSuccessful = run(wafer, processModuleLocation);
+	bool isMovementSuccessful = run(*wafer, processModuleLocation);
 
 	if (!isMovementSuccessful) 
 	{
@@ -62,7 +70,7 @@ bool ProcessEngine::processWafer(
 
 	state_ = EquipmentState::Processing;
 
-	bool isProcessSuccessful = process(wafer, recipe);
+	bool isProcessSuccessful = process(*wafer, recipe);
 
 	if (isProcessSuccessful)
 	{

@@ -1,6 +1,8 @@
 #include <vector>
 #include <memory>
 
+#include "iwafer_manager.h"
+#include "mock_wafer_manager.h"
 #include "irobot.h"
 #include "sim_robot.h"
 #include "mock_robot.h"
@@ -8,9 +10,9 @@
 #include "sim_process_module.h"
 
 
-void runRobot(IRobot& robot, IProcessModule& processModule) 
+void runRobot(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule) 
 {
-    ProcessEngine engine(robot, processModule);
+    ProcessEngine engine(mgr, robot, processModule);
 
     Wafer wafer
     {
@@ -29,6 +31,10 @@ void runRobot(IRobot& robot, IProcessModule& processModule)
 
 int main()
 {
+    Wafer wafer{ "5", Location{ Station::Aligner, 3 } };
+
+    MockWaferManager mgr{ std::make_unique<Wafer>(wafer)};
+
     std::vector<std::unique_ptr<IRobot>> robots;
 
     robots.push_back(std::make_unique<SimRobot>());
@@ -40,7 +46,7 @@ int main()
 
     for (const std::unique_ptr<IRobot>& robot : robots) 
     {
-        runRobot(*robot, processModule);
+        runRobot(mgr, *robot, processModule);
     }
 
     return 0;

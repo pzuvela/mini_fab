@@ -14,10 +14,9 @@ bool MockWaferManager::addWafer(const Wafer& wafer)
 	return true;
 }
 
-    Wafer* MockWaferManager::findWafer(const std::string& waferId)
-    {
+Wafer* MockWaferManager::findWafer(const std::string& waferId)
+{
 	if (waferToReturn_ == nullptr) return nullptr;
 	if (waferToReturn_->id != waferId) return nullptr;
 	return waferToReturn_.get();
-    }
-
+}
