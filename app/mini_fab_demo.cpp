@@ -9,17 +9,14 @@
 #include "equipment/process_module/sim_process_module.h"
 
 
-void runProcessWafer(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule, Recipe& recipe) 
+void runProcessWafer(
+    IWaferManager& mgr,
+    IRobot& robot,
+    IProcessModule& processModule,
+    const Recipe& recipe
+)
 {
     ProcessEngine engine(mgr, robot, processModule);
-
-    Wafer wafer
-    {
-        "5",
-        Location{ Station::Aligner, 3 }
-    };
-
-    mgr.addWafer(wafer);
 
     Location destination
     {
@@ -47,7 +44,6 @@ int main()
     robots.push_back(std::make_unique<SimRobot>());
 
     SimProcessModule processModule;
-    processModule.initialize();
 
     for (const std::unique_ptr<IRobot>& robot : robots) 
     {
