@@ -2,7 +2,7 @@
 #include <thread>
 #include <future>
 
-#include "enums/equipment_state.h"
+#include "equipment_state.h"
 #include "iwafer_manager.h"
 #include "irobot.h"
 #include "iprocess_module.h"

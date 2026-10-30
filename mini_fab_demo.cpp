@@ -6,7 +6,7 @@
 #include "irobot.h"
 #include "sim_robot.h"
 #include "tests/mocks/mock_robot.h"
-#include "process_engine.h"
+#include "engine/process_engine.h"
 #include "sim_process_module.h"
 
 

@@ -11,7 +11,7 @@ add_library(mini_fab_core
     "tests/mocks/mock_robot.cpp"
     wafer_manager.cpp
     "tests/mocks/mock_wafer_manager.cpp"
-    process_engine.cpp
+    "engine/process_engine.cpp"
     sim_process_module.cpp
     "tests/mocks/mock_process_module.cpp"
     "tests/mocks/blocking_mock_process_module.cpp"

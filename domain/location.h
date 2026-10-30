@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../enums/station.h"
+#include "station.h"
 
 struct Location
 {

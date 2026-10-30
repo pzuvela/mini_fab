@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 #include <barrier>
 
-#include "process_engine.h"
+#include "engine/process_engine.h"
+#include "engine/equipment_state.h"
 #include "sim_process_module.h"
 #include "mocks/mock_process_module.h"
 #include "mocks/blocking_mock_process_module.h"
@@ -11,7 +12,6 @@
 #include "wafer_manager.h"
 #include "domain/wafer.h"
 #include "domain/location.h"
-#include "enums/equipment_state.h"
 
 namespace MiniFab::Tests
 {
