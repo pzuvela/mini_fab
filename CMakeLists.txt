@@ -8,13 +8,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(mini_fab_core
     sim_robot.cpp
-    mock_robot.cpp
+    "tests/mocks/mock_robot.cpp"
     wafer_manager.cpp
-    mock_wafer_manager.cpp
+    "tests/mocks/mock_wafer_manager.cpp"
     process_engine.cpp
     sim_process_module.cpp
-    mock_process_module.cpp
-    blocking_mock_process_module.cpp
+    "tests/mocks/mock_process_module.cpp"
+    "tests/mocks/blocking_mock_process_module.cpp"
 )
 
 target_include_directories(mini_fab_core PUBLIC

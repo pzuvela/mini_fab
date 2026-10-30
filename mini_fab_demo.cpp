@@ -2,10 +2,10 @@
 #include <memory>
 
 #include "iwafer_manager.h"
-#include "mock_wafer_manager.h"
+#include "tests/mocks/mock_wafer_manager.h"
 #include "irobot.h"
 #include "sim_robot.h"
-#include "mock_robot.h"
+#include "tests/mocks/mock_robot.h"
 #include "process_engine.h"
 #include "sim_process_module.h"
 
