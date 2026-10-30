@@ -2,10 +2,9 @@
 #include <memory>
 
 #include "wafer/iwafer_manager.h"
-#include "tests/mocks/mock_wafer_manager.h"
+#include "wafer/wafer_manager.h"
 #include "equipment/robot/irobot.h"
 #include "equipment/robot/sim_robot.h"
-#include "tests/mocks/mock_robot.h"
 #include "engine/process_engine.h"
 #include "equipment/process_module/sim_process_module.h"
 
@@ -37,13 +36,15 @@ int main()
 
     Recipe recipe{ .id = 1, .name = "Recipe1", .durationSeconds = 50.2 };
 
-    MockWaferManager mgr{ std::make_unique<Wafer>(wafer)};
+    WaferManager mgr;
+
+    mgr.addWafer(wafer);
 
     std::vector<std::unique_ptr<IRobot>> robots;
 
     robots.push_back(std::make_unique<SimRobot>());
-    robots.push_back(std::make_unique<MockRobot>(true));
-    robots.push_back(std::make_unique<MockRobot>(false));
+    robots.push_back(std::make_unique<SimRobot>());
+    robots.push_back(std::make_unique<SimRobot>());
 
     SimProcessModule processModule;
     processModule.initialize();

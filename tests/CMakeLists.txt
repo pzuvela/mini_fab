@@ -3,6 +3,11 @@ add_executable(mini_fab_tests
     robot_tests.cpp
     process_engine_tests.cpp
     wafer_manager_tests.cpp
+
+    mocks/mock_robot.cpp
+    mocks/mock_wafer_manager.cpp
+    mocks/mock_process_module.cpp
+    mocks/blocking_mock_process_module.cpp
 )
 
 target_link_libraries(mini_fab_tests PRIVATE
