@@ -3,7 +3,7 @@
 
 #include "process_engine.h"
 #include "equipment/process_module/iprocess_module.h"
-#include "iwafer_manager.h"
+#include "wafer/iwafer_manager.h"
 
 ProcessEngine::ProcessEngine(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule)
 	: mgr_(mgr), robot_(robot), processModule_(processModule)

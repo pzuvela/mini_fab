@@ -1,7 +1,7 @@
 #include <vector>
 #include <memory>
 
-#include "iwafer_manager.h"
+#include "wafer/iwafer_manager.h"
 #include "tests/mocks/mock_wafer_manager.h"
 #include "equipment/robot/irobot.h"
 #include "equipment/robot/sim_robot.h"

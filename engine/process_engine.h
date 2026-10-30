@@ -3,7 +3,7 @@
 #include <future>
 
 #include "equipment_state.h"
-#include "iwafer_manager.h"
+#include "wafer/iwafer_manager.h"
 #include "equipment/robot/irobot.h"
 #include "equipment/process_module/iprocess_module.h"
 

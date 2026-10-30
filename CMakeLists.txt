@@ -9,7 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(mini_fab_core
     "equipment/robot/sim_robot.cpp"
     "tests/mocks/mock_robot.cpp"
-    wafer_manager.cpp
+    "wafer/wafer_manager.cpp"
     "tests/mocks/mock_wafer_manager.cpp"
     "engine/process_engine.cpp"
     "equipment/process_module/sim_process_module.cpp"

@@ -9,7 +9,7 @@
 #include "mocks/throwing_mock_process_module.h"
 #include "mocks/mock_robot.h"
 #include "mocks/mock_wafer_manager.h"
-#include "wafer_manager.h"
+#include "wafer/wafer_manager.h"
 #include "domain/wafer.h"
 #include "domain/location.h"
 

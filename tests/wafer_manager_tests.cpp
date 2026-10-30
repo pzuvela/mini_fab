@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "wafer_manager.h"
+#include "wafer/wafer_manager.h"
 #include "domain/wafer.h"
 #include "domain/location.h"
 

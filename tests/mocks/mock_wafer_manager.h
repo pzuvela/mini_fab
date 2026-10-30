@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include "domain/wafer.h"
-#include "iwafer_manager.h"
+#include "wafer/iwafer_manager.h"
 
 class MockWaferManager : public IWaferManager
 {
