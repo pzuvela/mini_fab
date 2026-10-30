@@ -22,7 +22,7 @@ target_include_directories(mini_fab_core PUBLIC
 )
 
 add_executable(mini_fab_demo
-    mini_fab_demo.cpp
+    "app/mini_fab_demo.cpp"
 )
 
 target_link_libraries(mini_fab_demo PRIVATE
