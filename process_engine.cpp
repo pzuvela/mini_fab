@@ -122,13 +122,26 @@ bool ProcessEngine::startProcessWafer(
 
 	if (wafer == nullptr) return false;
 
+	std::promise<bool> promise;
+
+	resultFuture_ = promise.get_future();
+
+
 	worker_ = std::jthread(
-		[this, wafer, processModuleLocation, recipe]()
+		[this, wafer, processModuleLocation, recipe, promise = std::move(promise)]() mutable
 		{
-			this->executeProcessWafer(*wafer, processModuleLocation, recipe);
+			try
+			{
+				bool isProcessSuccessful = this->executeProcessWafer(*wafer, processModuleLocation, recipe);
+				promise.set_value(isProcessSuccessful);
+			}
+			catch (...)
+			{
+				setState(EquipmentState::Faulted);
+				promise.set_exception(std::current_exception());
+			}
 		}
 	);
-
 	return true;
 }
 
@@ -150,4 +163,9 @@ bool ProcessEngine::reset()
 	state_ = EquipmentState::Idle;
 
 	return true;
+}
+
+bool ProcessEngine::waitForCompletion()
+{
+	return resultFuture_.get();
 }

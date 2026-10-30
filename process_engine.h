@@ -1,5 +1,6 @@
 #include <mutex>
 #include <thread>
+#include <future>
 
 #include "enums/equipment_state.h"
 #include "iwafer_manager.h"
@@ -16,6 +17,7 @@ private:
     EquipmentState state_ = EquipmentState::Idle;
     mutable std::mutex mutex_;
     std::jthread worker_;
+    std::future<bool> resultFuture_;
 
     bool run(
         Wafer& wafer,
@@ -55,6 +57,8 @@ public:
         const Location& processModuleLocation,
         const Recipe& recipe
     );
+
+    bool waitForCompletion();
 
     EquipmentState state() const;
 

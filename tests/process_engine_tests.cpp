@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
+#include <barrier>
 
 #include "process_engine.h"
 #include "sim_process_module.h"
 #include "mock_process_module.h"
 #include "blocking_mock_process_module.h"
+#include "throwing_mock_procesS_module.h"
 #include "mock_robot.h"
 #include "mock_wafer_manager.h"
 #include "wafer_manager.h"
@@ -244,5 +246,191 @@ namespace MiniFab::Tests
         );
 
         processModule.release();
+    }
+
+    TEST_F(ProcessEngineTest, AsyncProcessWaferReturnsSuccessfulCompletion)
+    {
+        MockRobot robot{ true };
+        SimProcessModule processModule;
+
+        WaferManager mgr = WaferManager();
+
+        mgr.addWafer(wafer_);
+
+        ProcessEngine engine(mgr, robot, processModule);
+
+        bool started = engine.startProcessWafer(
+            wafer_.id, destination_, recipe_
+        );
+
+        ASSERT_TRUE(started);
+
+        bool completedSuccessfully = engine.waitForCompletion();
+
+        EXPECT_TRUE(completedSuccessfully);
+        EXPECT_EQ(engine.state(), EquipmentState::Idle);
+    }
+
+    TEST_F(ProcessEngineTest, AsyncProcessWaferReturnsFailedCompletion) 
+    {
+        MockRobot robot{ true };
+        MockProcessModule processModule{false};
+
+        WaferManager mgr = WaferManager();
+
+        mgr.addWafer(wafer_);
+
+        ProcessEngine engine(mgr, robot, processModule);
+
+        bool started = engine.startProcessWafer(
+            wafer_.id, destination_, recipe_
+        );
+
+        ASSERT_TRUE(started);
+
+        bool completedSuccessfully = engine.waitForCompletion();
+
+        EXPECT_FALSE(completedSuccessfully);
+        EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+    }
+
+    TEST_F(ProcessEngineTest, WaitForCompletionThrowsWhenCalledTwice)
+    {
+        MockRobot robot{ true };
+        SimProcessModule processModule;
+
+        WaferManager mgr = WaferManager();
+
+        mgr.addWafer(wafer_);
+
+        ProcessEngine engine(mgr, robot, processModule);
+
+        bool started = engine.startProcessWafer(
+            wafer_.id, destination_, recipe_
+        );
+
+        ASSERT_TRUE(started);
+
+        bool completedSuccessfully = engine.waitForCompletion();
+
+        EXPECT_TRUE(completedSuccessfully);
+
+        EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+        EXPECT_THROW(
+            engine.waitForCompletion(),
+            std::future_error
+        );
+    }
+
+    TEST_F(ProcessEngineTest, CanProcessAnotherWaferAfterAsyncCompletion) 
+    {
+        MockRobot robot{ true };
+        SimProcessModule processModule;
+
+        WaferManager mgr = WaferManager();
+
+        mgr.addWafer(wafer_);
+        mgr.addWafer(
+            Wafer{
+                .id = "Wafer2",
+                .location = Location{
+                    .station = Station::Aligner,
+                    .slot = 2
+                }
+            }
+        );
+
+        ProcessEngine engine(mgr, robot, processModule);
+
+        ASSERT_TRUE(engine.startProcessWafer(
+            wafer_.id, destination_, recipe_
+        ));
+
+        ASSERT_TRUE(engine.waitForCompletion());
+
+        // Actual behavior under test
+        EXPECT_TRUE(engine.startProcessWafer(
+            "Wafer2", destination_, recipe_
+        ));
+
+        EXPECT_TRUE(engine.waitForCompletion());
+        EXPECT_EQ(engine.state(), EquipmentState::Idle);
+    }
+
+    TEST_F(ProcessEngineTest, AcceptsOnlyOneOfTwoSimultaneousStartRequests)
+    {
+        MockRobot robot{ true };
+        BlockingMockProcessModule processModule;
+
+        WaferManager mgr = WaferManager();
+
+        mgr.addWafer(wafer_);
+        mgr.addWafer(
+            Wafer{
+                .id = "Wafer2",
+                .location = Location{
+                    .station = Station::Aligner,
+                    .slot = 2
+                }
+            }
+        );
+
+        ProcessEngine engine(mgr, robot, processModule);
+
+        std::barrier startBarrier{ 2 };
+
+        bool firstStarted = false;
+        bool secondStarted = false;
+
+        std::thread firstThread([&]() {
+            startBarrier.arrive_and_wait();
+
+            firstStarted = engine.startProcessWafer(
+                wafer_.id, destination_, recipe_
+            );
+        });
+
+        std::thread secondThread([&]() {
+            startBarrier.arrive_and_wait();
+
+            secondStarted = engine.startProcessWafer(
+                "Wafer2", destination_, recipe_
+            );
+        });
+
+        firstThread.join();
+        secondThread.join();
+
+        processModule.release();
+
+        EXPECT_NE(firstStarted, secondStarted);
+
+        EXPECT_TRUE(engine.waitForCompletion());
+    }
+
+    TEST_F(ProcessEngineTest, AsyncProcessWaferPropagatesUnexpectedException) 
+    {
+        MockRobot robot{ true };
+        ThrowingMockProcessModule processModule;
+
+        WaferManager mgr = WaferManager();
+
+        mgr.addWafer(wafer_);
+
+        ProcessEngine engine(mgr, robot, processModule);
+
+        bool started = engine.startProcessWafer(
+            wafer_.id, destination_, recipe_
+        );
+
+        ASSERT_TRUE(started);        
+
+        EXPECT_THROW(
+            engine.waitForCompletion(),
+            std::runtime_error
+        );
+
+        EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
 }
