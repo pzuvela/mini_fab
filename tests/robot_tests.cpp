@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "sim_robot.h"
+#include "equipment/robot/sim_robot.h"
 #include "mocks/mock_robot.h"
 #include "domain/wafer.h"
 #include "domain/location.h"

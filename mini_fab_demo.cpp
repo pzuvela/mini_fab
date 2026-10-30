@@ -3,11 +3,11 @@
 
 #include "iwafer_manager.h"
 #include "tests/mocks/mock_wafer_manager.h"
-#include "irobot.h"
-#include "sim_robot.h"
+#include "equipment/robot/irobot.h"
+#include "equipment/robot/sim_robot.h"
 #include "tests/mocks/mock_robot.h"
 #include "engine/process_engine.h"
-#include "sim_process_module.h"
+#include "equipment/process_module/sim_process_module.h"
 
 
 void runProcessWafer(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule, Recipe& recipe) 

@@ -4,8 +4,8 @@
 
 #include "equipment_state.h"
 #include "iwafer_manager.h"
-#include "irobot.h"
-#include "iprocess_module.h"
+#include "equipment/robot/irobot.h"
+#include "equipment/process_module/iprocess_module.h"
 
 
 class ProcessEngine

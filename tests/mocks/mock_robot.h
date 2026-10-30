@@ -1,4 +1,4 @@
-#include "irobot.h"
+#include "equipment/robot/irobot.h"
 
 class MockRobot : public IRobot
 {

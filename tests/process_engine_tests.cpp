@@ -3,7 +3,7 @@
 
 #include "engine/process_engine.h"
 #include "engine/equipment_state.h"
-#include "sim_process_module.h"
+#include "equipment/process_module/sim_process_module.h"
 #include "mocks/mock_process_module.h"
 #include "mocks/blocking_mock_process_module.h"
 #include "mocks/throwing_mock_process_module.h"

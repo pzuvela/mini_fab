@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 
-#include "sim_process_module.h"
+#include "equipment/process_module/sim_process_module.h"
 #include "domain/wafer.h"
 #include "domain/recipe.h"
 #include "domain/location.h"

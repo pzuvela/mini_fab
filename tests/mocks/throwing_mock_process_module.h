@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdexcept>
-#include "iprocess_module.h"
+#include "equipment/process_module/iprocess_module.h"
 
 class ThrowingMockProcessModule : public IProcessModule
 {

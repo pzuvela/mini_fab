@@ -1,7 +1,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include <iprocess_module.h>
+#include "equipment/process_module/iprocess_module.h"
 
 
 class BlockingMockProcessModule : public IProcessModule

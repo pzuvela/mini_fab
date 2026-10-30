@@ -1,4 +1,4 @@
-#include "iprocess_module.h"
+#include "equipment/process_module/iprocess_module.h"
 
 class MockProcessModule : public IProcessModule
 {
