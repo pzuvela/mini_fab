@@ -319,7 +319,7 @@ namespace MiniFab::Tests
 
         EXPECT_THROW(
             engine.waitForCompletion(),
-            std::future_error
+            std::logic_error
         );
     }
 

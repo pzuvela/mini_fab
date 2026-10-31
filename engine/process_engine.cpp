@@ -166,6 +166,10 @@ bool ProcessEngine::reset()
 }
 
 bool ProcessEngine::waitForCompletion()
-{
+{	
+	if (!resultFuture_.valid())
+	{
+		throw std::logic_error("No pending process result");
+	} 
 	return resultFuture_.get();
 }
