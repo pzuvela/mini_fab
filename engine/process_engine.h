@@ -33,7 +33,8 @@ private:
     bool executeProcessWafer(
         Wafer& wafer,
         const Location& processModuleLocation,
-        const Recipe& recipe
+        const Recipe& recipe,
+	std::stop_token stopToken
     );
 
     void setState(EquipmentState newState);

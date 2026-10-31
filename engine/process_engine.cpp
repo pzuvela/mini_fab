@@ -67,7 +67,8 @@ void ProcessEngine::setState(EquipmentState newState)
 bool ProcessEngine::executeProcessWafer(
 	Wafer& wafer,
 	const Location& processModuleLocation,
-	const Recipe& recipe
+	const Recipe& recipe,
+	std::stop_token stopToken = {}
 )
 {
 	bool isMovementSuccessful = run(wafer, processModuleLocation);
@@ -128,13 +129,12 @@ bool ProcessEngine::startProcessWafer(
 
 	resultFuture_ = promise.get_future();
 
-
 	worker_ = std::jthread(
-		[this, wafer, processModuleLocation, recipe, promise = std::move(promise)]() mutable
+		[this, wafer, processModuleLocation, recipe, promise = std::move(promise)](std::stop_token stopToken) mutable
 		{
 			try
 			{
-				bool isProcessSuccessful = this->executeProcessWafer(*wafer, processModuleLocation, recipe);
+				bool isProcessSuccessful = this->executeProcessWafer(*wafer, processModuleLocation, recipe, stopToken);
 				promise.set_value(isProcessSuccessful);
 			}
 			catch (...)
@@ -169,38 +169,46 @@ bool ProcessEngine::reset()
 
 StateTransition ProcessEngine::cancel() 
 {
-	std::lock_guard<std::mutex> lock(mutex_);
 	StateTransition stateTransition;
 
-	switch (state_) 
 	{
-		case EquipmentState::Moving:
-		case EquipmentState::Processing:
-			stateTransition = StateTransition
-			{
-				.previousState = state_,
-				.newState = EquipmentState::Stopping,
-				.isCancelled = true
-			};
-			state_ = EquipmentState::Stopping;
-			break;
-		case EquipmentState::Idle:
-		case EquipmentState::Stopping:
-		case EquipmentState::Faulted:
-			stateTransition = StateTransition
-			{
-				.previousState = state_,
-				.newState = state_,
-				.isCancelled = false
-			};
-			break;
+		std::lock_guard<std::mutex> lock(mutex_);
+
+		switch (state_) 
+		{
+			case EquipmentState::Moving:
+			case EquipmentState::Processing:
+				stateTransition = StateTransition
+				{
+					.previousState = state_,
+					.newState = EquipmentState::Stopping,
+					.isCancelled = true
+				};
+				state_ = EquipmentState::Stopping;
+				break;
+			case EquipmentState::Idle:
+			case EquipmentState::Stopping:
+			case EquipmentState::Faulted:
+				stateTransition = StateTransition
+				{
+					.previousState = state_,
+					.newState = state_,
+					.isCancelled = false
+				};
+				break;
+		}
+	}
+
+	if (state_ == EquipmentState::Stopping) 
+	{
+		worker_.request_stop();
 	}
 
 	return stateTransition;
 }
 
 bool ProcessEngine::waitForCompletion()
-{	
+{
 	if (!resultFuture_.valid())
 	{
 		throw std::logic_error("No pending process result");
