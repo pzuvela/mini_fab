@@ -38,6 +38,8 @@ private:
 
     void setState(EquipmentState newState);
 
+    bool tryTransition(EquipmentState expectedState, EquipmentState newState);
+
     Wafer* acceptWaferForProcessing(const std::string& waferId);
 
 public:

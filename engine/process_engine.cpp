@@ -78,7 +78,9 @@ bool ProcessEngine::executeProcessWafer(
 		return false;
 	}
 
-	setState(EquipmentState::Processing);
+	bool hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Processing);
+
+	if (!hasTransitioned) return false;
 
 	bool isProcessSuccessful = process(wafer, recipe);
 
@@ -204,4 +206,12 @@ bool ProcessEngine::waitForCompletion()
 		throw std::logic_error("No pending process result");
 	} 
 	return resultFuture_.get();
+}
+
+bool ProcessEngine::tryTransition(EquipmentState expectedState, EquipmentState newState) 
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+	if (state_ != expectedState) return false;
+	state_ = newState;
+	return true;
 }
