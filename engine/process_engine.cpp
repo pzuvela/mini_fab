@@ -199,7 +199,7 @@ StateTransition ProcessEngine::cancel()
 		}
 	}
 
-	if (state_ == EquipmentState::Stopping) 
+	if (stateTransition.isCancelled) 
 	{
 		worker_.request_stop();
 	}
