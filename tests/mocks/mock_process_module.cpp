@@ -5,7 +5,7 @@ MockProcessModule::MockProcessModule(bool processShouldSucceed)
 {
 }
 
-bool MockProcessModule::process(const Wafer& wafer, const Recipe& recipe)
+bool MockProcessModule::process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken)
 {
 	processWasCalled_ = true;
 	return processShouldSucceed_;

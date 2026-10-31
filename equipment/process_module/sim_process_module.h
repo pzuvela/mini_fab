@@ -16,5 +16,5 @@ public:
 	{
 		return isReady_;
 	};
-	bool process(const Wafer& wafer, const Recipe& recipe) override;
+	bool process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken) override;
 };

@@ -2,7 +2,7 @@
 #include <iostream>
 #include "sim_process_module.h"
 
-bool SimProcessModule::process(const Wafer& wafer, const Recipe& recipe)
+bool SimProcessModule::process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken)
 {
 	if (!isReady_) 
 	{

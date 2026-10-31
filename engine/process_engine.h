@@ -2,6 +2,7 @@
 #include <thread>
 #include <future>
 
+#include "equipment/operation_result.h"
 #include "equipment_state.h"
 #include "state_transition.h"
 #include "wafer/iwafer_manager.h"
@@ -18,7 +19,7 @@ private:
     EquipmentState state_ = EquipmentState::Idle;
     mutable std::mutex mutex_;
     std::jthread worker_;
-    std::future<bool> resultFuture_;
+    std::future<OperationResult> resultFuture_;
 
     bool run(
         Wafer& wafer,
@@ -30,7 +31,7 @@ private:
         const Recipe& recipe
     );
 
-    bool executeProcessWafer(
+    OperationResult executeProcessWafer(
         Wafer& wafer,
         const Location& processModuleLocation,
         const Recipe& recipe,
@@ -50,19 +51,19 @@ public:
         IProcessModule& processModule
     );
 
-    bool processWafer(
+    OperationResult processWafer(
         const std::string& waferId,
         const Location& processModuleLocation,
         const Recipe& recipe
     );
 
-    bool startProcessWafer(
+    OperationResult startProcessWafer(
         const std::string& waferId,
         const Location& processModuleLocation,
         const Recipe& recipe
     );
 
-    bool waitForCompletion();
+    OperationResult waitForCompletion();
 
     EquipmentState state() const;
 

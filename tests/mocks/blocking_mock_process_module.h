@@ -12,12 +12,12 @@ private:
     bool released_ = false;
 
     std::mutex mutex_;
-    std::condition_variable condition_;
+    std::condition_variable_any condition_;
 
 public:
     void initialize() override;
     bool isReady() const override;
-    bool process(const Wafer& wafer, const Recipe& recipe) override;
+    bool process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken) override;
 
     void waitUntilProcessingStarts();
     void release();

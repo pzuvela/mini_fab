@@ -55,7 +55,7 @@ namespace MiniFab::Tests
 
         module.initialize();
 
-        bool isSuccessful = module.process(wafer, recipe);
+        bool isSuccessful = module.process(wafer, recipe, std::stop_token());
 
         EXPECT_TRUE(isSuccessful);
     }
@@ -64,6 +64,6 @@ namespace MiniFab::Tests
     {
         SimProcessModule module = SimProcessModule();
 
-        EXPECT_THROW(module.process(wafer, recipe), std::logic_error);
+        EXPECT_THROW(module.process(wafer, recipe, std::stop_token()), std::logic_error);
     }
 }

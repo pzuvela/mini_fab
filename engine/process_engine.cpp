@@ -39,7 +39,10 @@ bool ProcessEngine::process(
 	{
 		processModule_.initialize();
 	}
-	return processModule_.process(wafer, recipe);
+
+	std::stop_token stopToken;
+
+	return processModule_.process(wafer, recipe, stopToken);
 }
 
 Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId)
@@ -64,7 +67,7 @@ void ProcessEngine::setState(EquipmentState newState)
 	state_ = newState;
 }
 
-bool ProcessEngine::executeProcessWafer(
+OperationResult ProcessEngine::executeProcessWafer(
 	Wafer& wafer,
 	const Location& processModuleLocation,
 	const Recipe& recipe,
@@ -76,28 +79,37 @@ bool ProcessEngine::executeProcessWafer(
 	if (!isMovementSuccessful)
 	{
 		setState(EquipmentState::Faulted);
-		return false;
+		return OperationResult::Failed;
 	}
 
 	bool hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Processing);
 
-	if (!hasTransitioned) return false;
+	if (!hasTransitioned) 
+
+	{
+		if (stopToken.stop_requested())
+		{
+			return OperationResult::Cancelled;
+		}
+
+		return OperationResult::Failed;
+	}
 
 	bool isProcessSuccessful = process(wafer, recipe);
 
 	if (isProcessSuccessful)
 	{
 		setState(EquipmentState::Idle);
+		return OperationResult::Completed;
 	}
 	else
 	{
 		setState(EquipmentState::Faulted);
+		return OperationResult::Failed;
 	}
-
-	return isProcessSuccessful;
 }
 
-bool ProcessEngine::processWafer(
+OperationResult ProcessEngine::processWafer(
 	const std::string& waferId,
 	const Location& processModuleLocation,
 	const Recipe& recipe
@@ -105,8 +117,7 @@ bool ProcessEngine::processWafer(
 {
 	Wafer* wafer = acceptWaferForProcessing(waferId);
 
-	if (wafer == nullptr)
-		return false;
+	if (wafer == nullptr) return OperationResult::Failed;
 
 	return executeProcessWafer(
 		*wafer,
@@ -115,17 +126,17 @@ bool ProcessEngine::processWafer(
 	);
 }
 
-bool ProcessEngine::startProcessWafer(
+OperationResult ProcessEngine::startProcessWafer(
 	const std::string& waferId,
 	const Location& processModuleLocation,
 	const Recipe& recipe
-) 
+)
 {
 	Wafer* wafer = acceptWaferForProcessing(waferId);
 
-	if (wafer == nullptr) return false;
+	if (wafer == nullptr) return OperationResult::Failed;
 
-	std::promise<bool> promise;
+	std::promise<OperationResult> promise;
 
 	resultFuture_ = promise.get_future();
 
@@ -134,8 +145,8 @@ bool ProcessEngine::startProcessWafer(
 		{
 			try
 			{
-				bool isProcessSuccessful = this->executeProcessWafer(*wafer, processModuleLocation, recipe, stopToken);
-				promise.set_value(isProcessSuccessful);
+				OperationResult operationResult = this->executeProcessWafer(*wafer, processModuleLocation, recipe, stopToken);
+				promise.set_value(operationResult);
 			}
 			catch (...)
 			{
@@ -144,7 +155,7 @@ bool ProcessEngine::startProcessWafer(
 			}
 		}
 	);
-	return true;
+	return OperationResult::Completed;
 }
 
 EquipmentState ProcessEngine::state() const 
@@ -207,7 +218,7 @@ StateTransition ProcessEngine::cancel()
 	return stateTransition;
 }
 
-bool ProcessEngine::waitForCompletion()
+OperationResult ProcessEngine::waitForCompletion()
 {
 	if (!resultFuture_.valid())
 	{

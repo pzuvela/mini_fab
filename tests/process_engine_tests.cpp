@@ -76,9 +76,9 @@ namespace MiniFab::Tests
         MockProcessModule processModule{ true };
         ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isSuccessful = engine.processWafer(wafer_.id, destination_, recipe_);
+        OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
-        EXPECT_TRUE(isSuccessful);
+        EXPECT_EQ(operationResult, OperationResult::Completed);
     }
 
     TEST_F(ProcessEngineTest, ProcessWaferReturnsFalseWhenProcessModuleFails)
@@ -87,9 +87,9 @@ namespace MiniFab::Tests
         MockProcessModule processModule{ false };
         ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isSuccessful = engine.processWafer(wafer_.id, destination_, recipe_);
+        OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
-        EXPECT_FALSE(isSuccessful);
+        EXPECT_EQ(operationResult, OperationResult::Failed);
     }
 
     TEST_F(ProcessEngineTest, DoesNotProcessWaferWhenMovementFails)
@@ -98,9 +98,9 @@ namespace MiniFab::Tests
         MockProcessModule processModule{ true };
         ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
+        OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
-        EXPECT_FALSE(isProcessed);
+        EXPECT_EQ(operationResult, OperationResult::Failed);
         EXPECT_FALSE(processModule.processWasCalled());
         EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
@@ -111,9 +111,9 @@ namespace MiniFab::Tests
         MockProcessModule processModule{ true };
         ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
+        OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
-        EXPECT_TRUE(isProcessed);
+        EXPECT_EQ(operationResult, OperationResult::Completed);
         EXPECT_TRUE(processModule.processWasCalled());
     }
 
@@ -123,11 +123,11 @@ namespace MiniFab::Tests
         MockProcessModule processModule{ false };
         ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
+        OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
         Wafer* managedWafer = mgr_.findWafer(wafer_.id);
 
-        EXPECT_FALSE(isProcessed);
+        EXPECT_EQ(operationResult, OperationResult::Failed);
         EXPECT_TRUE(processModule.processWasCalled());
         ASSERT_NE(managedWafer, nullptr);
         EXPECT_EQ(destination_, managedWafer->location);
@@ -151,9 +151,9 @@ namespace MiniFab::Tests
         engine.processWafer(wafer_.id, destination_, recipe_);
         robot.setMoveShouldSucceed(true);
 
-        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
+        OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
-        EXPECT_FALSE(isProcessed);
+        EXPECT_EQ(operationResult, OperationResult::Failed);
         EXPECT_EQ(engine.state(), EquipmentState::Faulted);
         EXPECT_FALSE(processModule.processWasCalled());
     }
@@ -196,9 +196,9 @@ namespace MiniFab::Tests
         
         robot.setMoveShouldSucceed(true);
 
-        bool isProcessed = engine.processWafer(wafer_.id, destination_, recipe_);
+        OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
-        EXPECT_TRUE(isProcessed);
+        EXPECT_EQ(operationResult, OperationResult::Completed);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
@@ -208,9 +208,9 @@ namespace MiniFab::Tests
         MockProcessModule processModule{ true };
         ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isProcessed = engine.processWafer("404", destination_, recipe_);
+        OperationResult operationResult = engine.processWafer("404", destination_, recipe_);
 
-        EXPECT_FALSE(isProcessed);
+        EXPECT_EQ(operationResult, OperationResult::Failed);
         EXPECT_FALSE(processModule.processWasCalled());
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
@@ -236,14 +236,16 @@ namespace MiniFab::Tests
             }
         );
 
-        ASSERT_TRUE(
-            engine.startProcessWafer(wafer_.id, destination_, recipe_)
+        ASSERT_EQ(
+            engine.startProcessWafer(wafer_.id, destination_, recipe_),
+	    OperationResult::Completed
         );
 
         processModule.waitUntilProcessingStarts();
 
-        EXPECT_FALSE(
-            engine.startProcessWafer("Wafer2", destination_, recipe_)
+        EXPECT_EQ(
+            engine.startProcessWafer("Wafer2", destination_, recipe_),
+	    OperationResult::Failed
         );
 
         processModule.release();
@@ -260,15 +262,15 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule);
 
-        bool started = engine.startProcessWafer(
+        OperationResult operationResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         );
 
-        ASSERT_TRUE(started);
+        ASSERT_EQ(operationResult, OperationResult::Completed);
 
-        bool completedSuccessfully = engine.waitForCompletion();
+        operationResult = engine.waitForCompletion();
 
-        EXPECT_TRUE(completedSuccessfully);
+        EXPECT_EQ(operationResult, OperationResult::Completed);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
@@ -283,15 +285,15 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule);
 
-        bool started = engine.startProcessWafer(
+        OperationResult operationResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         );
 
-        ASSERT_TRUE(started);
+        ASSERT_EQ(operationResult, OperationResult::Completed);
 
-        bool completedSuccessfully = engine.waitForCompletion();
+        operationResult = engine.waitForCompletion();
 
-        EXPECT_FALSE(completedSuccessfully);
+        EXPECT_EQ(operationResult, OperationResult::Failed);
         EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
 
@@ -306,15 +308,15 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule);
 
-        bool started = engine.startProcessWafer(
+        OperationResult operationResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         );
 
-        ASSERT_TRUE(started);
+        ASSERT_EQ(operationResult, OperationResult::Completed);
 
-        bool completedSuccessfully = engine.waitForCompletion();
+        operationResult = engine.waitForCompletion();
 
-        EXPECT_TRUE(completedSuccessfully);
+        EXPECT_EQ(operationResult, OperationResult::Completed);
 
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
 
@@ -344,18 +346,24 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule);
 
-        ASSERT_TRUE(engine.startProcessWafer(
-            wafer_.id, destination_, recipe_
-        ));
+        ASSERT_EQ(
+		engine.startProcessWafer(
+            		wafer_.id, destination_, recipe_
+        	),
+		OperationResult::Completed
+	);
 
-        ASSERT_TRUE(engine.waitForCompletion());
+        ASSERT_EQ(engine.waitForCompletion(), OperationResult::Completed);
 
         // Actual behavior under test
-        EXPECT_TRUE(engine.startProcessWafer(
-            "Wafer2", destination_, recipe_
-        ));
+        EXPECT_EQ(
+		engine.startProcessWafer(
+            		"Wafer2", destination_, recipe_
+        	),
+		OperationResult::Completed
+	);
 
-        EXPECT_TRUE(engine.waitForCompletion());
+        EXPECT_EQ(engine.waitForCompletion(), OperationResult::Completed);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
@@ -381,8 +389,8 @@ namespace MiniFab::Tests
 
         std::barrier startBarrier{ 2 };
 
-        bool firstStarted = false;
-        bool secondStarted = false;
+        OperationResult firstStarted = OperationResult::Failed;
+        OperationResult secondStarted = OperationResult::Failed;
 
         std::thread firstThread([&]() {
             startBarrier.arrive_and_wait();
@@ -407,7 +415,7 @@ namespace MiniFab::Tests
 
         EXPECT_NE(firstStarted, secondStarted);
 
-        EXPECT_TRUE(engine.waitForCompletion());
+        EXPECT_EQ(engine.waitForCompletion(), OperationResult::Completed);
     }
 
     TEST_F(ProcessEngineTest, AsyncProcessWaferPropagatesUnexpectedException) 
@@ -421,11 +429,11 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule);
 
-        bool started = engine.startProcessWafer(
+        OperationResult operationResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         );
 
-        ASSERT_TRUE(started);        
+        ASSERT_EQ(operationResult, OperationResult::Completed);
 
         EXPECT_THROW(
             engine.waitForCompletion(),
