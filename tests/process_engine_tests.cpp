@@ -454,6 +454,8 @@ namespace MiniFab::Tests
 	EXPECT_EQ(stateTransition.previousState, EquipmentState::Processing);
 	EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
 	EXPECT_TRUE(stateTransition.isCancelled);
+
+	EXPECT_EQ(engine.state(), EquipmentState::Stopping);
     }
 
     TEST_F(ProcessEngineTest, RemainsIdleWhenCancelledWhileIdle) 

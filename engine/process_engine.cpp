@@ -180,6 +180,7 @@ StateTransition ProcessEngine::cancel()
 				.newState = EquipmentState::Stopping,
 				.isCancelled = true
 			};
+			state_ = EquipmentState::Stopping;
 			break;
 		case EquipmentState::Idle:
 		case EquipmentState::Stopping:
