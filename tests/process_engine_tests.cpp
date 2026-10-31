@@ -433,4 +433,46 @@ namespace MiniFab::Tests
 
         EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
+
+    TEST_F(ProcessEngineTest, TransitionsToStoppingWhenCancelledDuringProcessing) 
+    {
+	MockRobot robot{ true };
+        BlockingMockProcessModule processModule;
+
+        WaferManager mgr = WaferManager();
+
+        mgr.addWafer(wafer_);
+
+        ProcessEngine engine(mgr, robot, processModule);
+
+	engine.startProcessWafer(wafer_.id, destination_, recipe_);
+	processModule.waitUntilProcessingStarts();
+	StateTransition stateTransition = engine.cancel();
+
+	processModule.release();
+
+	EXPECT_EQ(stateTransition.previousState, EquipmentState::Processing);
+	EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
+	EXPECT_TRUE(stateTransition.isCancelled);
+    }
+
+    TEST_F(ProcessEngineTest, RemainsIdleWhenCancelledWhileIdle) 
+    {
+	MockRobot robot{ true };
+        BlockingMockProcessModule processModule;
+
+        WaferManager mgr = WaferManager();
+
+        mgr.addWafer(wafer_);
+
+        ProcessEngine engine(mgr, robot, processModule);
+
+        StateTransition stateTransition = engine.cancel();
+
+        processModule.release();
+
+        EXPECT_EQ(stateTransition.previousState, EquipmentState::Idle);
+        EXPECT_EQ(stateTransition.newState, EquipmentState::Idle);
+        EXPECT_FALSE(stateTransition.isCancelled);
+    }
 }

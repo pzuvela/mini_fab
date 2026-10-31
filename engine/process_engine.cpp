@@ -165,6 +165,37 @@ bool ProcessEngine::reset()
 	return true;
 }
 
+StateTransition ProcessEngine::cancel() 
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+	StateTransition stateTransition;
+
+	switch (state_) 
+	{
+		case EquipmentState::Moving:
+		case EquipmentState::Processing:
+			stateTransition = StateTransition
+			{
+				.previousState = state_,
+				.newState = EquipmentState::Stopping,
+				.isCancelled = true
+			};
+			break;
+		case EquipmentState::Idle:
+		case EquipmentState::Stopping:
+		case EquipmentState::Faulted:
+			stateTransition = StateTransition
+			{
+				.previousState = state_,
+				.newState = state_,
+				.isCancelled = false
+			};
+			break;
+	}
+
+	return stateTransition;
+}
+
 bool ProcessEngine::waitForCompletion()
 {	
 	if (!resultFuture_.valid())
