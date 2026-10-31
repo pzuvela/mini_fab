@@ -1,5 +1,7 @@
 #include "blocking_mock_robot.h"
 
+
+
 void BlockingMockRobot::initialize() 
 {
 	ready_ = true;
@@ -26,7 +28,7 @@ bool BlockingMockRobot::moveWafer(
 	condition_.wait(lock, [this]()
 	{
 		return released_;
-	)};
+	});
 
 	return true;
 }

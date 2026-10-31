@@ -8,6 +8,7 @@
 #include "mocks/blocking_mock_process_module.h"
 #include "mocks/throwing_mock_process_module.h"
 #include "mocks/mock_robot.h"
+#include "mocks/blocking_mock_robot.h"
 #include "mocks/mock_wafer_manager.h"
 #include "wafer/wafer_manager.h"
 #include "domain/wafer.h"
@@ -476,5 +477,29 @@ namespace MiniFab::Tests
         EXPECT_EQ(stateTransition.previousState, EquipmentState::Idle);
         EXPECT_EQ(stateTransition.newState, EquipmentState::Idle);
         EXPECT_FALSE(stateTransition.isCancelled);
+    }
+
+    TEST_F(ProcessEngineTest, DoesNotProcessWaferWhenCancelledDuringMovement) 
+    {
+	BlockingMockRobot robot;
+	MockProcessModule processModule{ false };
+	WaferManager mgr;
+	mgr.addWafer(wafer_);
+
+	ProcessEngine engine{mgr, robot, processModule};
+
+	engine.startProcessWafer(
+		wafer_.id, destination_, recipe_
+	);
+
+	robot.waitUntilMovementStarts();
+
+	StateTransition stateTransition = engine.cancel();
+	robot.release();
+
+	engine.waitForCompletion();
+
+	EXPECT_FALSE(processModule.processWasCalled());
+	EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
     }
 }

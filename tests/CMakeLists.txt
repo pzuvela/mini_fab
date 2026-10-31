@@ -5,6 +5,7 @@ add_executable(mini_fab_tests
     wafer_manager_tests.cpp
 
     mocks/mock_robot.cpp
+    mocks/blocking_mock_robot.cpp
     mocks/mock_wafer_manager.cpp
     mocks/mock_process_module.cpp
     mocks/blocking_mock_process_module.cpp
