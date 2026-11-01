@@ -15,3 +15,8 @@ OperationResult SimProcessModule::process(const Wafer& wafer, const Recipe& reci
 
 	return OperationResult::Completed;
 }
+
+RecoveryResult SimProcessModule::recover() 
+{
+	return RecoveryResult::Recovered;
+}

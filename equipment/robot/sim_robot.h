@@ -15,5 +15,6 @@ public:
 		const Location& destination,
 		std::stop_token stopToken
 	) override;
+    RecoveryResult recover() override;
     bool isReady() const override;
 };

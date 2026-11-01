@@ -3,6 +3,7 @@
 #include <stop_token>
 
 #include "equipment/operation_result.h"
+#include "equipment/recovery_result.h"
 #include "domain/wafer.h"
 #include "domain/recipe.h"
 
@@ -16,5 +17,6 @@ public:
 		const Recipe& recipe, 
 		std::stop_token stopToken
 	) = 0;
+	virtual RecoveryResult recover() = 0;
 	virtual ~IProcessModule() = default;
 };

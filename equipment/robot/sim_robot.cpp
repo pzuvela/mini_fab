@@ -17,6 +17,11 @@ OperationResult SimRobot::moveWafer(
     return OperationResult::Completed;
 }
 
+RecoveryResult SimRobot::recover() 
+{
+	return RecoveryResult::Recovered;
+}
+
 bool SimRobot::isReady() const
 {
     return ready_;

@@ -16,6 +16,7 @@ public:
 	{
 		return isReady_;
 	};
+	RecoveryResult recover() override;
 	OperationResult process(
 		const Wafer& wafer, 
 		const Recipe& recipe, 

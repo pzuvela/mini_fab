@@ -26,6 +26,11 @@ OperationResult MockRobot::moveWafer(
     return moveShouldSucceed_ ? OperationResult::Completed : OperationResult::Failed;
 }
 
+RecoveryResult MockRobot::recover() 
+{
+	return RecoveryResult::Recovered;
+}
+
 bool MockRobot::isReady() const
 {
     return ready_;

@@ -19,6 +19,11 @@ public:
         return isReady_;
     }
 
+    RecoveryResult recover() override
+    {
+        return RecoveryResult::Recovered;
+    }
+
     OperationResult process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken) override
     {
         throw std::runtime_error("Process module failure");

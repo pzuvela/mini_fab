@@ -15,3 +15,8 @@ bool MockProcessModule::processWasCalled() const
 {
 	return processWasCalled_;
 }
+
+RecoveryResult MockProcessModule::recover() 
+{
+	return RecoveryResult::Recovered;
+}

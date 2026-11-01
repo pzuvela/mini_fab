@@ -45,6 +45,11 @@ void BlockingMockProcessModule::initialize()
 	ready_ = true;
 }
 
+RecoveryResult BlockingMockProcessModule::recover() 
+{
+	return RecoveryResult::Recovered;
+}
+
 bool BlockingMockProcessModule::isReady() const
 {
 	return ready_;

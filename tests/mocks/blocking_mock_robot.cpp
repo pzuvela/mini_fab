@@ -38,11 +38,16 @@ OperationResult BlockingMockRobot::moveWafer(
 void BlockingMockRobot::waitUntilMovementStarts()
 {
 	std::unique_lock<std::mutex> lock(mutex_);
-	
+
 	condition_.wait(lock, [this]()
 	{
 		return movementStarted_;
 	});
+}
+
+RecoveryResult BlockingMockRobot::recover() 
+{
+	return RecoveryResult::Recovered;
 }
 
 void BlockingMockRobot::release()

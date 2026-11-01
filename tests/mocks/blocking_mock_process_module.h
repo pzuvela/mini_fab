@@ -18,7 +18,7 @@ public:
     void initialize() override;
     bool isReady() const override;
     OperationResult process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken) override;
-
+    RecoveryResult recover() override;
     void waitUntilProcessingStarts();
     void release();
 };

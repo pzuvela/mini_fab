@@ -6,5 +6,6 @@ enum class EquipmentState
     Moving,
     Processing,
     Stopping,
+    Recovering,
     Faulted
 };
