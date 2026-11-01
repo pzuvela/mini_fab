@@ -8,9 +8,10 @@ class MockRobot : public IRobot
 private:
 	bool ready_ = false;
 	bool moveShouldSucceed_;
+	bool recoveryShouldSucceed_;
 
 public:
-	MockRobot(bool moveShouldSucceed);
+	MockRobot(bool moveShouldSucceed, bool recoveryShouldSucceed = true);
 	void initialize() override;
 	OperationResult moveWafer(
 		Wafer& wafer,
@@ -20,4 +21,5 @@ public:
 	RecoveryResult recover() override;
 	bool isReady() const override;
 	void setMoveShouldSucceed(bool moveShouldSucceed);
+	void setRecoveryShouldSucceed(bool recoveryShouldSucceed);
 };

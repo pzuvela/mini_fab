@@ -1,8 +1,8 @@
 #include "mock_robot.h"
 #include <iostream>
 
-MockRobot::MockRobot(bool moveShouldSucceed)
-    : moveShouldSucceed_(moveShouldSucceed)
+MockRobot::MockRobot(bool moveShouldSucceed, bool recoveryShouldSucceed)
+    : moveShouldSucceed_(moveShouldSucceed), recoveryShouldSucceed_(recoveryShouldSucceed)
 {
     std::cout << "[MOCK] instantiated!\n";
 }
@@ -28,7 +28,7 @@ OperationResult MockRobot::moveWafer(
 
 RecoveryResult MockRobot::recover() 
 {
-	return RecoveryResult::Recovered;
+	return recoveryShouldSucceed_ ? RecoveryResult::Recovered : RecoveryResult::Failed;
 }
 
 bool MockRobot::isReady() const
@@ -39,4 +39,9 @@ bool MockRobot::isReady() const
 void MockRobot::setMoveShouldSucceed(bool moveShouldSucceed) 
 {
     moveShouldSucceed_ = moveShouldSucceed;
+}
+
+void MockRobot::setRecoveryShouldSucceed(bool recoveryShouldSucceed) 
+{
+    recoveryShouldSucceed_ = recoveryShouldSucceed;
 }

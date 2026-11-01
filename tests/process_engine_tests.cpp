@@ -533,6 +533,42 @@ namespace MiniFab::Tests
 	EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
+    TEST_F(ProcessEngineTest, RecoveryFailureKeepsEngineFaulted) 
+    {
+	MockRobot robot { false, false };
+	MockProcessModule processModule{ true };
+	ProcessEngine engine(mgr_, robot, processModule);
+
+	engine.processWafer(wafer_.id, destination_, recipe_);
+
+	RecoveryResult recoveryResult = engine.reset();
+
+	EXPECT_EQ(recoveryResult, RecoveryResult::Failed);
+	EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+    }
+
+    TEST_F(ProcessEngineTest, CanRetryRecoveryAfterRecoveryFailure) 
+    {
+	MockRobot robot { false, false };
+	MockProcessModule processModule{ true };
+	ProcessEngine engine(mgr_, robot, processModule);
+
+	engine.processWafer(wafer_.id, destination_, recipe_);
+
+	RecoveryResult recoveryResult = engine.reset();
+
+	EXPECT_EQ(recoveryResult, RecoveryResult::Failed);
+	EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+
+	robot.setRecoveryShouldSucceed(true);
+
+	recoveryResult = engine.reset();
+
+	EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	EXPECT_EQ(engine.state(), EquipmentState::Idle);;
+
+    }
+
 }
 
 
