@@ -96,12 +96,10 @@ OperationResult ProcessEngine::executeProcessWafer(
 			hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
 			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
 			return OperationResult::Cancelled;
-			break;
 
 		case OperationResult::Failed:
 			setState(EquipmentState::Faulted);
 			return OperationResult::Failed;
-			break;
 	}
 
 	OperationResult operationResult = process(wafer, recipe, stopToken);
