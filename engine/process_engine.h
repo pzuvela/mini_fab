@@ -40,6 +40,8 @@ private:
 	std::stop_token stopToken = {}
     );
 
+    OperationResult resultFromFailedTransition(std::stop_token stopToken);
+
     void setState(EquipmentState newState);
 
     bool tryTransition(EquipmentState expectedState, EquipmentState newState);

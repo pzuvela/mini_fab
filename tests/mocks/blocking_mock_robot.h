@@ -12,7 +12,7 @@ private:
 	bool movementStarted_ = false;
 	bool released_ = false;
 	std::mutex mutex_;
-	std::condition_variable condition_;
+	std::condition_variable_any condition_;
 
 public:
 	void initialize() override;

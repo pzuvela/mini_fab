@@ -21,14 +21,14 @@ OperationResult ProcessEngine::run(
 	{
 		robot_.initialize();
 	}
-	OperationResult operationResult = robot_.moveWafer(wafer, destination, stopToken);
+	OperationResult movementResult = robot_.moveWafer(wafer, destination, stopToken);
 
-	if (operationResult == OperationResult::Completed)
+	if (movementResult == OperationResult::Completed)
 	{
 		wafer.location = destination;
 	}
 
-	return operationResult;
+	return movementResult;
 }
 
 OperationResult ProcessEngine::process(
@@ -61,6 +61,13 @@ Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId)
 	return wafer;
 }
 
+
+OperationResult ProcessEngine::resultFromFailedTransition(std::stop_token stopToken)
+{
+	return stopToken.stop_requested() ? OperationResult::Cancelled : OperationResult::Failed;
+}
+
+
 void ProcessEngine::setState(EquipmentState newState) 
 {
 	std::lock_guard<std::mutex> lock(mutex_);
@@ -74,28 +81,30 @@ OperationResult ProcessEngine::executeProcessWafer(
 	std::stop_token stopToken
 )
 {
-	OperationResult operationResult = run(wafer, processModuleLocation, stopToken);
+	OperationResult movementResult = run(wafer, processModuleLocation, stopToken);
 
-	if (operationResult != OperationResult::Completed)
+	bool hasTransitioned;
+
+	switch (movementResult)
 	{
-		setState(EquipmentState::Faulted);
-		return OperationResult::Failed;
+		case OperationResult::Completed:
+			hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Processing);
+        		if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+			break;
+
+		case OperationResult::Cancelled:
+			hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
+			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+			break;
+
+		case OperationResult::Failed:
+			setState(EquipmentState::Faulted);
+			break;
 	}
 
-	bool hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Processing);
+	return movementResult;
 
-	if (!hasTransitioned) 
-
-	{
-		if (stopToken.stop_requested())
-		{
-			return OperationResult::Cancelled;
-		}
-
-		return OperationResult::Failed;
-	}
-
-	operationResult = process(wafer, recipe, stopToken);
+	OperationResult operationResult = process(wafer, recipe, stopToken);
 
 	switch (operationResult)
 	{

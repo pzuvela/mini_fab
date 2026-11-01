@@ -138,7 +138,7 @@ namespace MiniFab::Tests
         MockRobot robot{ true };
         MockProcessModule processModule{ true };
         ProcessEngine engine(mgr_, robot, processModule);
-        
+
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
@@ -191,9 +191,9 @@ namespace MiniFab::Tests
         ProcessEngine engine(mgr_, robot, processModule);
 
         engine.processWafer(wafer_.id, destination_, recipe_);
-        
+
         engine.reset();
-        
+
         robot.setMoveShouldSucceed(true);
 
         OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
@@ -509,10 +509,10 @@ namespace MiniFab::Tests
 	robot.waitUntilMovementStarts();
 
 	StateTransition stateTransition = engine.cancel();
-	robot.release();
 
-	engine.waitForCompletion();
+	OperationResult operationResult = engine.waitForCompletion();
 
+	EXPECT_EQ(operationResult, OperationResult::Cancelled);
 	EXPECT_FALSE(processModule.processWasCalled());
 	EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
     }

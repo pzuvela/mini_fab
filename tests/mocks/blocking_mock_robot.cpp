@@ -26,7 +26,7 @@ OperationResult BlockingMockRobot::moveWafer(
 
 	condition_.notify_all();
 
-	condition_.wait(lock, [this]()
+	condition_.wait(lock, stopToken, [this]()
 	{
 		return released_;
 	});
