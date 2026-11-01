@@ -515,5 +515,6 @@ namespace MiniFab::Tests
 	EXPECT_EQ(operationResult, OperationResult::Cancelled);
 	EXPECT_FALSE(processModule.processWasCalled());
 	EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
+	EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 }
