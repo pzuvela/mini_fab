@@ -180,18 +180,54 @@ EquipmentState ProcessEngine::state() const
 	return state_;
 }
 
-bool ProcessEngine::reset() 
+RecoveryResult ProcessEngine::reset() 
 {
-	std::lock_guard<std::mutex> lock(mutex_);
 
-	if (state_ != EquipmentState::Faulted)
+	EquipmentComponent faultSource;
+
 	{
-		return false;
+		std::lock_guard<std::mutex> lock(mutex_);
+
+		if (state_ != EquipmentState::Faulted || !faultSource_.has_value())
+		{
+			return RecoveryResult::NotRequired;
+		}
+
+		faultSource = faultSource_.value();
+		state_ = EquipmentState::Recovering;
 	}
 
-	state_ = EquipmentState::Idle;
+	RecoveryResult recoveryResult;
 
-	return true;
+	switch (faultSource)
+	{
+		case EquipmentComponent::Robot:
+			recoveryResult = robot_.recover();
+			break;
+		case EquipmentComponent::ProcessModule:
+			recoveryResult = processModule_.recover();
+			break;
+	}
+
+	{
+                std::lock_guard<std::mutex> lock(mutex_);
+
+		switch (recoveryResult)
+		{
+			case RecoveryResult::Recovered:
+				faultSource_ = {};
+				state_ = EquipmentState::Idle;
+				break;
+
+			case RecoveryResult::Failed:
+			case RecoveryResult::NotRequired:
+				state_ = EquipmentState::Faulted;
+				break;
+		}
+
+	}
+
+	return recoveryResult;
 }
 
 StateTransition ProcessEngine::cancel() 
@@ -215,6 +251,7 @@ StateTransition ProcessEngine::cancel()
 				break;
 			case EquipmentState::Idle:
 			case EquipmentState::Stopping:
+			case EquipmentState::Recovering:
 			case EquipmentState::Faulted:
 				stateTransition = StateTransition
 				{

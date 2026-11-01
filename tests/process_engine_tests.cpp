@@ -166,21 +166,21 @@ namespace MiniFab::Tests
 
         engine.processWafer(wafer_.id, destination_, recipe_);
 
-        bool isResetSuccessful = engine.reset();
+        RecoveryResult recoveryResult = engine.reset();
 
-        EXPECT_TRUE(isResetSuccessful);
+        EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
-    TEST_F(ProcessEngineTest, ResetFailsWhenEngineIsNotFaulted) 
+    TEST_F(ProcessEngineTest, ResetReturnsNotRequiredWhenEngineIsNotFaulted)
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
         ProcessEngine engine(mgr_, robot, processModule);
 
-        bool isResetSuccessful = engine.reset();
+        RecoveryResult recoveryResult = engine.reset();
 
-        EXPECT_FALSE(isResetSuccessful);
+        EXPECT_EQ(recoveryResult, RecoveryResult::NotRequired);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
@@ -237,6 +237,7 @@ namespace MiniFab::Tests
         );
 
         ASSERT_EQ(
+
             engine.startProcessWafer(wafer_.id, destination_, recipe_),
 	    OperationResult::Completed
         );
@@ -517,4 +518,21 @@ namespace MiniFab::Tests
 	EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
 	EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
+
+    TEST_F(ProcessEngineTest, RecoversRobotAndReturnsToIdleWhenRobotCausedFault)
+    {
+	MockRobot robot{ false };
+	MockProcessModule processModule{ true };
+	ProcessEngine engine(mgr_, robot, processModule);
+
+	engine.processWafer(wafer_.id, destination_, recipe_);
+
+	RecoveryResult recoveryResult = engine.reset();
+
+	EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	EXPECT_EQ(engine.state(), EquipmentState::Idle);
+    }
+
 }
+
+

@@ -75,7 +75,7 @@ public:
 
     EquipmentState state() const;
 
-    bool reset();
+    RecoveryResult reset();
 
     StateTransition cancel();
 };
