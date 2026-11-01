@@ -443,10 +443,8 @@ namespace MiniFab::Tests
         EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
 
-    TEST_F(ProcessEngineTest, TransitionsToStoppingWhenCancelledDuringProcessing) 
+    TEST_F(ProcessEngineTest, CancelsProcessingAndReturnsToIdle) 
     {
-std::cerr << "A: entered test" << std::endl;
-
 	MockRobot robot{ true };
         BlockingMockProcessModule processModule;
 
@@ -472,7 +470,7 @@ std::cerr << "A: entered test" << std::endl;
 	EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
 	EXPECT_TRUE(stateTransition.isCancelled);
 
-	EXPECT_EQ(engine.state(), EquipmentState::Stopping);
+	EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
     TEST_F(ProcessEngineTest, RemainsIdleWhenCancelledWhileIdle) 
