@@ -32,15 +32,14 @@ bool ProcessEngine::run(
 
 OperationResult ProcessEngine::process(
 	const Wafer& wafer,
-	const Recipe& recipe
-) 
+	const Recipe& recipe,
+	std::stop_token stopToken
+)
 {
 	if (!processModule_.isReady())
 	{
 		processModule_.initialize();
 	}
-
-	std::stop_token stopToken;
 
 	return processModule_.process(wafer, recipe, stopToken);
 }
@@ -95,7 +94,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 		return OperationResult::Failed;
 	}
 
-	OperationResult operationResult = process(wafer, recipe);
+	OperationResult operationResult = process(wafer, recipe, stopToken);
 
 	if (operationResult == OperationResult::Completed)
 	{

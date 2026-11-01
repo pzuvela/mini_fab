@@ -28,7 +28,8 @@ private:
 
     OperationResult process(
         const Wafer& wafer,
-        const Recipe& recipe
+        const Recipe& recipe,
+	std::stop_token stopToken
     );
 
     OperationResult executeProcessWafer(
