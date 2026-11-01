@@ -3,6 +3,7 @@
 #include <future>
 
 #include "equipment/operation_result.h"
+#include "equipment/equipment_component.h"
 #include "equipment_state.h"
 #include "state_transition.h"
 #include "wafer/iwafer_manager.h"
@@ -20,6 +21,7 @@ private:
     mutable std::mutex mutex_;
     std::jthread worker_;
     std::future<OperationResult> resultFuture_;
+    std::optional<EquipmentComponent> faultSource_;
 
     OperationResult run(
         Wafer& wafer,
@@ -43,6 +45,8 @@ private:
     OperationResult resultFromFailedTransition(std::stop_token stopToken);
 
     void setState(EquipmentState newState);
+
+    void setFaulted(EquipmentComponent component);
 
     bool tryTransition(EquipmentState expectedState, EquipmentState newState);
 

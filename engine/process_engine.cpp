@@ -74,6 +74,13 @@ void ProcessEngine::setState(EquipmentState newState)
 	state_ = newState;
 }
 
+void ProcessEngine::setFaulted(EquipmentComponent component) 
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+	state_ = EquipmentState::Faulted;
+	faultSource_ = component;
+}
+
 OperationResult ProcessEngine::executeProcessWafer(
 	Wafer& wafer,
 	const Location& processModuleLocation,
@@ -98,7 +105,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 			return OperationResult::Cancelled;
 
 		case OperationResult::Failed:
-			setState(EquipmentState::Faulted);
+			setFaulted(EquipmentComponent::Robot);
 			return OperationResult::Failed;
 	}
 
@@ -111,7 +118,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 			setState(EquipmentState::Idle);
 			break;
 		case OperationResult::Failed:
-			setState(EquipmentState::Faulted);
+			setFaulted(EquipmentComponent::Robot);
 			break;
 	}
 
@@ -159,7 +166,7 @@ OperationResult ProcessEngine::startProcessWafer(
 			}
 			catch (...)
 			{
-				setState(EquipmentState::Faulted);
+				setFaulted(EquipmentComponent::ProcessModule);
 				promise.set_exception(std::current_exception());
 			}
 		}
