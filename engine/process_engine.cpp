@@ -70,7 +70,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 	Wafer& wafer,
 	const Location& processModuleLocation,
 	const Recipe& recipe,
-	std::stop_token stopToken = {}
+	std::stop_token stopToken
 )
 {
 	bool isMovementSuccessful = run(wafer, processModuleLocation);
@@ -96,13 +96,15 @@ OperationResult ProcessEngine::executeProcessWafer(
 
 	OperationResult operationResult = process(wafer, recipe, stopToken);
 
-	if (operationResult == OperationResult::Completed)
+	switch (operationResult)
 	{
-		setState(EquipmentState::Idle);
-	}
-	else
-	{
-		setState(EquipmentState::Faulted);
+		case OperationResult::Completed:
+		case OperationResult::Cancelled:
+			setState(EquipmentState::Idle);
+			break;
+		case OperationResult::Failed:
+			setState(EquipmentState::Faulted);
+			break;
 	}
 
 	return operationResult;

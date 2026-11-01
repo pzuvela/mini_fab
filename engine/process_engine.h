@@ -36,7 +36,7 @@ private:
         Wafer& wafer,
         const Location& processModuleLocation,
         const Recipe& recipe,
-	std::stop_token stopToken
+	std::stop_token stopToken = {}
     );
 
     void setState(EquipmentState newState);
