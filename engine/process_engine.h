@@ -1,6 +1,7 @@
 #include <mutex>
 #include <thread>
 #include <future>
+#include <optional>
 
 #include "equipment/operation_result.h"
 #include "equipment/equipment_component.h"
