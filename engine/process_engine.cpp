@@ -11,23 +11,24 @@ ProcessEngine::ProcessEngine(IWaferManager& mgr, IRobot& robot, IProcessModule& 
 	std::cout << "Instantiated wafer manager, robot & process module\n";
 }
 
-bool ProcessEngine::run(
+OperationResult ProcessEngine::run(
 	Wafer& wafer,
-	const Location& destination
+	const Location& destination,
+	std::stop_token stopToken
 )
 {
 	if (!robot_.isReady())
 	{
 		robot_.initialize();
 	}
-	bool success = robot_.moveWafer(wafer, destination);
+	OperationResult operationResult = robot_.moveWafer(wafer, destination, stopToken);
 
-	if (success)
+	if (operationResult == OperationResult::Completed)
 	{
 		wafer.location = destination;
 	}
 
-	return success;
+	return operationResult;
 }
 
 OperationResult ProcessEngine::process(
@@ -73,9 +74,9 @@ OperationResult ProcessEngine::executeProcessWafer(
 	std::stop_token stopToken
 )
 {
-	bool isMovementSuccessful = run(wafer, processModuleLocation);
+	OperationResult operationResult = run(wafer, processModuleLocation, stopToken);
 
-	if (!isMovementSuccessful)
+	if (operationResult != OperationResult::Completed)
 	{
 		setState(EquipmentState::Faulted);
 		return OperationResult::Failed;
@@ -94,7 +95,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 		return OperationResult::Failed;
 	}
 
-	OperationResult operationResult = process(wafer, recipe, stopToken);
+	operationResult = process(wafer, recipe, stopToken);
 
 	switch (operationResult)
 	{

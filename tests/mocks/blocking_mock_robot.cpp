@@ -12,9 +12,10 @@ bool BlockingMockRobot::isReady() const
 	return ready_;
 }
 
-bool BlockingMockRobot::moveWafer(
+OperationResult BlockingMockRobot::moveWafer(
 	Wafer& wafer,
-	const Location& location
+	const Location& location,
+	std::stop_token stopToken
 )
 {
 	// unique_lock can do manual unlock/ lock, lock_guard has automatic lock/ unlock in/ out of scope
@@ -30,7 +31,7 @@ bool BlockingMockRobot::moveWafer(
 		return released_;
 	});
 
-	return true;
+	return released_ ? OperationResult::Completed : OperationResult::Cancelled;
 }
 
 

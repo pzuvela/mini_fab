@@ -42,12 +42,13 @@ namespace MiniFab::Tests
 		SimRobot robot = SimRobot();
 		robot.initialize();
 
-		bool isSuccessful = robot.moveWafer(
+		OperationResult operationResult = robot.moveWafer(
 			wafer,
-			destination
+			destination,
+			{}
 		);
 
-		EXPECT_TRUE(isSuccessful);
+		EXPECT_EQ(operationResult, OperationResult::Completed);
 	}
 
 	TEST_F(RobotTest, SuccessfulMockReturnsTrue)
@@ -55,12 +56,13 @@ namespace MiniFab::Tests
 		MockRobot robot{true};
 		robot.initialize();
 
-		bool isSuccessful = robot.moveWafer(
+		OperationResult operationResult = robot.moveWafer(
 			wafer,
-			destination
+			destination,
+			{}
 		);
 
-		EXPECT_TRUE(isSuccessful);
+		EXPECT_EQ(operationResult, OperationResult::Completed);
 	}
 
 	TEST_F(RobotTest, FailingMockReturnsFalse)
@@ -68,11 +70,12 @@ namespace MiniFab::Tests
 		MockRobot robot{ false };
 		robot.initialize();
 
-		bool isSuccessful = robot.moveWafer(
+		OperationResult operationResult = robot.moveWafer(
 			wafer,
-			destination
+			destination,
+			{}
 		);
 
-		EXPECT_FALSE(isSuccessful);
+		EXPECT_EQ(operationResult, OperationResult::Failed);
 	}
 }

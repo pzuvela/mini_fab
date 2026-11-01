@@ -1,6 +1,8 @@
 #include <mutex>
 #include <condition_variable>
+#include <stop_token>
 
+#include "equipment/operation_result.h"
 #include "equipment/robot/irobot.h"
 
 class BlockingMockRobot : public IRobot
@@ -15,9 +17,10 @@ private:
 public:
 	void initialize() override;
 	bool isReady() const override;
-	bool moveWafer(
+	OperationResult moveWafer(
 		Wafer& wafer,
-		const Location& destination
+		const Location& destination,
+		std::stop_token stopToken
 	) override;
 	void waitUntilMovementStarts();
 	void release();

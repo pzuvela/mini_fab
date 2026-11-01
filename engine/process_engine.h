@@ -21,9 +21,10 @@ private:
     std::jthread worker_;
     std::future<OperationResult> resultFuture_;
 
-    bool run(
+    OperationResult run(
         Wafer& wafer,
-        const Location& destination
+        const Location& destination,
+	std::stop_token stopToken
     );
 
     OperationResult process(

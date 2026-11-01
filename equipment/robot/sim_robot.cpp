@@ -7,13 +7,14 @@ void SimRobot::initialize()
     std::cout << "Simulator robot initialized!\n";
 }
 
-bool SimRobot::moveWafer(
+OperationResult SimRobot::moveWafer(
     Wafer& wafer,
-    const Location& destination
+    const Location& destination,
+    std::stop_token stopToken
 )
 {
     std::cout << "Wafer " << wafer.id << " moved from " << wafer.location.slot << " to " << destination.slot << "\n";
-    return true;
+    return OperationResult::Completed;
 }
 
 bool SimRobot::isReady() const

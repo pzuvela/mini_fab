@@ -13,16 +13,17 @@ void MockRobot::initialize()
     std::cout << "[MOCK] initialized!\n";
 }
 
-bool MockRobot::moveWafer(
+OperationResult MockRobot::moveWafer(
 	Wafer& wafer,
-	const Location& destination
+	const Location& destination,
+	std::stop_token stopToken
 )
 {
     if (moveShouldSucceed_)
     {
         std::cout << "[MOCK] move requested for wafer: " << wafer.id << " from slot " << wafer.location.slot << "  to " << destination.slot << "\n";
     }
-    return moveShouldSucceed_;
+    return moveShouldSucceed_ ? OperationResult::Completed : OperationResult::Failed;
 }
 
 bool MockRobot::isReady() const

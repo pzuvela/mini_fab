@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stop_token>
+#include "equipment/operation_result.h"
 #include "domain/location.h"
 #include "domain/wafer.h"
 
@@ -11,9 +13,10 @@ public:
     virtual void initialize() = 0;  // virtual enables runtime polymorphism.
                                     // 0 means that IRobot defines that this operation must exist, 
                                     // but doesn't provide the implementation here.
-    virtual bool moveWafer(
+    virtual OperationResult moveWafer(
         Wafer& wafer,
-        const Location& destination
+        const Location& destination,
+	std::stop_token stopToken
     ) = 0;
     virtual bool isReady() const = 0;
 

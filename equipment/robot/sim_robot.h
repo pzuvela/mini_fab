@@ -10,9 +10,10 @@ private:
 
 public:
     void initialize() override;
-	bool moveWafer(
+	OperationResult moveWafer(
 		Wafer& wafer,
-		const Location& destination
+		const Location& destination,
+		std::stop_token stopToken
 	) override;
     bool isReady() const override;
 };
