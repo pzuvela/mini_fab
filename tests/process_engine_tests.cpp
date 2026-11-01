@@ -445,6 +445,8 @@ namespace MiniFab::Tests
 
     TEST_F(ProcessEngineTest, TransitionsToStoppingWhenCancelledDuringProcessing) 
     {
+std::cerr << "A: entered test" << std::endl;
+
 	MockRobot robot{ true };
         BlockingMockProcessModule processModule;
 
@@ -455,7 +457,9 @@ namespace MiniFab::Tests
         ProcessEngine engine(mgr, robot, processModule);
 
 	engine.startProcessWafer(wafer_.id, destination_, recipe_);
+
 	processModule.waitUntilProcessingStarts();
+
 	StateTransition stateTransition = engine.cancel();
 
 	OperationResult operationResult = engine.waitForCompletion();
