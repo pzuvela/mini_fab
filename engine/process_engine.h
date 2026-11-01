@@ -26,7 +26,7 @@ private:
         const Location& destination
     );
 
-    bool process(
+    OperationResult process(
         const Wafer& wafer,
         const Recipe& recipe
     );

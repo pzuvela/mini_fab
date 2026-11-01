@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
 
+#include "equipment/operation_result.h"
 #include "equipment/process_module/sim_process_module.h"
 #include "domain/wafer.h"
 #include "domain/recipe.h"
@@ -55,9 +56,9 @@ namespace MiniFab::Tests
 
         module.initialize();
 
-        bool isSuccessful = module.process(wafer, recipe, std::stop_token());
+        OperationResult operationResult = module.process(wafer, recipe, std::stop_token());
 
-        EXPECT_TRUE(isSuccessful);
+        EXPECT_EQ(operationResult, OperationResult::Completed);
     }
 
     TEST_F(SimProcessModuleTest, ProcessThrowsWhenNotInitialized)

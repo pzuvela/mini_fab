@@ -3,7 +3,7 @@
 #include "blocking_mock_process_module.h"
 
 
-bool BlockingMockProcessModule::process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken)
+OperationResult BlockingMockProcessModule::process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken)
 {
 	std::unique_lock<std::mutex> lock(mutex_);
 
@@ -16,7 +16,7 @@ bool BlockingMockProcessModule::process(const Wafer& wafer, const Recipe& recipe
 		return released_;
 	});
 
-	return true;
+	return released_ ? OperationResult::Completed : OperationResult::Cancelled;
 }
 
 void BlockingMockProcessModule::waitUntilProcessingStarts() 

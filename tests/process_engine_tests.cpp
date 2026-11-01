@@ -458,6 +458,10 @@ namespace MiniFab::Tests
 	processModule.waitUntilProcessingStarts();
 	StateTransition stateTransition = engine.cancel();
 
+	OperationResult operationResult = engine.waitForCompletion();
+
+	EXPECT_EQ(operationResult, OperationResult::Cancelled);
+
 	processModule.release();
 
 	EXPECT_EQ(stateTransition.previousState, EquipmentState::Processing);

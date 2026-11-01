@@ -2,7 +2,7 @@
 #include <iostream>
 #include "sim_process_module.h"
 
-bool SimProcessModule::process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken)
+OperationResult SimProcessModule::process(const Wafer& wafer, const Recipe& recipe, std::stop_token stopToken)
 {
 	if (!isReady_) 
 	{
@@ -13,5 +13,5 @@ bool SimProcessModule::process(const Wafer& wafer, const Recipe& recipe, std::st
 
 	std::cout << "Processing wafer " << wafer.id << " using " << recipe.name << " for " << recipe.durationSeconds << " seconds \n";
 
-	return true;
+	return OperationResult::Completed;
 }

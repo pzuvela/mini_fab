@@ -1,3 +1,6 @@
+#pragma once
+
+
 enum class OperationResult
 {
 	Completed,

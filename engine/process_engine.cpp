@@ -30,7 +30,7 @@ bool ProcessEngine::run(
 	return success;
 }
 
-bool ProcessEngine::process(
+OperationResult ProcessEngine::process(
 	const Wafer& wafer,
 	const Recipe& recipe
 ) 
@@ -95,18 +95,18 @@ OperationResult ProcessEngine::executeProcessWafer(
 		return OperationResult::Failed;
 	}
 
-	bool isProcessSuccessful = process(wafer, recipe);
+	OperationResult operationResult = process(wafer, recipe);
 
-	if (isProcessSuccessful)
+	if (operationResult == OperationResult::Completed)
 	{
 		setState(EquipmentState::Idle);
-		return OperationResult::Completed;
 	}
 	else
 	{
 		setState(EquipmentState::Faulted);
-		return OperationResult::Failed;
 	}
+
+	return operationResult;
 }
 
 OperationResult ProcessEngine::processWafer(
