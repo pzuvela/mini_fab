@@ -9,6 +9,7 @@ private:
 	bool ready_ = false;
 	bool moveShouldSucceed_;
 	bool recoveryShouldSucceed_;
+	bool recoverWasCalled_ = false;
 
 public:
 	MockRobot(bool moveShouldSucceed, bool recoveryShouldSucceed = true);
@@ -22,4 +23,5 @@ public:
 	bool isReady() const override;
 	void setMoveShouldSucceed(bool moveShouldSucceed);
 	void setRecoveryShouldSucceed(bool recoveryShouldSucceed);
+	bool recoverWasCalled() const;
 };

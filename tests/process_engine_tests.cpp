@@ -569,6 +569,32 @@ namespace MiniFab::Tests
 
     }
 
+    TEST_F(ProcessEngineTest, RecoversOnlyRobotWhenRobotCausedFault)
+    {
+	MockRobot robot { false, true };
+	MockProcessModule processModule { false, false };
+	ProcessEngine engine(mgr_, robot, processModule);
+
+	engine.processWafer(wafer_.id, destination_, recipe_);
+	RecoveryResult recoveryResult = engine.reset();
+
+	EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	EXPECT_FALSE(processModule.recoverWasCalled());
+	EXPECT_TRUE(robot.recoverWasCalled());
+    }
+
+    TEST_F(ProcessEngineTest, RecoversOnlyProcessModuleWhenProcessModuleCausedFault)
+    {
+	MockRobot robot { true, true };
+	MockProcessModule processModule { false, true };
+	ProcessEngine engine(mgr_, robot, processModule);
+
+	engine.processWafer(wafer_.id, destination_, recipe_);
+	RecoveryResult recoveryResult = engine.reset();
+
+	EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	EXPECT_TRUE(processModule.recoverWasCalled());
+	EXPECT_FALSE(robot.recoverWasCalled());
+    }
+
 }
-
-

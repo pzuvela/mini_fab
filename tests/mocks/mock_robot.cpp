@@ -28,6 +28,7 @@ OperationResult MockRobot::moveWafer(
 
 RecoveryResult MockRobot::recover() 
 {
+	recoverWasCalled_ = true;
 	return recoveryShouldSucceed_ ? RecoveryResult::Recovered : RecoveryResult::Failed;
 }
 
@@ -44,4 +45,9 @@ void MockRobot::setMoveShouldSucceed(bool moveShouldSucceed)
 void MockRobot::setRecoveryShouldSucceed(bool recoveryShouldSucceed) 
 {
     recoveryShouldSucceed_ = recoveryShouldSucceed;
+}
+
+bool MockRobot::recoverWasCalled() const 
+{
+	return recoverWasCalled_;
 }

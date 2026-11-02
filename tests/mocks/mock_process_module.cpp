@@ -1,7 +1,7 @@
 #include "mock_process_module.h"
 
-MockProcessModule::MockProcessModule(bool processShouldSucceed)
-	: processShouldSucceed_(processShouldSucceed)
+MockProcessModule::MockProcessModule(bool processShouldSucceed, bool recoveryShouldSucceed)
+	: processShouldSucceed_(processShouldSucceed), recoveryShouldSucceed_(recoveryShouldSucceed)
 {
 }
 
@@ -18,5 +18,11 @@ bool MockProcessModule::processWasCalled() const
 
 RecoveryResult MockProcessModule::recover() 
 {
-	return RecoveryResult::Recovered;
+	recoverWasCalled_ = true;
+	return recoveryShouldSucceed_ ? RecoveryResult::Recovered : RecoveryResult::Failed;
+}
+
+bool MockProcessModule::recoverWasCalled() const 
+{
+	return recoverWasCalled_;
 }

@@ -118,7 +118,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 			setState(EquipmentState::Idle);
 			break;
 		case OperationResult::Failed:
-			setFaulted(EquipmentComponent::Robot);
+			setFaulted(EquipmentComponent::ProcessModule);
 			break;
 	}
 
