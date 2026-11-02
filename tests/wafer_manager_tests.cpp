@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "wafer/wafer_manager.h"
+#include "wafer/location_update_result.h"
 #include "domain/wafer.h"
 #include "domain/location.h"
 
@@ -15,6 +16,11 @@ namespace MiniFab::Tests
 				.station = Station::LoadPort,
 				.slot = 2
 			}
+		};
+
+		Location location_{
+			.station = Station::Aligner,
+			.slot = 3
 		};
 
 	};
@@ -50,6 +56,32 @@ namespace MiniFab::Tests
 		EXPECT_EQ(wafer, nullptr);
 	}
 
+	TEST_F(WaferManagerTest, UpdatesLocationWhenWaferExists) 
+	{
+		WaferManager mgr;
+		mgr.addWafer(wafer_);
+		LocationUpdateResult result = mgr.updateLocation(wafer_.id, location_);
+		Wafer* wafer = mgr.findWafer(wafer_.id);
+		EXPECT_EQ(result, LocationUpdateResult::Updated);
+		EXPECT_EQ(wafer->location, location_);
+	}
+
+
+	TEST_F(WaferManagerTest, ReturnsWaferNotFoundWhenUpdatingUnknownWafer) 
+	{
+		WaferManager mgr;
+		mgr.addWafer(wafer_);
+
+		Wafer* wafer = mgr.findWafer(wafer_.id);
+
+		Location originalLocation = wafer->location;
+
+		LocationUpdateResult result = mgr.updateLocation("UnknownWafer", location_);
+
+		EXPECT_EQ(result, LocationUpdateResult::WaferNotFound);
+		EXPECT_EQ(wafer->location, originalLocation);
+	}
 }
+
 
 

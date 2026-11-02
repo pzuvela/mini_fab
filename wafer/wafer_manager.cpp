@@ -28,3 +28,14 @@
         return iterator->second.get();
     }
 
+
+LocationUpdateResult WaferManager::updateLocation(const std::string& waferId, Location location)
+{
+	Wafer* wafer = findWafer(waferId);
+
+	if (wafer == nullptr) return LocationUpdateResult::WaferNotFound;
+
+	wafer->location = location;
+
+	return LocationUpdateResult::Updated; 
+}

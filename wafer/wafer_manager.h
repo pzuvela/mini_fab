@@ -14,5 +14,6 @@ private:
 
 public:
     bool addWafer(const Wafer& wafer) override;
+    LocationUpdateResult updateLocation(const std::string& waferId, Location location) override;
     Wafer* findWafer(const std::string& waferId) override;
 };
