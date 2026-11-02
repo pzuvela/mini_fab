@@ -38,36 +38,30 @@ namespace MiniFab::Tests
             .durationSeconds = 55.2
         };
 
-        MockWaferManager mgr_{ std::make_unique<Wafer>(wafer_) };
+        MockWaferManager mgr_{ std::make_unique<Wafer>(wafer_), true };
 
         SimProcessModule processModule_;
     };
 
-    TEST_F(ProcessEngineTest, UpdatesWaferLocationWhenRobotMoveSucceeds)
+    TEST_F(ProcessEngineTest, RequestsLocationUpdateWhenRobotMoveSucceeds)
     {
         MockRobot robot{ true };
         ProcessEngine engine(mgr_, robot, processModule_);
 
         engine.processWafer(wafer_.id, destination_, recipe_);
 
-        Wafer* managedWafer = mgr_.findWafer(wafer_.id);
-
-        ASSERT_NE(managedWafer, nullptr);
-        EXPECT_EQ(managedWafer->location, destination_);
+        // EXPECT_EQ(managedWafer->location, destination_);  MockWaferManager does not update the location!
+        EXPECT_TRUE(mgr_.locationUpdateWasCalled());
     }
 
-    TEST_F(ProcessEngineTest, KeepsWaferLocationWhenRobotMoveFails)
+    TEST_F(ProcessEngineTest, DoesNotRequestLocationUpdateWhenRobotMoveFails)
     {
         MockRobot robot{ false };
         ProcessEngine engine(mgr_, robot, processModule_);
-        Location originalLocation = wafer_.location;
 
         engine.processWafer(wafer_.id, destination_, recipe_);
 
-        Wafer* managedWafer = mgr_.findWafer(wafer_.id);
-
-        ASSERT_NE(managedWafer, nullptr);
-        EXPECT_EQ(managedWafer->location, originalLocation);
+        EXPECT_FALSE(mgr_.locationUpdateWasCalled());
     }
 
     TEST_F(ProcessEngineTest, ProcessWaferReturnsTrueWhenProcessModuleSucceeds)
@@ -117,20 +111,19 @@ namespace MiniFab::Tests
         EXPECT_TRUE(processModule.processWasCalled());
     }
 
-    TEST_F(ProcessEngineTest, ReturnsFalseWhenProcessingFails)
+    TEST_F(ProcessEngineTest, ReturnsFailedWhenWaferLocationUpdateFails)
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ false };
-        ProcessEngine engine(mgr_, robot, processModule);
+        MockWaferManager mgr{ std::make_unique<Wafer>(wafer_), false };
+        ProcessEngine engine(mgr, robot, processModule);
 
         OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
-        Wafer* managedWafer = mgr_.findWafer(wafer_.id);
-
         EXPECT_EQ(operationResult, OperationResult::Failed);
-        EXPECT_TRUE(processModule.processWasCalled());
-        ASSERT_NE(managedWafer, nullptr);
-        EXPECT_EQ(destination_, managedWafer->location);
+        EXPECT_FALSE(processModule.processWasCalled());
+        EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+        // EXPECT_EQ(destination_, managedWafer->location); MockWaferManager doesn't actually move wafer
     }
 
     TEST_F(ProcessEngineTest, IsIdleWhenCreated)
@@ -455,23 +448,23 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule);
 
-	engine.startProcessWafer(wafer_.id, destination_, recipe_);
+	    engine.startProcessWafer(wafer_.id, destination_, recipe_);
 
-	processModule.waitUntilProcessingStarts();
+	    processModule.waitUntilProcessingStarts();
 
-	StateTransition stateTransition = engine.cancel();
+	    StateTransition stateTransition = engine.cancel();
 
-	OperationResult operationResult = engine.waitForCompletion();
+	    OperationResult operationResult = engine.waitForCompletion();
 
-	EXPECT_EQ(operationResult, OperationResult::Cancelled);
+	    EXPECT_EQ(operationResult, OperationResult::Cancelled);
 
-	processModule.release();
+	    processModule.release();
 
-	EXPECT_EQ(stateTransition.previousState, EquipmentState::Processing);
-	EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
-	EXPECT_TRUE(stateTransition.isCancelled);
+	    EXPECT_EQ(stateTransition.previousState, EquipmentState::Processing);
+	    EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
+	    EXPECT_TRUE(stateTransition.isCancelled);
 
-	EXPECT_EQ(engine.state(), EquipmentState::Idle);
+	    EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
     TEST_F(ProcessEngineTest, RemainsIdleWhenCancelledWhileIdle) 
@@ -496,105 +489,103 @@ namespace MiniFab::Tests
 
     TEST_F(ProcessEngineTest, DoesNotProcessWaferWhenCancelledDuringMovement) 
     {
-	BlockingMockRobot robot;
-	MockProcessModule processModule{ false };
-	WaferManager mgr;
-	mgr.addWafer(wafer_);
+	    BlockingMockRobot robot;
+	    MockProcessModule processModule{ false };
+	    WaferManager mgr;
+	    mgr.addWafer(wafer_);
 
-	ProcessEngine engine{mgr, robot, processModule};
+	    ProcessEngine engine{mgr, robot, processModule};
 
-	engine.startProcessWafer(
-		wafer_.id, destination_, recipe_
-	);
+	    engine.startProcessWafer(
+		    wafer_.id, destination_, recipe_
+	    );
 
-	robot.waitUntilMovementStarts();
+	    robot.waitUntilMovementStarts();
 
-	StateTransition stateTransition = engine.cancel();
+	    StateTransition stateTransition = engine.cancel();
 
-	OperationResult operationResult = engine.waitForCompletion();
+	    OperationResult operationResult = engine.waitForCompletion();
 
-	EXPECT_EQ(operationResult, OperationResult::Cancelled);
-	EXPECT_FALSE(processModule.processWasCalled());
-	EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
-	EXPECT_EQ(engine.state(), EquipmentState::Idle);
+	    EXPECT_EQ(operationResult, OperationResult::Cancelled);
+	    EXPECT_FALSE(processModule.processWasCalled());
+	    EXPECT_EQ(stateTransition.newState, EquipmentState::Stopping);
+	    EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
     TEST_F(ProcessEngineTest, RecoversRobotAndReturnsToIdleWhenRobotCausedFault)
     {
-	MockRobot robot{ false };
-	MockProcessModule processModule{ true };
-	ProcessEngine engine(mgr_, robot, processModule);
+	    MockRobot robot{ false };
+	    MockProcessModule processModule{ true };
+	    ProcessEngine engine(mgr_, robot, processModule);
 
-	engine.processWafer(wafer_.id, destination_, recipe_);
+	    engine.processWafer(wafer_.id, destination_, recipe_);
 
-	RecoveryResult recoveryResult = engine.reset();
+	    RecoveryResult recoveryResult = engine.reset();
 
-	EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
-	EXPECT_EQ(engine.state(), EquipmentState::Idle);
+	    EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	    EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
     TEST_F(ProcessEngineTest, RecoveryFailureKeepsEngineFaulted) 
     {
-	MockRobot robot { false, false };
-	MockProcessModule processModule{ true };
-	ProcessEngine engine(mgr_, robot, processModule);
+	    MockRobot robot { false, false };
+	    MockProcessModule processModule{ true };
+	    ProcessEngine engine(mgr_, robot, processModule);
 
-	engine.processWafer(wafer_.id, destination_, recipe_);
+	    engine.processWafer(wafer_.id, destination_, recipe_);
 
-	RecoveryResult recoveryResult = engine.reset();
+	    RecoveryResult recoveryResult = engine.reset();
 
-	EXPECT_EQ(recoveryResult, RecoveryResult::Failed);
-	EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+	    EXPECT_EQ(recoveryResult, RecoveryResult::Failed);
+	    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
 
     TEST_F(ProcessEngineTest, CanRetryRecoveryAfterRecoveryFailure) 
     {
-	MockRobot robot { false, false };
-	MockProcessModule processModule{ true };
-	ProcessEngine engine(mgr_, robot, processModule);
+	    MockRobot robot { false, false };
+	    MockProcessModule processModule{ true };
+	    ProcessEngine engine(mgr_, robot, processModule);
 
-	engine.processWafer(wafer_.id, destination_, recipe_);
+	    engine.processWafer(wafer_.id, destination_, recipe_);
 
-	RecoveryResult recoveryResult = engine.reset();
+	    RecoveryResult recoveryResult = engine.reset();
 
-	EXPECT_EQ(recoveryResult, RecoveryResult::Failed);
-	EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+	    EXPECT_EQ(recoveryResult, RecoveryResult::Failed);
+	    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
 
-	robot.setRecoveryShouldSucceed(true);
+	    robot.setRecoveryShouldSucceed(true);
 
-	recoveryResult = engine.reset();
+	    recoveryResult = engine.reset();
 
-	EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
-	EXPECT_EQ(engine.state(), EquipmentState::Idle);;
-
+	    EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	    EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
     TEST_F(ProcessEngineTest, RecoversOnlyRobotWhenRobotCausedFault)
     {
-	MockRobot robot { false, true };
-	MockProcessModule processModule { false, false };
-	ProcessEngine engine(mgr_, robot, processModule);
+	    MockRobot robot { false, true };
+	    MockProcessModule processModule { false, false };
+	    ProcessEngine engine(mgr_, robot, processModule);
 
-	engine.processWafer(wafer_.id, destination_, recipe_);
-	RecoveryResult recoveryResult = engine.reset();
+	    engine.processWafer(wafer_.id, destination_, recipe_);
+	    RecoveryResult recoveryResult = engine.reset();
 
-	EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
-	EXPECT_FALSE(processModule.recoverWasCalled());
-	EXPECT_TRUE(robot.recoverWasCalled());
+	    EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	    EXPECT_FALSE(processModule.recoverWasCalled());
+	    EXPECT_TRUE(robot.recoverWasCalled());
     }
 
     TEST_F(ProcessEngineTest, RecoversOnlyProcessModuleWhenProcessModuleCausedFault)
     {
-	MockRobot robot { true, true };
-	MockProcessModule processModule { false, true };
-	ProcessEngine engine(mgr_, robot, processModule);
+	    MockRobot robot { true, true };
+	    MockProcessModule processModule { false, true };
+	    ProcessEngine engine(mgr_, robot, processModule);
 
-	engine.processWafer(wafer_.id, destination_, recipe_);
-	RecoveryResult recoveryResult = engine.reset();
+	    engine.processWafer(wafer_.id, destination_, recipe_);
+	    RecoveryResult recoveryResult = engine.reset();
 
-	EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
-	EXPECT_TRUE(processModule.recoverWasCalled());
-	EXPECT_FALSE(robot.recoverWasCalled());
+	    EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	    EXPECT_TRUE(processModule.recoverWasCalled());
+	    EXPECT_FALSE(robot.recoverWasCalled());
     }
-
 }

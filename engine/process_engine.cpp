@@ -25,7 +25,16 @@ OperationResult ProcessEngine::run(
 
 	if (movementResult == OperationResult::Completed)
 	{
-		wafer.location = destination;
+		LocationUpdateResult result = mgr_.updateLocation(wafer.id, destination);
+
+		switch (result) 
+		{
+			case LocationUpdateResult::Updated:
+				break;
+			case LocationUpdateResult::WaferNotFound:
+				movementResult = OperationResult::Failed;
+		}
+
 	}
 
 	return movementResult;

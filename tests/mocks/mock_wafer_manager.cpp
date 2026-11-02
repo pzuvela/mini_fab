@@ -23,6 +23,11 @@ Wafer* MockWaferManager::findWafer(const std::string& waferId)
 
 LocationUpdateResult MockWaferManager::updateLocation(const std::string& waferId, Location location)
 {
-    locationWasUpdated_ = true;
+	locationUpdateWasCalled_ = true;
     return locationUpdateSucceeds_ ? LocationUpdateResult::Updated : LocationUpdateResult::WaferNotFound;
+}
+
+bool MockWaferManager::locationUpdateWasCalled() const
+{
+	return locationUpdateWasCalled_;
 }
