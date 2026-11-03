@@ -11,6 +11,7 @@
 #include "wafer/iwafer_manager.h"
 #include "equipment/robot/irobot.h"
 #include "equipment/process_module/iprocess_module.h"
+#include "wafer/wafer_tracking_recovery_context.h"
 
 
 class ProcessEngine
@@ -24,6 +25,7 @@ private:
     std::jthread worker_;
     std::future<OperationResult> resultFuture_;
     std::optional<FaultSource> faultSource_;
+    std::optional<WaferTrackingRecoveryContext> recoveryContext_;
 
     MovementStageResult run(
         Wafer& wafer,

@@ -2,6 +2,7 @@
 #include <thread>
 #include <optional>
 
+#include "wafer/wafer_tracking_recovery_context.h"
 #include "process_engine.h"
 #include "equipment/process_module/iprocess_module.h"
 #include "wafer/iwafer_manager.h"
@@ -95,6 +96,8 @@ OperationResult ProcessEngine::executeProcessWafer(
 	std::stop_token stopToken
 )
 {
+	Location originalLocation = wafer.location;
+
 	MovementStageResult result = run(wafer, processModuleLocation, stopToken);
 
 	bool hasTransitioned;
@@ -110,6 +113,15 @@ OperationResult ProcessEngine::executeProcessWafer(
 			}
 			else 
 			{
+				if (result.locationUpdateResult != std::nullopt && result.locationUpdateResult.value() == LocationUpdateResult::WaferNotFound)
+				{
+					recoveryContext_ = WaferTrackingRecoveryContext{
+						wafer.id,
+						originalLocation,
+						processModuleLocation
+					};
+				}
+
 				setFaulted(FaultSource::WaferTracking);
 				return OperationResult::Failed;
 			}
@@ -221,6 +233,9 @@ RecoveryResult ProcessEngine::reset()
 			break;
 		case FaultSource::ProcessModule:
 			recoveryResult = processModule_.recover();
+			break;
+		case FaultSource::WaferTracking:
+			recoveryResult = RecoveryResult::Failed;
 			break;
 	}
 

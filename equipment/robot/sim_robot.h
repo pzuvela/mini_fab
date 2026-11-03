@@ -1,12 +1,13 @@
-// sim_robot.h
 #pragma once
 
+#include <optional>
 #include "irobot.h"
 
 class SimRobot : public IRobot
 {
 private:
     bool ready_ = false;
+	std::optional<std::string> carriedWaferId_;
 
 public:
     void initialize() override;
