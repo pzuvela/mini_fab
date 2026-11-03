@@ -141,6 +141,10 @@ OperationResult ProcessEngine::executeProcessWafer(
 	switch (operationResult)
 	{
 		case OperationResult::Completed:
+			hasTransitioned = tryTransition(EquipmentState::Processing, EquipmentState::Moving);
+			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+			MovementStageResult returnResult = run(wafer, originalLocation, stopToken);
+			break;
 		case OperationResult::Cancelled:
 			setState(EquipmentState::Idle);
 			break;
