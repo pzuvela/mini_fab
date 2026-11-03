@@ -54,7 +54,14 @@ private:
 	Wafer& wafer,
 	const Location& originalLocation,
 	std::stop_token stopToken 
-   );
+    );
+
+    OperationResult moveWaferToProcessModule(
+	Wafer& wafer,
+	const Location& processModuleLocation,
+	const Location& originalLocation,
+	std::stop_token stopToken
+    );
 
     void setState(EquipmentState newState);
 

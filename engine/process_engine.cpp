@@ -141,15 +141,12 @@ OperationResult ProcessEngine::returnWaferToOriginalLocation(
 
 }
 
-OperationResult ProcessEngine::executeProcessWafer(
-	Wafer& wafer,
-	const Location& processModuleLocation,
-	const Recipe& recipe,
-	std::stop_token stopToken
+OperationResult ProcessEngine::moveWaferToProcessModule(                                                                                Wafer& wafer,
+        const Location& processModuleLocation,
+        const Location& originalLocation,
+        std::stop_token stopToken
 )
 {
-	Location originalLocation = wafer.location;
-
 	MovementStageResult result = run(wafer, processModuleLocation, stopToken);
 
 	bool hasTransitioned;
@@ -161,7 +158,6 @@ OperationResult ProcessEngine::executeProcessWafer(
 			{
 				hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Processing);
 				if (!hasTransitioned) return resultFromFailedTransition(stopToken);
-				break;
 			}
 			else
 			{
@@ -187,6 +183,24 @@ OperationResult ProcessEngine::executeProcessWafer(
 			setFaulted(FaultSource::Robot);
 			return OperationResult::Failed;
 	}
+}
+
+OperationResult ProcessEngine::executeProcessWafer(
+	Wafer& wafer,
+	const Location& processModuleLocation,
+	const Recipe& recipe,
+	std::stop_token stopToken
+)
+{
+	Location originalLocation = wafer.location;
+
+	OperationResult movementResult = moveWaferToProcessModule(                                                            >
+        	const Location& processModuleLocation,
+        	const Location& originalLocation,
+        	std::stop_token stopToken
+	);
+
+	if (movementResult != OperationResult::Completed) return movementResult;
 
 	OperationResult operationResult = process(wafer, recipe, stopToken);
 
