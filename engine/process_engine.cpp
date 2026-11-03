@@ -61,7 +61,7 @@ Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId)
 
 	Wafer* wafer = mgr_.findWafer(waferId);
 
-	if (wafer != nullptr) 
+	if (wafer != nullptr)
 	{
 		state_ = EquipmentState::Moving;
 	}
@@ -111,7 +111,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 				if (!hasTransitioned) return resultFromFailedTransition(stopToken);
 				break;
 			}
-			else 
+			else
 			{
 				if (result.locationUpdateResult != std::nullopt && result.locationUpdateResult.value() == LocationUpdateResult::WaferNotFound)
 				{
