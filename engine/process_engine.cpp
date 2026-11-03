@@ -105,6 +105,42 @@ bool ProcessEngine::completeMovement()
 	}
 }
 
+OperationResult ProcessEngine::returnWaferToOriginalLocation(
+    Wafer& wafer,
+    const Location& originalLocation,
+    std::stop_token stopToken
+)
+{
+	bool hasTransitioned = tryTransition(EquipmentState::Processing, EquipmentState::Moving);
+	if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+
+	MovementStageResult returnResult = run(wafer, originalLocation, stopToken);
+
+	switch (returnResult.movementResult)
+	{
+		case OperationResult::Completed:
+			if (returnResult.locationUpdateResult.has_value() && returnResult.locationUpdateResult.value() == LocationUpdateResult::Updated) 
+			{
+				if (!completeMovement()) return OperationResult::Failed;
+				return OperationResult::Completed;
+			}
+			else
+			{
+				setFaulted(FaultSource::WaferTracking);
+				return OperationResult::Failed;
+			}
+
+		case OperationResult::Cancelled:
+			hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
+			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+			return OperationResult::Cancelled;
+		case OperationResult::Failed:
+			setFaulted(FaultSource::Robot);
+			return OperationResult::Failed;
+	}
+
+}
+
 OperationResult ProcessEngine::executeProcessWafer(
 	Wafer& wafer,
 	const Location& processModuleLocation,
@@ -158,33 +194,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 	{
 		case OperationResult::Completed:
 		{
-			hasTransitioned = tryTransition(EquipmentState::Processing, EquipmentState::Moving);
-			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
-
-			MovementStageResult returnResult = run(wafer, originalLocation, stopToken);
-
-			switch (returnResult.movementResult)
-				{
-				case OperationResult::Completed:
-					if (returnResult.locationUpdateResult.has_value() && returnResult.locationUpdateResult.value() == LocationUpdateResult::Updated) 
-					{
-						if (!completeMovement()) return OperationResult::Failed;
-						return OperationResult::Completed;
-					}
-					else
-					{
-						setFaulted(FaultSource::WaferTracking);
-						return OperationResult::Failed;
-					}
-
-				case OperationResult::Cancelled:
-					hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
-					if (!hasTransitioned) return resultFromFailedTransition(stopToken);
-					return OperationResult::Cancelled;
-				case OperationResult::Failed:
-					setFaulted(FaultSource::Robot);
-					return OperationResult::Failed;
-				}
+			return returnWaferToOriginalLocation(wafer, originalLocation, stopToken);
 		}
 		case OperationResult::Cancelled:
 			setState(EquipmentState::Idle);

@@ -48,6 +48,14 @@ private:
 
     OperationResult resultFromFailedTransition(std::stop_token stopToken);
 
+    bool completeMovement();
+
+    OperationResult returnWaferToOriginalLocation(
+	Wafer& wafer,
+	const Location& originalLocation,
+	std::stop_token stopToken 
+   );
+
     void setState(EquipmentState newState);
 
     void setFaulted(FaultSource component);
