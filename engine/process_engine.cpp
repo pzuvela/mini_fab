@@ -144,14 +144,20 @@ OperationResult ProcessEngine::executeProcessWafer(
 		{
 			hasTransitioned = tryTransition(EquipmentState::Processing, EquipmentState::Moving);
 			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+
 			MovementStageResult returnResult = run(wafer, originalLocation, stopToken);
+
 			switch (returnResult.movementResult)
 				{
 				case OperationResult::Completed:
 					if (returnResult.locationUpdateResult.has_value() && returnResult.locationUpdateResult.value() == LocationUpdateResult::Updated) 
 					{
 						hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Idle);
-						if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+						if (!hasTransitioned) 
+						{
+							hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
+							if (!hasTransitioned) return OperationResult::Failed;
+						}
 						return OperationResult::Completed;
 					}
 					else
