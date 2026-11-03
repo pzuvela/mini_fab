@@ -194,7 +194,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 {
 	Location originalLocation = wafer.location;
 
-	OperationResult movementResult = moveWaferToProcessModule(                                                            >
+	OperationResult movementResult = moveWaferToProcessModule(
         	processModuleLocation,
         	originalLocation,
         	stopToken
