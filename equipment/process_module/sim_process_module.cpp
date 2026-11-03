@@ -49,5 +49,6 @@ RecoveryResult SimProcessModule::recover()
 
 std::optional<std::string> SimProcessModule::processingWaferId() const 
 {
+	std::lock_guard<std::mutex> lock(mutex_);
 	return processingWaferId_;
 }

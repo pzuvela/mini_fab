@@ -33,7 +33,7 @@ int main()
 {
     Wafer wafer{ "5", Location{ Station::Aligner, 3 } };
 
-    Recipe recipe{ .id = 1, .name = "Recipe1", .durationSeconds = 50.2 };
+    Recipe recipe{ .id = 1, .name = "Recipe1", .durationSeconds = 0.5 };
 
     WaferManager mgr;
 
