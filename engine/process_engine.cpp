@@ -379,6 +379,10 @@ StateTransition ProcessEngine::beginCancellation()
 				.newState = EquipmentState::Stopping,
 				.isCancelled = true
 			};
+
+			state_ = EquipmentState::Stopping;
+
+			return transition;
 		}
 
 		case EquipmentState::Idle:
