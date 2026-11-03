@@ -10,6 +10,7 @@ add_executable(mini_fab_tests
     mocks/mock_wafer_manager.cpp
     mocks/mock_process_module.cpp
     mocks/blocking_mock_process_module.cpp
+    mocks/two_stage_blocking_mock_robot.cpp
 )
 
 target_link_libraries(mini_fab_tests PRIVATE

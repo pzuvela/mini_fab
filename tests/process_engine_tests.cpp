@@ -9,6 +9,7 @@
 #include "mocks/throwing_mock_process_module.h"
 #include "mocks/mock_robot.h"
 #include "mocks/blocking_mock_robot.h"
+#include "mocks/two_stage_blocking_mock_robot.h"
 #include "mocks/mock_wafer_manager.h"
 #include "wafer/wafer_manager.h"
 #include "domain/wafer.h"
@@ -587,5 +588,29 @@ namespace MiniFab::Tests
 	    EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
 	    EXPECT_TRUE(processModule.recoverWasCalled());
 	    EXPECT_FALSE(robot.recoverWasCalled());
+    }
+
+    TEST_F(ProcessEngineTest, DoesNotRemainStoppingWhenReturnMoveCompletesDuringCancellation) 
+    {
+	TwoStageBlockingMockRobot robot;
+	MockProcessModule processModule{ true };
+
+	WaferManager mgr;
+	mgr.addWafer(wafer_);
+
+	ProcessEngine engine(mgr, robot, processModule);
+
+	ASSERT_EQ(
+		engine.startProcessWafer(wafer_.id, destination_, recipe_), 
+		OperationResult::Completed
+	);
+
+	robot.waitUntilReturnMovementStarts();
+
+	engine.cancel();
+
+	engine.waitForCompletion();
+
+	EXPECT_NE(engine.state(), EquipmentState::Stopping);
     }
 }

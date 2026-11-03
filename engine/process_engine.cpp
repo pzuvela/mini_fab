@@ -150,7 +150,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 				case OperationResult::Completed:
 					if (returnResult.locationUpdateResult.has_value() && returnResult.locationUpdateResult.value() == LocationUpdateResult::Updated) 
 					{
-						tryTransition(EquipmentState::Moving, EquipmentState::Idle);
+						hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Idle);
 						if (!hasTransitioned) return resultFromFailedTransition(stopToken);
 						return OperationResult::Completed;
 					}
@@ -161,7 +161,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 					}
 
 				case OperationResult::Cancelled:
-					tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
+					hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
 					if (!hasTransitioned) return resultFromFailedTransition(stopToken);
 					return OperationResult::Cancelled;
 				case OperationResult::Failed:
