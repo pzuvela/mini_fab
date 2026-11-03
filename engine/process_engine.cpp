@@ -141,6 +141,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 	switch (operationResult)
 	{
 		case OperationResult::Completed:
+		{
 			hasTransitioned = tryTransition(EquipmentState::Processing, EquipmentState::Moving);
 			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
 			MovementStageResult returnResult = run(wafer, originalLocation, stopToken);
@@ -150,7 +151,8 @@ OperationResult ProcessEngine::executeProcessWafer(
 					if (returnResult.locationUpdateResult.has_value() && returnResult.locationUpdateResult.value() == LocationUpdateResult::Updated) 
 					{
 						tryTransition(EquipmentState::Moving, EquipmentState::Idle);
-						return OperationResult::Completed; 
+						if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+						return OperationResult::Completed;
 					}
 					else
 					{
@@ -160,11 +162,13 @@ OperationResult ProcessEngine::executeProcessWafer(
 
 				case OperationResult::Cancelled:
 					tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
+					if (!hasTransitioned) return resultFromFailedTransition(stopToken);
 					return OperationResult::Cancelled;
 				case OperationResult::Failed:
 					setFaulted(FaultSource::Robot);
 					return OperationResult::Failed;
 				}
+		}
 		case OperationResult::Cancelled:
 			setState(EquipmentState::Idle);
 			break;
