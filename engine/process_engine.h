@@ -68,7 +68,13 @@ private:
 	const Recipe& recipe,
 	const Location& location,
 	std::stop_token stopToken 
-   );
+    );
+
+    std::optional<FaultSource> beginRecovery();
+
+    RecoveryResult recoverFaultSource(FaultSource faultSource);
+
+    void completeRecovery(RecoveryResult recoveryResult);
 
     void setState(EquipmentState newState);
 

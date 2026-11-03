@@ -208,7 +208,7 @@ OperationResult ProcessEngine::processWaferAtModule(
 		case OperationResult::Cancelled:
 		{
 			bool hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
-			
+
 			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
 
 			return OperationResult::Cancelled;
@@ -297,61 +297,69 @@ OperationResult ProcessEngine::startProcessWafer(
 	return OperationResult::Completed;
 }
 
-EquipmentState ProcessEngine::state() const 
+EquipmentState ProcessEngine::state() const
 {
 	std::lock_guard<std::mutex> lock(mutex_);
 	return state_;
 }
 
-RecoveryResult ProcessEngine::reset() 
+std::optional<FaultSource> ProcessEngine::beginRecovery()
 {
+	std::lock_guard<std::mutex> lock(mutex_);
 
-	FaultSource faultSource;
+	if (state_ != EquipmentState::Faulted || !faultSource_.has_value()) return std::nullopt;
 
-	{
-		std::lock_guard<std::mutex> lock(mutex_);
+	FaultSource faultSource = faultSource_.value();
+	state_ = EquipmentState::Recovering;
 
-		if (state_ != EquipmentState::Faulted || !faultSource_.has_value())
-		{
-			return RecoveryResult::NotRequired;
-		}
+	return faultSource;
+}
 
-		faultSource = faultSource_.value();
-		state_ = EquipmentState::Recovering;
-	}
-
-	RecoveryResult recoveryResult;
-
+RecoveryResult ProcessEngine::recoverFaultSource(FaultSource faultSource)
+{
 	switch (faultSource)
 	{
 		case FaultSource::Robot:
-			recoveryResult = robot_.recover();
-			break;
+			return robot_.recover();
+
 		case FaultSource::ProcessModule:
-			recoveryResult = processModule_.recover();
-			break;
+			return processModule_.recover();
+
 		case FaultSource::WaferTracking:
-			recoveryResult = RecoveryResult::Failed;
+			return RecoveryResult::Failed;
+	}
+
+	return RecoveryResult::Failed;
+}
+
+void ProcessEngine::completeRecovery(RecoveryResult recoveryResult) 
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	switch (recoveryResult)
+	{
+		case RecoveryResult::Recovered:
+			faultSource_ = std::nullopt;
+			state_ = EquipmentState::Idle;
+			break;
+
+		case RecoveryResult::Failed:
+		case RecoveryResult::NotRequired:
+			state_ = EquipmentState::Faulted;
 			break;
 	}
+}
 
-	{
-                std::lock_guard<std::mutex> lock(mutex_);
+RecoveryResult ProcessEngine::reset()
+{
 
-		switch (recoveryResult)
-		{
-			case RecoveryResult::Recovered:
-				faultSource_ = {};
-				state_ = EquipmentState::Idle;
-				break;
+	std::optional<FaultSource> faultSource = beginRecovery();
 
-			case RecoveryResult::Failed:
-			case RecoveryResult::NotRequired:
-				state_ = EquipmentState::Faulted;
-				break;
-		}
+	if (!faultSource.has_value()) return RecoveryResult::NotRequired;
 
-	}
+	RecoveryResult recoveryResult = recoverFaultSource(faultSource.value());
+
+	completeRecovery(recoveryResult);
 
 	return recoveryResult;
 }
