@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <optional>
 
 #include "process_engine.h"
 #include "equipment/process_module/iprocess_module.h"
@@ -11,7 +12,7 @@ ProcessEngine::ProcessEngine(IWaferManager& mgr, IRobot& robot, IProcessModule& 
 	std::cout << "Instantiated wafer manager, robot & process module\n";
 }
 
-OperationResult ProcessEngine::run(
+MovementStageResult ProcessEngine::run(
 	Wafer& wafer,
 	const Location& destination,
 	std::stop_token stopToken
@@ -21,23 +22,20 @@ OperationResult ProcessEngine::run(
 	{
 		robot_.initialize();
 	}
+
 	OperationResult movementResult = robot_.moveWafer(wafer, destination, stopToken);
+
+	std::optional<LocationUpdateResult> locationUpdateResult = std::nullopt;
 
 	if (movementResult == OperationResult::Completed)
 	{
-		LocationUpdateResult result = mgr_.updateLocation(wafer.id, destination);
-
-		switch (result) 
-		{
-			case LocationUpdateResult::Updated:
-				break;
-			case LocationUpdateResult::WaferNotFound:
-				movementResult = OperationResult::Failed;
-		}
-
+		locationUpdateResult = mgr_.updateLocation(wafer.id, destination);
 	}
 
-	return movementResult;
+	return MovementStageResult{
+		movementResult,
+		locationUpdateResult
+	};
 }
 
 OperationResult ProcessEngine::process(
@@ -83,11 +81,11 @@ void ProcessEngine::setState(EquipmentState newState)
 	state_ = newState;
 }
 
-void ProcessEngine::setFaulted(EquipmentComponent component) 
+void ProcessEngine::setFaulted(FaultSource faultSource) 
 {
 	std::lock_guard<std::mutex> lock(mutex_);
 	state_ = EquipmentState::Faulted;
-	faultSource_ = component;
+	faultSource_ = faultSource;
 }
 
 OperationResult ProcessEngine::executeProcessWafer(
@@ -97,16 +95,24 @@ OperationResult ProcessEngine::executeProcessWafer(
 	std::stop_token stopToken
 )
 {
-	OperationResult movementResult = run(wafer, processModuleLocation, stopToken);
+	MovementStageResult result = run(wafer, processModuleLocation, stopToken);
 
 	bool hasTransitioned;
 
-	switch (movementResult)
+	switch (result.movementResult)
 	{
 		case OperationResult::Completed:
-			hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Processing);
-        		if (!hasTransitioned) return resultFromFailedTransition(stopToken);
-			break;
+			if (result.locationUpdateResult != std::nullopt && result.locationUpdateResult.value() == LocationUpdateResult::Updated) 
+			{
+				hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Processing);
+				if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+				break;
+			}
+			else 
+			{
+				setFaulted(FaultSource::WaferTracking);
+				return OperationResult::Failed;
+			}
 
 		case OperationResult::Cancelled:
 			hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
@@ -114,7 +120,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 			return OperationResult::Cancelled;
 
 		case OperationResult::Failed:
-			setFaulted(EquipmentComponent::Robot);
+			setFaulted(FaultSource::Robot);
 			return OperationResult::Failed;
 	}
 
@@ -127,7 +133,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 			setState(EquipmentState::Idle);
 			break;
 		case OperationResult::Failed:
-			setFaulted(EquipmentComponent::ProcessModule);
+			setFaulted(FaultSource::ProcessModule);
 			break;
 	}
 
@@ -175,7 +181,7 @@ OperationResult ProcessEngine::startProcessWafer(
 			}
 			catch (...)
 			{
-				setFaulted(EquipmentComponent::ProcessModule);
+				setFaulted(FaultSource::ProcessModule);
 				promise.set_exception(std::current_exception());
 			}
 		}
@@ -192,7 +198,7 @@ EquipmentState ProcessEngine::state() const
 RecoveryResult ProcessEngine::reset() 
 {
 
-	EquipmentComponent faultSource;
+	FaultSource faultSource;
 
 	{
 		std::lock_guard<std::mutex> lock(mutex_);
@@ -210,10 +216,10 @@ RecoveryResult ProcessEngine::reset()
 
 	switch (faultSource)
 	{
-		case EquipmentComponent::Robot:
+		case FaultSource::Robot:
 			recoveryResult = robot_.recover();
 			break;
-		case EquipmentComponent::ProcessModule:
+		case FaultSource::ProcessModule:
 			recoveryResult = processModule_.recover();
 			break;
 	}
