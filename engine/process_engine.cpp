@@ -190,7 +190,7 @@ OperationResult ProcessEngine::moveWaferToProcessModule(
 OperationResult ProcessEngine::processWaferAtModule(
         Wafer& wafer,
         const Recipe& recipe,
-        const Location& location,
+        const Location& originalLocation,
         std::stop_token stopToken
 )
 {
