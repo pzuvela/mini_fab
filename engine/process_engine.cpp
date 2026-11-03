@@ -187,6 +187,36 @@ OperationResult ProcessEngine::moveWaferToProcessModule(
 	}
 }
 
+OperationResult ProcessEngine::processWaferAtModule(
+        Wafer& wafer,
+        const Recipe& recipe,
+        const Location& location,
+        std::stop_token stopToken
+)
+{
+	OperationResult operationResult = process(wafer, recipe, stopToken);
+
+	switch (operationResult)
+	{
+		case OperationResult::Completed:
+			return returnWaferToOriginalLocation(
+				wafer,
+				originalLocation,
+				stopToken
+			);
+
+		case OperationResult::Cancelled:
+			setState(EquipmentState::Idle);
+			return OperationResult::Cancelled;
+
+		case OperationResult::Failed:
+			setFaulted(FaultSource::ProcessModule);
+			return OperationResult::Failed;
+	}
+
+	return OperationResult::Failed;
+}
+
 OperationResult ProcessEngine::executeProcessWafer(
 	Wafer& wafer,
 	const Location& processModuleLocation,
@@ -205,23 +235,12 @@ OperationResult ProcessEngine::executeProcessWafer(
 
 	if (movementResult != OperationResult::Completed) return movementResult;
 
-	OperationResult operationResult = process(wafer, recipe, stopToken);
-
-	switch (operationResult)
-	{
-		case OperationResult::Completed:
-		{
-			return returnWaferToOriginalLocation(wafer, originalLocation, stopToken);
-		}
-		case OperationResult::Cancelled:
-			setState(EquipmentState::Idle);
-			break;
-		case OperationResult::Failed:
-			setFaulted(FaultSource::ProcessModule);
-			break;
-	}
-
-	return operationResult;
+	return processWaferAtModule(
+		wafer,
+		recipe,
+		originalLocation,
+		stopToken
+	);
 }
 
 OperationResult ProcessEngine::processWafer(

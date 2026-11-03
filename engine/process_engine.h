@@ -63,6 +63,13 @@ private:
 	std::stop_token stopToken
     );
 
+    OperationResult processWaferAtModule(
+	Wafer& wafer,
+	const Recipe& recipe,
+	const Location& location,
+	std::stop_token stopToken 
+   );
+
     void setState(EquipmentState newState);
 
     void setFaulted(FaultSource component);
