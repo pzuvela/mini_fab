@@ -206,8 +206,13 @@ OperationResult ProcessEngine::processWaferAtModule(
 			);
 
 		case OperationResult::Cancelled:
-			setState(EquipmentState::Idle);
+		{
+			bool hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
+			
+			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+
 			return OperationResult::Cancelled;
+		}
 
 		case OperationResult::Failed:
 			setFaulted(FaultSource::ProcessModule);
