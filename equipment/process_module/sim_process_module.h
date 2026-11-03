@@ -28,4 +28,5 @@ public:
 		const Recipe& recipe, 
 		std::stop_token stopToken
 	) override;
+	std::optional<std::string> processingWaferId() const;
 };

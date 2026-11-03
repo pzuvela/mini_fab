@@ -46,3 +46,8 @@ RecoveryResult SimProcessModule::recover()
 {
 	return RecoveryResult::Recovered;
 }
+
+std::optional<std::string> SimProcessModule::processingWaferId() const 
+{
+	return processingWaferId_;
+}

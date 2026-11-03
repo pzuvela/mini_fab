@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <stdexcept>
+#include <thread>
 
 #include "equipment/operation_result.h"
 #include "equipment/process_module/sim_process_module.h"
@@ -35,6 +36,13 @@ namespace MiniFab::Tests
             .name = "Recipe1",
             .durationSeconds = 0.05
         };
+
+        Recipe longerRecipe{
+            .id = 1,
+            .name = "LongerRecipe2",
+            .durationSeconds = 5
+        };
+
     };
 
     TEST_F(SimProcessModuleTest, IsNotReadyBeforeInitialization)
@@ -88,5 +96,33 @@ namespace MiniFab::Tests
 		EXPECT_EQ(firstResult, OperationResult::Completed);
 		EXPECT_EQ(secondResult, OperationResult::Completed);
 	}
-}
 
+	TEST_F(SimProcessModuleTest, CancelledProcessAllowsAnotherWaferToProcess)
+	{
+		SimProcessModule module = SimProcessModule();
+
+                module.initialize();
+
+		OperationResult firstResult;
+
+		std::jthread processThread([&](std::stop_token stopToken)
+		{
+			firstResult = module.process(wafer,  longerRecipe, stopToken);
+		});
+
+		while (!module.processingWaferId().has_value())
+		{
+			std::this_thread::yield();
+		}
+
+		EXPECT_EQ(module.processingWaferId().value(), wafer.id);
+
+		processThread.request_stop();
+		processThread.join();
+
+                OperationResult secondResult = module.process(wafer2,  recipe, std::stop_token());
+
+                EXPECT_EQ(firstResult, OperationResult::Cancelled);
+                EXPECT_EQ(secondResult, OperationResult::Completed);
+	}
+}
