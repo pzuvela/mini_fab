@@ -35,7 +35,7 @@ namespace MiniFab::Tests
         Recipe recipe_{
             .id = 1,
             .name = "Recipe1",
-            .durationSeconds = 55.2
+            .durationSeconds = 0.05
         };
 
         MockWaferManager mgr_{ std::make_unique<Wafer>(wafer_), true };

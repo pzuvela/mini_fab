@@ -26,7 +26,7 @@ OperationResult SimProcessModule::process(const Wafer& wafer, const Recipe& reci
 	conditionVariable_.wait_for(
 		lock,
 		stopToken,
-		std::chrono::seconds{recipe.durationSeconds},
+		std::chrono::duration<double>{recipe.durationSeconds},
 		[]
 		{
 			return false;

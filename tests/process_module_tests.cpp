@@ -25,7 +25,7 @@ namespace MiniFab::Tests
         Recipe recipe{
             .id = 1,
             .name = "Recipe1",
-            .durationSeconds = 55.2
+            .durationSeconds = 0.05
         };
     };
 
