@@ -364,38 +364,45 @@ RecoveryResult ProcessEngine::reset()
 	return recoveryResult;
 }
 
+StateTransition ProcessEngine::beginCancellation()
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	switch (state_)
+	{
+		case EquipmentState::Moving:
+		case EquipmentState::Processing:
+		{
+			StateTransition transition
+			{
+				.previousState = state_,
+				.newState = EquipmentState::Stopping,
+				.isCancelled = true
+			};
+		}
+
+		case EquipmentState::Idle:
+		case EquipmentState::Stopping:
+		case EquipmentState::Recovering:
+		case EquipmentState::Faulted:
+			return StateTransition{
+				.previousState = state_,
+				.newState = state_,
+				.isCancelled = false
+			};
+	}
+
+	return StateTransition{
+		.previousState = state_,
+		.newState = state_,
+		.isCancelled = false
+	};
+
+}
+
 StateTransition ProcessEngine::cancel() 
 {
-	StateTransition stateTransition;
-
-	{
-		std::lock_guard<std::mutex> lock(mutex_);
-
-		switch (state_) 
-		{
-			case EquipmentState::Moving:
-			case EquipmentState::Processing:
-				stateTransition = StateTransition
-				{
-					.previousState = state_,
-					.newState = EquipmentState::Stopping,
-					.isCancelled = true
-				};
-				state_ = EquipmentState::Stopping;
-				break;
-			case EquipmentState::Idle:
-			case EquipmentState::Stopping:
-			case EquipmentState::Recovering:
-			case EquipmentState::Faulted:
-				stateTransition = StateTransition
-				{
-					.previousState = state_,
-					.newState = state_,
-					.isCancelled = false
-				};
-				break;
-		}
-	}
+	StateTransition stateTransition = beginCancellation();
 
 	if (stateTransition.isCancelled) 
 	{

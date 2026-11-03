@@ -76,6 +76,8 @@ private:
 
     void completeRecovery(RecoveryResult recoveryResult);
 
+    StateTransition beginCancellation();
+
     void setState(EquipmentState newState);
 
     void setFaulted(FaultSource component);
