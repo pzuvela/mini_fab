@@ -112,6 +112,10 @@ int main()
 
 	OperationResult result = engine.waitForCompletion();
 
+	std::cout
+		<< "Result: " << toString(result)
+		<< "\n";
+
 	Wafer* currentWafer = mgr.findWafer(wafer.id);
 
 	std::cout
