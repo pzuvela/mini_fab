@@ -52,6 +52,23 @@ std::string toString(EquipmentState state)
     return "Unknown";
 }
 
+std::string toString(OperationResult result)
+{
+    switch (result)
+    {
+        case OperationResult::Completed:
+            return "Completed";
+
+        case OperationResult::Cancelled:
+            return "Cancelled";
+
+        case OperationResult::Failed:
+            return "Failed";
+    }
+
+    return "Unknown";
+}
+
 
 int main()
 {
