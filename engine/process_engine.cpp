@@ -141,7 +141,8 @@ OperationResult ProcessEngine::returnWaferToOriginalLocation(
 
 }
 
-OperationResult ProcessEngine::moveWaferToProcessModule(                                                                                Wafer& wafer,
+OperationResult ProcessEngine::moveWaferToProcessModule(
+	Wafer& wafer,
         const Location& processModuleLocation,
         const Location& originalLocation,
         std::stop_token stopToken
@@ -158,6 +159,7 @@ OperationResult ProcessEngine::moveWaferToProcessModule(                        
 			{
 				hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Processing);
 				if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+				return OperationResult::Completed;
 			}
 			else
 			{
@@ -195,7 +197,8 @@ OperationResult ProcessEngine::executeProcessWafer(
 	Location originalLocation = wafer.location;
 
 	OperationResult movementResult = moveWaferToProcessModule(
-        	processModuleLocation,
+        	wafer,
+		processModuleLocation,
         	originalLocation,
         	stopToken
 	);
