@@ -195,9 +195,9 @@ OperationResult ProcessEngine::executeProcessWafer(
 	Location originalLocation = wafer.location;
 
 	OperationResult movementResult = moveWaferToProcessModule(                                                            >
-        	const Location& processModuleLocation,
-        	const Location& originalLocation,
-        	std::stop_token stopToken
+        	processModuleLocation,
+        	originalLocation,
+        	stopToken
 	);
 
 	if (movementResult != OperationResult::Completed) return movementResult;
