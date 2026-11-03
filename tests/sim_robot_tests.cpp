@@ -58,3 +58,38 @@ TEST_F(SimRobotTest, CancelledMoveAllowsAnotherWaferToMove)
 	EXPECT_EQ(secondResult, OperationResult::Completed);
 
 }
+
+TEST_F(SimRobotTest, RecoversWhenNotCarryingWafer)
+{
+    SimRobot robot { std::chrono::milliseconds{5} };
+
+    EXPECT_EQ(
+        robot.recover(),
+        RecoveryResult::Recovered
+    );
+}
+
+TEST_F(SimRobotTest, RecoveryFailsWhileCarryingWafer)
+{
+    SimRobot robot{std::chrono::milliseconds(500)};
+    Wafer wafer{ "W1", Location{ Station::LoadPort, 4 } };
+
+    std::jthread worker([&]
+    {
+        robot.moveWafer(
+            wafer,
+            Location { Station::ProcessModule, 5 },
+            {}
+        );
+    });
+
+    while (!robot.carriedWaferId().has_value())
+    {
+        std::this_thread::yield();
+    }
+
+    EXPECT_EQ(
+        robot.recover(),
+        RecoveryResult::Failed
+    );
+}

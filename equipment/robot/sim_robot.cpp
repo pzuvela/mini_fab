@@ -57,9 +57,11 @@ OperationResult SimRobot::moveWafer(
 	return OperationResult::Completed;
 }
 
-RecoveryResult SimRobot::recover() 
+RecoveryResult SimRobot::recover()
 {
-	return RecoveryResult::Recovered;
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	return carriedWaferId_.has_value() ? RecoveryResult::Failed : RecoveryResult::Recovered;
 }
 
 bool SimRobot::isReady() const
