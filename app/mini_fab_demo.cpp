@@ -59,7 +59,7 @@ int main()
 
 	Location processModuleLocation{ Station::ProcessModule, 1 };
 
-	Recipe recipe{ .id = 1, .name = "Recipe1", .durationSeconds = 0.5 };
+	Recipe recipe{ .id = 1, .name = "Recipe1", .durationSeconds = 2.0 };
 
 	SimRobot robot{ std::chrono::milliseconds{300} };
 
@@ -72,7 +72,6 @@ int main()
 
 	engine.startProcessWafer(wafer.id, processModuleLocation, recipe);
 
-
 	while (engine.state() != EquipmentState::Idle && engine.state() != EquipmentState::Faulted)
 	{
 	    Wafer* currentWafer = mgr.findWafer(wafer.id);
@@ -80,7 +79,7 @@ int main()
 	    std::cout
 	        << "State: " << toString(engine.state())
 	        << " | Wafer station: "
-	        << static_cast<int>(currentWafer->location.station)
+	        << toString(currentWafer->location.station)
 	        << " slot " << currentWafer->location.slot
 	        << " | Robot: "
 	        << (robot.carriedWaferId().has_value()
@@ -92,6 +91,20 @@ int main()
 	                : "empty")
 	        << '\n';
 
+	    if (engine.state() == EquipmentState::Processing)
+	    {
+		std::this_thread::sleep_for(
+        		std::chrono::milliseconds{200}
+	    	);
+
+	    	StateTransition transition = engine.cancel();
+
+		std::cout
+			<< "Cancel requested: "
+			<< (transition.isCancelled ? "accepted" : "ignored")
+			<< "\n";
+	    }
+
 	    std::this_thread::sleep_for(
         	std::chrono::milliseconds{100}
 	    );
@@ -99,5 +112,14 @@ int main()
 
 	OperationResult result = engine.waitForCompletion();
 
+	Wafer* currentWafer = mgr.findWafer(wafer.id);
+
+	std::cout
+	    << "Final state: " << toString(engine.state())
+	    << " | Wafer: " << toString(currentWafer->location.station)
+	    << " slot " << currentWafer->location.slot
+ 	    << '\n';
+
 	return 0;
 };
+
