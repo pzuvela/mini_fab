@@ -1,6 +1,6 @@
 #include <vector>
 #include <memory>
-
+#include <iostream>
 #include <chrono>
 
 #include "wafer/iwafer_manager.h"
@@ -10,47 +10,94 @@
 #include "engine/process_engine.h"
 #include "equipment/process_module/sim_process_module.h"
 
-
-void runProcessWafer(
-    IWaferManager& mgr,
-    IRobot& robot,
-    IProcessModule& processModule,
-    const Recipe& recipe
-)
+std::string toString(Station station)
 {
-    ProcessEngine engine(mgr, robot, processModule);
-
-    Location destination
+    switch (station)
     {
-        Station::LoadPort,
-        4
-    };
+        case Station::LoadPort:
+            return "LoadPort";
 
-    engine.processWafer("5", destination, recipe);
+        case Station::Aligner:
+            return "Aligner";
+
+        case Station::ProcessModule:
+            return "ProcessModule";
+
+	case Station::Output:
+		return "Output";
+    }
+
+    return "Unknown";
 }
+
+
+std::string toString(EquipmentState state)
+{
+    switch (state)
+    {
+        case EquipmentState::Idle:
+            return "Idle";
+        case EquipmentState::Moving:
+            return "Moving";
+        case EquipmentState::Processing:
+            return "Processing";
+        case EquipmentState::Stopping:
+            return "Stopping";
+        case EquipmentState::Recovering:
+            return "Recovering";
+        case EquipmentState::Faulted:
+            return "Faulted";
+    }
+
+    return "Unknown";
+}
+
 
 int main()
 {
-    Wafer wafer{ "5", Location{ Station::Aligner, 3 } };
+	Wafer wafer{ "W1", Location{ Station::LoadPort, 3 } };
 
-    Recipe recipe{ .id = 1, .name = "Recipe1", .durationSeconds = 0.5 };
+	Location processModuleLocation{ Station::ProcessModule, 1 };
 
-    WaferManager mgr;
+	Recipe recipe{ .id = 1, .name = "Recipe1", .durationSeconds = 0.5 };
 
-    mgr.addWafer(wafer);
+	SimRobot robot{ std::chrono::milliseconds{300} };
 
-    std::vector<std::unique_ptr<IRobot>> robots;
+	SimProcessModule processModule;
+	WaferManager mgr;
 
-    robots.push_back(std::make_unique<SimRobot>(std::chrono::milliseconds{1}));
-    robots.push_back(std::make_unique<SimRobot>(std::chrono::milliseconds{1}));
-    robots.push_back(std::make_unique<SimRobot>(std::chrono::milliseconds{1}));
+	mgr.addWafer(wafer);
 
-    SimProcessModule processModule;
+	ProcessEngine engine{mgr, robot, processModule};
 
-    for (const std::unique_ptr<IRobot>& robot : robots) 
-    {
-        runProcessWafer(mgr, *robot, processModule, recipe);
-    }
+	engine.startProcessWafer(wafer.id, processModuleLocation, recipe);
 
-    return 0;
+
+	while (engine.state() != EquipmentState::Idle && engine.state() != EquipmentState::Faulted)
+	{
+	    Wafer* currentWafer = mgr.findWafer(wafer.id);
+
+	    std::cout
+	        << "State: " << toString(engine.state())
+	        << " | Wafer station: "
+	        << static_cast<int>(currentWafer->location.station)
+	        << " slot " << currentWafer->location.slot
+	        << " | Robot: "
+	        << (robot.carriedWaferId().has_value()
+	                ? robot.carriedWaferId().value()
+	                : "empty")
+	        << " | PM: "
+	        << (processModule.processingWaferId().has_value()
+	                ? processModule.processingWaferId().value()
+	                : "empty")
+	        << '\n';
+
+	    std::this_thread::sleep_for(
+        	std::chrono::milliseconds{100}
+	    );
+	}
+
+	OperationResult result = engine.waitForCompletion();
+
+	return 0;
 };
