@@ -22,6 +22,14 @@ namespace MiniFab::Tests
             }
         };
 
+        Wafer wafer2{
+            .id = "2",
+            .location = Location{
+                .station = Station::LoadPort,
+                .slot = 4
+            }
+        };
+
         Recipe recipe{
             .id = 1,
             .name = "Recipe1",
@@ -67,4 +75,18 @@ namespace MiniFab::Tests
 
         EXPECT_THROW(module.process(wafer, recipe, std::stop_token()), std::logic_error);
     }
+
+	TEST_F(SimProcessModuleTest, CompletedProcessAllowsAnotherWaferToProcess)
+	{
+		SimProcessModule module = SimProcessModule();
+
+		module.initialize();
+
+		OperationResult firstResult = module.process(wafer,  recipe, std::stop_token());
+		OperationResult secondResult = module.process(wafer2,  recipe, std::stop_token());
+
+		EXPECT_EQ(firstResult, OperationResult::Completed);
+		EXPECT_EQ(secondResult, OperationResult::Completed);
+	}
 }
+
