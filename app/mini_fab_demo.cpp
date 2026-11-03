@@ -1,6 +1,8 @@
 #include <vector>
 #include <memory>
 
+#include <chrono>
+
 #include "wafer/iwafer_manager.h"
 #include "wafer/wafer_manager.h"
 #include "equipment/robot/irobot.h"
@@ -39,9 +41,9 @@ int main()
 
     std::vector<std::unique_ptr<IRobot>> robots;
 
-    robots.push_back(std::make_unique<SimRobot>());
-    robots.push_back(std::make_unique<SimRobot>());
-    robots.push_back(std::make_unique<SimRobot>());
+    robots.push_back(std::make_unique<SimRobot>(std::chrono::milliseconds{1}));
+    robots.push_back(std::make_unique<SimRobot>(std::chrono::milliseconds{1}));
+    robots.push_back(std::make_unique<SimRobot>(std::chrono::milliseconds{1}));
 
     SimProcessModule processModule;
 

@@ -1,6 +1,7 @@
 add_executable(mini_fab_tests
     process_module_tests.cpp
     robot_tests.cpp
+    sim_robot_tests.cpp
     process_engine_tests.cpp
     wafer_manager_tests.cpp
 

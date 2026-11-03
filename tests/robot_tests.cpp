@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
+
 #include "equipment/robot/sim_robot.h"
 #include "mocks/mock_robot.h"
 #include "domain/wafer.h"
@@ -26,20 +28,20 @@ namespace MiniFab::Tests
 
 	TEST_F(RobotTest, IsNotReadyBeforeInitialization)
 	{
-		SimRobot robot = SimRobot();
+		SimRobot robot = SimRobot{ std::chrono::milliseconds{1} };
 		EXPECT_FALSE(robot.isReady());
 	}
 
 	TEST_F(RobotTest, IsReadyAfterInitialization)
 	{
-		SimRobot robot = SimRobot();
+		SimRobot robot = SimRobot{ std::chrono::milliseconds{1} };
 		robot.initialize();
 		EXPECT_TRUE(robot.isReady());
 	}
 
 	TEST_F(RobotTest, MoveSucceedsWhenReady)
 	{
-		SimRobot robot = SimRobot();
+		SimRobot robot = SimRobot{ std::chrono::milliseconds{1} };
 		robot.initialize();
 
 		OperationResult operationResult = robot.moveWafer(
