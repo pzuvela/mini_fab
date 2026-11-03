@@ -42,9 +42,11 @@ OperationResult SimProcessModule::process(const Wafer& wafer, const Recipe& reci
 	return OperationResult::Completed;
 }
 
-RecoveryResult SimProcessModule::recover() 
+RecoveryResult SimProcessModule::recover()
 {
-	return RecoveryResult::Recovered;
+	std::lock_guard<std::mutex> lock_(mutex_);
+
+	return processingWaferId_.has_value() ? RecoveryResult::Failed : RecoveryResult::Recovered;
 }
 
 std::optional<std::string> SimProcessModule::processingWaferId() const 

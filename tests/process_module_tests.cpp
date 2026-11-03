@@ -125,4 +125,44 @@ namespace MiniFab::Tests
                 EXPECT_EQ(firstResult, OperationResult::Cancelled);
                 EXPECT_EQ(secondResult, OperationResult::Completed);
 	}
+
+	TEST_F(SimProcessModuleTest, RecoversWhenNotProcessinfWafer)
+	{
+		SimProcessModule processModule;
+
+		EXPECT_EQ(processModule.recover(), RecoveryResult::Recovered);
+	}
+
+	TEST_F(SimProcessModuleTest, RecoveryFailsWhileProcessingWafer)
+	{
+	    SimProcessModule processModule;
+
+	    processModule.initialize();
+
+	    Wafer wafer{
+        	"W1",
+	        Location{ Station::LoadPort, 4 }
+	    };
+
+	    Recipe recipe{ 1, "Recipe", 0.01};
+
+	    std::jthread worker([&]
+	    {
+	        processModule.process(
+        	    wafer,
+            	recipe,
+            	{}
+        	);
+	    });
+
+	    while (!processModule.processingWaferId().has_value())
+    	    {
+	        std::this_thread::yield();
+	    }
+
+	    EXPECT_EQ(
+        	processModule.recover(),
+        	RecoveryResult::Failed
+    	    );
+	}
 }
