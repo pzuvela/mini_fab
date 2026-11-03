@@ -14,6 +14,7 @@ SimRobot::SimRobot(std::chrono::milliseconds moveDuration)
 
 void SimRobot::initialize()
 {
+	std::lock_guard<std::mutex> lock(mutex_);
 	ready_ = true;
 	std::cout << "Simulator robot initialized!\n";
 }
@@ -63,6 +64,7 @@ RecoveryResult SimRobot::recover()
 
 bool SimRobot::isReady() const
 {
+	std::lock_guard<std::mutex> lock(mutex_);
 	return ready_;
 }
 
