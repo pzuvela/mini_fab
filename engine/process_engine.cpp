@@ -89,6 +89,22 @@ void ProcessEngine::setFaulted(FaultSource faultSource)
 	faultSource_ = faultSource;
 }
 
+bool ProcessEngine::completeMovement()
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	switch (state_)
+	{
+		case EquipmentState::Moving:
+		case EquipmentState::Stopping:
+			state_ = EquipmentState::Idle;
+			return true;
+
+		default:
+			return false;
+	}
+}
+
 OperationResult ProcessEngine::executeProcessWafer(
 	Wafer& wafer,
 	const Location& processModuleLocation,
@@ -152,12 +168,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 				case OperationResult::Completed:
 					if (returnResult.locationUpdateResult.has_value() && returnResult.locationUpdateResult.value() == LocationUpdateResult::Updated) 
 					{
-						hasTransitioned = tryTransition(EquipmentState::Moving, EquipmentState::Idle);
-						if (!hasTransitioned) 
-						{
-							hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
-							if (!hasTransitioned) return OperationResult::Failed;
-						}
+						if (!completeMovement()) return OperationResult::Failed;
 						return OperationResult::Completed;
 					}
 					else
