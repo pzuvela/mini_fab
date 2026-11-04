@@ -128,6 +128,7 @@ if(MINIFAB_BUILD_WEB)
 		app/mini_fab_web.cpp
 		web/routes/equipment_routes.cpp
 		web/routes/recipe_routes.cpp
+		web/parsing/recipe_parser.cpp
 	)
 
 	target_link_libraries(mini_fab_web PRIVATE

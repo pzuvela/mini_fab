@@ -3,6 +3,7 @@
 #include "controller/mini_fab_controller.h"
 #include "web/serialization/equipment_snapshot_json.h"
 #include "web/serialization/equipment_events_json.h"
+#include "web/parsing/recipe_parser.h"
 
 #include <cmath>
 #include <stdexcept>
@@ -47,65 +48,24 @@ namespace MiniFab::Web
             }
         );
 
-        server.Post("/api/run",
-            [&controller](const httplib::Request& request,
-                          httplib::Response& response)
-            {
-        auto badRequest = [&response]()
+
+server.Post("/api/run",
+    [&controller](const httplib::Request& request,
+                  httplib::Response& response)
+    {
+        auto recipe = parseRecipe(request);
+
+        if (!recipe)
         {
-            response.status = 400;                                                                                                                                                                                       response.set_content(
+            response.status = 400;
+            response.set_content(
                 R"({"error":"Invalid recipe parameters"})",
                 "application/json"
             );
-        };
-
-        if (!request.has_param("recipeId") ||
-            !request.has_param("recipeName") ||
-            !request.has_param("durationSeconds"))
-        {
-            badRequest();
             return;
         }
 
-        Recipe recipe;
-
-        try
-        {
-            const auto idText = request.get_param_value("recipeId");
-            const auto durationText =
-                request.get_param_value("durationSeconds");
-
-            std::size_t idPos = 0;
-            std::size_t durationPos = 0;
-
-            recipe.id = std::stoi(idText, &idPos);
-            recipe.name = request.get_param_value("recipeName");
-            recipe.durationSeconds =
-                std::stod(durationText, &durationPos);
-
-            if (idPos != idText.size() ||
-                durationPos != durationText.size() ||
-                recipe.id <= 0 ||
-                recipe.name.empty() ||
-                !std::isfinite(recipe.durationSeconds) ||
-                recipe.durationSeconds <= 0 ||
-                recipe.durationSeconds > 3600)
-            {                                                                                                                                                                                                                badRequest();
-                return;
-            }
-        }
-        catch (const std::invalid_argument&)
-        {
-            badRequest();
-            return;
-        }
-        catch (const std::out_of_range&)
-        {
-            badRequest();
-            return;
-        }
-
-        OperationResult result = controller.runWafer(recipe);
+        OperationResult result = controller.runWafer(*recipe);
 
         if (result == OperationResult::Completed)
         {
@@ -123,8 +83,8 @@ namespace MiniFab::Web
                 "application/json"
             );
         }
-//    }
-            }
-        );
+    }
+);
+
     }
 }
