@@ -10,27 +10,49 @@
 <body>
     <h1>MiniFab Equipment Control</h1>
 
-    <button id="runButton">Run Wafer</button>
-    <p id="message">Ready</p>
+    <h2>Equipment State: <span id="state">Unknown</span></h2>
+
+    <h3>Wafer Tracking</h3>
+    <p>Last confirmed location: <span id="wafer">Unknown</span></p>
+
+    <h3>Equipment Occupancy</h3>
+    <p>Robot: <span id="robot">Empty</span></p>
+    <p>Process Module: <span id="pm">Empty</span></p>
+
+    <button id="runButton" disabled>Run Wafer</button>
+
+    <p id="message">Connecting...</p>
 
     <script type="module">
-        import { runWafer } from
+        import { createRunViewModel } from
             "/js/viewmodel/runViewModel.js";
 
-        const button = document.querySelector("#runButton");
-        const message = document.querySelector("#message");
+        const vm = createRunViewModel();
 
-        button.addEventListener("click", async () => {
-            button.disabled = true;
+        const elements = {
+            state: document.querySelector("#state"),
+            wafer: document.querySelector("#wafer"),
+            robot: document.querySelector("#robot"),
+            pm: document.querySelector("#pm"),
+            message: document.querySelector("#message"),
+            runButton: document.querySelector("#runButton")
+        };
 
-            try {
-                message.textContent = await runWafer();
-            } catch (error) {
-                message.textContent = `Error: ${error.message}`;
-            } finally {
-                button.disabled = false;
-            }
+        // View: only presentation logic.
+        vm.subscribe(state => {
+            elements.state.textContent = state.equipmentState;
+            elements.wafer.textContent = state.waferLocation;
+            elements.robot.textContent = state.robot;
+            elements.pm.textContent = state.processModule;
+            elements.message.textContent = state.message;
+            elements.runButton.disabled = !state.canRun;
         });
+
+        elements.runButton.addEventListener("click", () => vm.run());
+
+        vm.start();
+
+        window.addEventListener("pagehide", () => vm.stop());
     </script>
 </body>
 </html>
