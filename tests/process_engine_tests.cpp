@@ -616,4 +616,25 @@ namespace MiniFab::Tests
 
 	EXPECT_NE(engine.state(), EquipmentState::Stopping);
     }
+
+	TEST_F(ProcessEngineTest, NonExistentWaferDoesNotGenerateRunAcceptedEvent)
+	{
+		const std::string waferId = "UnknownWaferId";
+
+		MockRobot robot { true, true };
+		MockProcessModule processModule { true, true  };
+		ProcessEngine engine{mgr_, robot, processModule, eventLog_};
+
+		OperationResult result = engine.processWafer(waferId, destination_, recipe_);
+
+		EXPECT_EQ(result, OperationResult::Failed);
+		EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+		auto events = eventLog_.getEvents();
+
+		for (const auto& event : events)
+		{
+			EXPECT_NE(event.type, EventType::RunAccepted);
+		}
+	}
 }

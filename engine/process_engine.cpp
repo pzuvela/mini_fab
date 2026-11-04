@@ -64,12 +64,11 @@ Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId)
 	if (wafer != nullptr)
 	{
 		state_ = EquipmentState::Moving;
+		eventLog_.record(
+			EventType::RunAccepted,
+			"Wafer " + waferId + " accepted for processing"
+		);
 	}
-
-	eventLog_.record(
-		EventType::RunAccepted,
-		"Wafer " + waferId + " accepted for processing"
-	);
 
 	return wafer;
 }
