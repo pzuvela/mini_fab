@@ -53,3 +53,8 @@ OperationResult MiniFabController::runWafer()
 	);
 
 }
+
+std::vector<EqiupmentEvent> MiniFabController::events() const
+{
+	return eventLog_.getEvents();
+}

@@ -4,6 +4,7 @@
 #include "httplib.h"
 #include "controller/mini_fab_controller.h"
 #include "web/serialization/equipment_snapshot_json.h"
+#include "web/serialization/eqiupment_events_json.h"
 
 
 int main()
@@ -66,6 +67,17 @@ int main()
             			);
         		}
     		}
+	);
+
+	server.Get("/api/events",
+		[&controller](const httplib::Request&,
+			httplib::Response& response)
+		{
+			response.set_content(
+				MiniFab::Web::toJson(controller.events()),
+				"application/json"
+			);
+		}
 	);
 
 	std::cout << "MiniFab server on port " << port << "\n";

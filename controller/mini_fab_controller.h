@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "equipment_snapshot.h"
 #include "wafer/wafer_manager.h"
 #include "equipment/robot/sim_robot.h"
@@ -7,6 +9,7 @@
 #include "engine/process_engine.h"
 #include "equipment/operation_result.h"
 #include "equipment/event_log.h"
+#include "equipment/equipment_event.h"
 
 
 class MiniFabController
@@ -26,4 +29,6 @@ public:
 	OperationResult runWafer();
 
 	EquipmentSnapshot status() const;
+
+	std::vector<EquipmentEvent> events() const;
 };
