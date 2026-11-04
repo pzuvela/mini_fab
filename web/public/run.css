@@ -1,0 +1,215 @@
+
+:root {
+    color-scheme: dark;
+    font-family: system-ui, sans-serif;
+    background: #0b1120;
+    color: #e2e8f0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+}
+
+.dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 36px 24px;
+}
+
+.dashboard-header,
+.panel-heading,
+.control-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.dashboard-header {
+    margin-bottom: 32px;
+}
+
+.eyebrow,
+.version,
+.metric-label {
+    color: #94a3b8;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+h1 {
+    font-size: 30px;
+    margin: 6px 0;
+}
+
+h1 span {
+    color: #38bdf8;
+}
+
+h2 {
+    font-size: 17px;
+    margin: 0;
+}
+
+.panel {
+    background: #151e30;
+    border: 1px solid #29364b;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.panel-heading {
+    margin-bottom: 24px;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.metric {
+    background: #0f172a;
+    border: 1px solid #263449;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.metric-label {
+    display: block;
+    margin-bottom: 12px;
+}
+
+.metric strong {
+    font-family: monospace;
+    font-size: 16px;
+}
+
+.control-bar {
+    margin-top: 24px;
+    justify-content: flex-start;
+}
+
+button {
+    background: #0284c7;
+    color: white;
+    border: none;
+    border-radius: 7px;
+    padding: 12px 24px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+    background: #0369a1;
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+#message {
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.state-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: monospace;
+    background: #334155;
+}
+
+.state-idle {
+    background: #064e3b;
+    color: #6ee7b7;
+}
+
+.state-processing {
+    background: #713f12;
+    color: #fde68a;
+}
+
+.state-error,
+.state-fault {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+.event-count {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.table-container {
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+
+th {
+    color: #94a3b8;
+    font-weight: 500;
+    background: #151e30;
+    position: sticky;
+    top: 0;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #29364b;
+}
+
+tbody tr:hover {
+    background: #1e293b;
+}
+
+td:first-child,
+td:nth-child(2) {
+    font-family: monospace;
+    color: #94a3b8;
+}
+
+.severity-info {
+    color: #38bdf8;
+}
+
+.severity-warning {
+    color: #fbbf24;
+}
+
+.severity-error,
+.severity-critical {
+    color: #f87171;
+}
+
+@media (max-width: 700px) {
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard {
+        padding: 20px 12px;
+    }
+
+    .dashboard-header {
+        align-items: flex-start;
+    }
+
+    .version {
+        display: none;
+    }
+}

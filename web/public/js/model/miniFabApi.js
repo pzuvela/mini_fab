@@ -20,5 +20,16 @@ export const miniFabApi = {
 
 	    return response.json();
 	}
+
+
+	async getEvents() {
+    		const response = await fetch("/api/events", { cache: "no-store" });
+
+    		if (!response.ok) {
+        		throw new Error(`HTTP ${response.status}`);
+    		}
+
+    		return response.json();
+	}
 };
 

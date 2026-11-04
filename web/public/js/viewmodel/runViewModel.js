@@ -2,6 +2,9 @@ import { miniFabApi } from "../model/miniFabApi.js";
 
 export function createRunViewModel(api = miniFabApi) {
 	let snapshot = null;
+	let events = [];
+	let lastEventSequenceId = 0;
+	let lastEventRefresh = 0;
 	let message = "Connecting...";
 	let runningCommand = false;
 	let refreshing = false;
@@ -18,6 +21,7 @@ export function createRunViewModel(api = miniFabApi) {
 			robot: snapshot?.robotWaferId ?? "Empty",
 			processModule: snapshot?.processModuleWaferId ?? "Empty",
 			canRun: snapshot?.equipmentState === "Idle" && !runningCommand,
+			events: events,
 			message
 		};
 	}
@@ -45,6 +49,39 @@ export function createRunViewModel(api = miniFabApi) {
 			refreshing = false;
 			notify();
 		}
+
+		await refreshEvents();
+	}
+
+	async function refreshEvents() {
+		const now = Date.now();
+
+		if (now - lastEventRefresh < 1000) return;
+
+		lastEventRefresh = now;
+
+		try {
+			const result = await api.getEvents();
+
+			const latestId = result.events.at(-1)?.sequenceId ?? 0;
+
+			if (latestId < lastEventSequenceId) {
+				events = [];
+				lastEventSequenceId = 0;
+			}
+
+			const newEvents = result.events.filter(
+				event => event.sequenceId > lastEventSequenceId
+			);
+
+			events = [...events, ...newEvents];
+			lastEventSequenceId = latestId;
+
+			notify();
+		} catch (error) {
+			console.error("Event refresh failed:", error);
+		}
+
 	}
 
 	async function run() {
