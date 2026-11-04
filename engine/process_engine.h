@@ -22,7 +22,8 @@ private:
     IRobot& robot_;
     IProcessModule& processModule_;
     EquipmentState state_ = EquipmentState::Idle;
-    mutable std::mutex mutex_;
+    mutable std::mutex mutex_;   	  // Equipment state
+    mutable std::mutex lifecycleMutex_;   // Worker, future lifecycle
     std::jthread worker_;
     std::future<OperationResult> resultFuture_;
     std::optional<FaultSource> faultSource_;

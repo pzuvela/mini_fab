@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include <barrier>
 #include <algorithm>
+#include <future>
+#include <chrono>
+#include <thread>
 
 #include "engine/process_engine.h"
 #include "engine/equipment_state.h"
@@ -881,5 +884,165 @@ TEST_F(ProcessEngineTest, DoesNotRecordProcessingWhenRobotMoveFails)
 
     EXPECT_EQ(engine.state(), EquipmentState::Faulted);
 }
+
+
+TEST_F(ProcessEngineTest,
+    CanCancelWhileAnotherThreadWaitsForCompletion)
+{
+    MockRobot robot{true};
+    BlockingMockProcessModule processModule;
+
+    WaferManager mgr;
+    mgr.addWafer(wafer_);
+
+    ProcessEngine engine(
+        mgr, robot, processModule, eventLog_
+    );
+
+    ASSERT_EQ(
+        engine.startProcessWafer(
+            wafer_.id, destination_, recipe_
+        ),
+        OperationResult::Completed
+    );
+
+    processModule.waitUntilProcessingStarts();
+
+    // Simulate a caller waiting for the wafer result.
+    auto completion = std::async(
+        std::launch::async,
+        [&engine]()
+        {
+            return engine.waitForCompletion();
+        }
+    );
+
+    // Cancellation must not require the waiting
+    // caller to finish first.
+    StateTransition transition = engine.cancel();
+
+    EXPECT_TRUE(transition.isCancelled);
+
+    EXPECT_EQ(
+        completion.get(),
+        OperationResult::Cancelled
+    );
+
+    EXPECT_EQ(engine.state(), EquipmentState::Idle);
+}
+
+
+TEST_F(ProcessEngineTest,
+    CompletionFutureCanOnlyBeConsumedOnce)
+{
+    MockRobot robot{true};
+    BlockingMockProcessModule processModule;
+
+    WaferManager mgr;
+    mgr.addWafer(wafer_);
+
+    ProcessEngine engine(
+        mgr, robot, processModule, eventLog_
+    );
+
+    ASSERT_EQ(
+        engine.startProcessWafer(
+            wafer_.id, destination_, recipe_
+        ),
+        OperationResult::Completed
+    );
+
+    processModule.waitUntilProcessingStarts();
+
+    std::barrier startBarrier{2};
+
+    auto waitForResult = [&]()
+    {
+        startBarrier.arrive_and_wait();
+
+        try
+        {
+            return engine.waitForCompletion();
+        }
+        catch (const std::logic_error&)
+        {
+            return OperationResult::Failed;
+        }
+    };
+
+    auto first = std::async(
+        std::launch::async, waitForResult
+    );
+
+    auto second = std::async(
+        std::launch::async, waitForResult
+    );
+
+    processModule.release();
+
+    OperationResult result1 = first.get();
+    OperationResult result2 = second.get();
+
+    EXPECT_TRUE(
+        (result1 == OperationResult::Completed &&
+         result2 == OperationResult::Failed) ||
+        (result1 == OperationResult::Failed &&
+         result2 == OperationResult::Completed)
+    );
+}
+
+
+TEST_F(ProcessEngineTest,
+    CanStartNextRunWithoutWaitingForPreviousFuture)
+{
+    MockRobot robot{true};
+    SimProcessModule processModule;
+
+    WaferManager mgr;
+    mgr.addWafer(wafer_);
+
+    ProcessEngine engine(
+        mgr, robot, processModule, eventLog_
+    );
+
+    ASSERT_EQ(
+        engine.startProcessWafer(
+            wafer_.id, destination_, recipe_
+        ),
+        OperationResult::Completed
+    );
+
+    // Wait for the equipment to return to Idle,
+    // without calling waitForCompletion().
+    const auto deadline =
+        std::chrono::steady_clock::now() +
+        std::chrono::seconds(5);
+
+    while (engine.state() != EquipmentState::Idle &&
+           std::chrono::steady_clock::now() < deadline)
+    {
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(1)
+        );
+    }
+
+    ASSERT_EQ(engine.state(), EquipmentState::Idle);
+
+    // A new run should safely replace the old worker.
+    ASSERT_EQ(
+        engine.startProcessWafer(
+            wafer_.id, destination_, recipe_
+        ),
+        OperationResult::Completed
+    );
+
+    EXPECT_EQ(
+        engine.waitForCompletion(),
+        OperationResult::Completed
+    );
+
+    EXPECT_EQ(engine.state(), EquipmentState::Idle);
+}
+
 
 }

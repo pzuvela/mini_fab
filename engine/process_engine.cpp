@@ -333,29 +333,44 @@ OperationResult ProcessEngine::startProcessWafer(
 	const Recipe& recipe
 )
 {
+	std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex_);
+
 	Wafer* wafer = acceptWaferForProcessing(waferId);
 
 	if (wafer == nullptr) return OperationResult::Failed;
 
+	if (worker_.joinable()) worker_.join();
+
 	std::promise<OperationResult> promise;
 
-	resultFuture_ = promise.get_future();
+	std::future<OperationResult> future = promise.get_future();
 
-	worker_ = std::jthread(
-		[this, wafer, processModuleLocation, recipe, promise = std::move(promise)](std::stop_token stopToken) mutable
-		{
-			try
+	try
+	{
+		std::jthread newWorker(
+			[this, wafer, processModuleLocation, recipe, promise = std::move(promise)](std::stop_token stopToken) mutable
 			{
-				OperationResult operationResult = this->executeProcessWafer(*wafer, processModuleLocation, recipe, stopToken);
-				promise.set_value(operationResult);
+				try
+				{
+					OperationResult operationResult = this->executeProcessWafer(*wafer, processModuleLocation, recipe, stopToken);
+					promise.set_value(operationResult);
+				}
+				catch (...)
+				{
+					setFaulted(FaultSource::ProcessModule);
+					promise.set_exception(std::current_exception());
+				}
 			}
-			catch (...)
-			{
-				setFaulted(FaultSource::ProcessModule);
-				promise.set_exception(std::current_exception());
-			}
-		}
-	);
+		);
+
+		worker_ = std::move(newWorker);
+		resultFuture_ = std::move(future);
+	}
+	catch (...)
+	{
+		setFaulted(FaultSource::ProcessModule);
+		throw;
+	}
 	return OperationResult::Completed;
 }
 
@@ -466,11 +481,13 @@ StateTransition ProcessEngine::beginCancellation()
 
 }
 
-StateTransition ProcessEngine::cancel() 
+StateTransition ProcessEngine::cancel()
 {
+	std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex_);
+
 	StateTransition stateTransition = beginCancellation();
 
-	if (stateTransition.isCancelled) 
+	if (stateTransition.isCancelled)
 	{
 		worker_.request_stop();
 	}
@@ -480,11 +497,21 @@ StateTransition ProcessEngine::cancel()
 
 OperationResult ProcessEngine::waitForCompletion()
 {
-	if (!resultFuture_.valid())
+
+	std::future<OperationResult> future;
+
 	{
-		throw std::logic_error("No pending process result");
-	} 
-	return resultFuture_.get();
+		std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex_);
+		if (!resultFuture_.valid())
+		{
+			throw std::logic_error("No pending process result");
+		}
+
+		future = std::move(resultFuture_);
+	}
+
+
+	return future.get();
 }
 
 bool ProcessEngine::tryTransition(EquipmentState expectedState, EquipmentState newState) 
