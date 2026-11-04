@@ -6,23 +6,39 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_library(mini_fab_core
-    "equipment/robot/sim_robot.cpp"
-    "wafer/wafer_manager.cpp"
-    "engine/process_engine.cpp"
-    "equipment/process_module/sim_process_module.cpp"
+add_library(mini_fab_tracking STATIC
+	wafer/wafer_manager.cpp
 )
 
-target_include_directories(mini_fab_core PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
+add_library(mini_fab_equipment STATIC
+	equipment/robot/sim_robot.cpp
+	"equipment/process_module/sim_process_module.cpp"
 )
+
+add_library(mini_fab_engine STATIC
+	"engine/process_engine.cpp"
+)
+
+foreach(target IN ITEMS
+	mini_fab_tracking
+	mini_fab_equipment
+	mini_fab_engine
+)
+
+	target_include_directories(${target} PUBLIC
+    		${CMAKE_CURRENT_SOURCE_DIR}
+	)
+
+endforeach()
 
 add_executable(mini_fab_demo
     "app/mini_fab_demo.cpp"
 )
 
 target_link_libraries(mini_fab_demo PRIVATE
-    mini_fab_core
+    mini_fab_engine
+    mini_fab_tracking
+    mini_fab_equipment
 )
 
 include(FetchContent)
@@ -63,8 +79,10 @@ if(MINIFAB_BUILD_WEB)
 	)
 
 	target_link_libraries(mini_fab_web PRIVATE
-		mini_fab_core
-		httplib::httplib
-		Threads::Threads
+	    mini_fab_engine
+	    mini_fab_tracking
+	    mini_fab_equipment
+	    httplib::httplib
+	    Threads::Threads
 	)
 endif()

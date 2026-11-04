@@ -14,8 +14,10 @@ add_executable(mini_fab_tests
 )
 
 target_link_libraries(mini_fab_tests PRIVATE
-    mini_fab_core
-    GTest::gtest_main
+	mini_fab_engine
+	mini_fab_tracking
+	mini_fab_equipment
+	GTest::gtest_main
 )
 
 include(GoogleTest)
