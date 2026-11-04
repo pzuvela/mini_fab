@@ -86,3 +86,25 @@ bool RecipeManager::remove(int id)
     recipes_.erase(id);
     return true;
 }
+
+
+RecipeUpsertResult RecipeManager::upsert(const Recipe& recipe)
+{
+    std::lock_guard lock(mutex_);
+
+    const bool exists = recipes_.contains(recipe.id);
+
+    const bool success = exists
+        ? repository_.update(recipe)
+        : repository_.insert(recipe);
+
+    if (!success)
+        return RecipeUpsertResult::Failed;
+
+    recipes_.insert_or_assign(recipe.id, recipe);
+
+    return exists
+        ? RecipeUpsertResult::Updated
+        : RecipeUpsertResult::Created;
+}
+

@@ -89,3 +89,56 @@ TEST(RecipeManagerTests, MissingRecipeOperationsFail)
     EXPECT_FALSE(manager.update({999, "Missing", 5.0}));
     EXPECT_FALSE(manager.remove(999));
 }
+
+TEST(RecipeManagerUpsertTests, CreatesNewRecipe)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+
+    Recipe recipe{92, "Etch", 10.0};
+
+    EXPECT_EQ(
+        manager.upsert(recipe),
+        RecipeUpsertResult::Created
+    );
+
+    auto saved = manager.getById(92);
+    ASSERT_TRUE(saved);
+    EXPECT_EQ(saved->name, "Etch");
+}
+
+TEST(RecipeManagerUpsertTests, UpdatesExistingRecipe)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+
+    Recipe original{92, "Etch", 10.0};
+    Recipe updated{92, "Plasma Etch", 20.0};
+
+    ASSERT_TRUE(manager.add(original));
+
+    EXPECT_EQ(
+        manager.upsert(updated),
+        RecipeUpsertResult::Updated
+    );
+
+    auto saved = manager.getById(92);
+    ASSERT_TRUE(saved);
+    EXPECT_EQ(saved->name, "Plasma Etch");
+    EXPECT_DOUBLE_EQ(saved->durationSeconds, 20.0);
+}
+
+TEST(RecipeManagerUpsertTests, RepeatedPutIsIdempotent)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+
+    Recipe recipe{92, "Etch", 10.0};
+
+    EXPECT_EQ(manager.upsert(recipe), RecipeUpsertResult::Created);
+    EXPECT_EQ(manager.upsert(recipe), RecipeUpsertResult::Updated);
+    EXPECT_EQ(manager.upsert(recipe), RecipeUpsertResult::Updated);
+
+    EXPECT_EQ(manager.getAll().size(), 1);
+}
+

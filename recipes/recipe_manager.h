@@ -5,6 +5,7 @@
 #include <optional>
 #include <vector>
 #include "irecipe_repository.h"
+#include "recipe_upser_result.h"
 
 
 class RecipeManager
@@ -23,4 +24,5 @@ public:
 	bool add(const Recipe& recipe);
 	bool update(const Recipe& recipe);
 	bool remove(int id);
+	RecipeUpserResult upsert(const Recipe& recipe);
 };

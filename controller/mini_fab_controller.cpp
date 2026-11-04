@@ -103,3 +103,13 @@ bool MiniFabController::removeRecipe(int id)
     return recipeManager_ && recipeManager_->remove(id);
 }
 
+RecipeUpsertResult MiniFabController::upsertRecipe(
+    const Recipe& recipe)
+{
+    if (!recipeManager_)
+        return RecipeUpsertResult::Failed;
+
+    return recipeManager_->upsert(recipe);
+}
+
+

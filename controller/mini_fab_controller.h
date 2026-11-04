@@ -12,6 +12,7 @@
 #include "equipment/event_log.h"
 #include "equipment/equipment_event.h"
 #include "recipes/recipe_manager.h"
+#include "recipes/recipe_upser_result.h"
 
 
 class MiniFabController
@@ -39,6 +40,7 @@ public:
 	bool addRecipe(const Recipe& recipe);
 	bool updateRecipe(const Recipe& recipe);
 	bool removeRecipe(int id);
+	RecipeUpsertResult upsertRecipe(const Recipe& recipe);
 
 	EquipmentSnapshot status() const;
 
