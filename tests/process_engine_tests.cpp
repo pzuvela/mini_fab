@@ -41,6 +41,12 @@ namespace MiniFab::Tests
             .durationSeconds = 0.05
         };
 
+        Recipe longRecipe_{
+            .id = 5,
+            .name = "Recipe2",
+            .durationSeconds = 60
+        };
+
         MockWaferManager mgr_{ std::make_unique<Wafer>(wafer_), true };
 
         SimProcessModule processModule_;
@@ -724,4 +730,80 @@ namespace MiniFab::Tests
 		ASSERT_NE(ready, nullptr);
 		EXPECT_LT(initializing->sequenceId, ready->sequenceId);
 	}
+
+	TEST_F(ProcessEngineTest, SuccessfulProcessGeneratesProcessCompletedEvent)
+	{
+		const std::string waferId = "1";
+
+		MockRobot robot { true, true };
+		MockProcessModule processModule { true, true  };
+		ProcessEngine engine{mgr_, robot, processModule, eventLog_};
+
+		OperationResult result = engine.processWafer(waferId, destination_, recipe_);
+
+		EXPECT_EQ(result, OperationResult::Completed);
+		EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+		std::vector<EquipmentEvent> events = eventLog_.getEvents();
+
+                EXPECT_TRUE(std::ranges::any_of(
+                        events,
+                        [](const EquipmentEvent& event) {
+                                return event.type == EventType::ProcessCompleted;
+                        }
+                ));
+	}
+
+	TEST_F(ProcessEngineTest, FailedProcessGeneratesProcessFailedEvent)
+	{
+		const std::string waferId = "1";
+
+		MockRobot robot { true, true };
+		MockProcessModule processModule { false, false  };
+		ProcessEngine engine{mgr_, robot, processModule, eventLog_};
+
+		OperationResult result = engine.processWafer(waferId, destination_, recipe_);
+
+		EXPECT_EQ(result, OperationResult::Failed);
+		EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+
+		std::vector<EquipmentEvent> events = eventLog_.getEvents();
+
+                EXPECT_TRUE(std::ranges::any_of(
+                        events,
+                        [](const EquipmentEvent& event) {
+                                return event.type == EventType::ProcessFailed;
+                        }
+                ));
+	}
+
+	TEST_F(ProcessEngineTest, CancelledProcessGeneratesProcessCancelledEvent)
+	{
+		const std::string waferId = "1";
+
+		MockRobot robot { true, true };
+		BlockingMockProcessModule processModule;
+		ProcessEngine engine{mgr_, robot, processModule, eventLog_};
+
+		engine.startProcessWafer(waferId, destination_, longRecipe_);
+
+		processModule.waitUntilProcessingStarts();
+
+		engine.cancel();
+
+		OperationResult result = engine.waitForCompletion();
+
+		EXPECT_EQ(result, OperationResult::Cancelled);
+		EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+		std::vector<EquipmentEvent> events = eventLog_.getEvents();
+
+                EXPECT_TRUE(std::ranges::any_of(
+                        events,
+                        [](const EquipmentEvent& event) {
+                                return event.type == EventType::ProcessCancelled;
+                        }
+                ));
+	}
+
 }
