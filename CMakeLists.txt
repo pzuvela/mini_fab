@@ -72,7 +72,13 @@ enable_testing()
 # Tests
 add_subdirectory(tests)
 
+add_library(mini_fab_serialization STATIC
+    web/serialization/equipment_snapshot_json.cpp
+)
 
+target_include_directories(mini_fab_serialization PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 option(MINIFAB_BUILD_WEB "Build MiniFab web server" OFF)
 
@@ -97,6 +103,7 @@ if(MINIFAB_BUILD_WEB)
 	    mini_fab_tracking
 	    mini_fab_equipment
 	    mini_fab_controller
+	    mini_fab_serialization
 	    httplib::httplib
 	    Threads::Threads
 	)
