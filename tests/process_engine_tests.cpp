@@ -846,4 +846,40 @@ TEST_F(ProcessEngineTest, RecordsSuccessfulWaferLifecycleInOrder)
     EXPECT_EQ(nextExpected, expected.size());
 }
 
+TEST_F(ProcessEngineTest, DoesNotRecordProcessingWhenRobotMoveFails)
+{
+    MockRobot robot{ false };
+    MockProcessModule processModule{ true };
+
+    ProcessEngine engine(
+        mgr_, robot, processModule, eventLog_
+    );
+
+    ASSERT_EQ(
+        engine.processWafer(wafer_.id, destination_, recipe_),
+        OperationResult::Failed
+    );
+
+    const auto events = eventLog_.getEvents();
+
+    const auto hasEvent = [&](EventType type)
+    {
+        return std::any_of(
+            events.begin(),
+            events.end(),
+            [type](const EquipmentEvent& event)
+            {
+                return event.type == type;
+            }
+        );
+    };
+
+    EXPECT_TRUE(hasEvent(EventType::EquipmentMoving));
+    EXPECT_FALSE(hasEvent(EventType::WaferLocationUpdated));
+    EXPECT_FALSE(hasEvent(EventType::ProcessStarted));
+    EXPECT_FALSE(hasEvent(EventType::ProcessCompleted));
+
+    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+}
+
 }
