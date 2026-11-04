@@ -9,6 +9,10 @@ export function createRunViewModel(api = miniFabApi) {
 	let runningCommand = false;
 	let refreshing = false;
 	let timerId = null;
+	let recipes = [];
+	let selectedRecipeId = null;
+	let recipesLoading = false;
+	let recipeError = null;
 
 	const subscribers = new Set();
 
@@ -20,9 +24,16 @@ export function createRunViewModel(api = miniFabApi) {
 							      : "Unknown",
 			robot: snapshot?.robotWaferId ?? "Empty",
 			processModule: snapshot?.processModuleWaferId ?? "Empty",
-			canRun: snapshot?.equipmentState === "Idle" && !runningCommand,
 			message,
-			events: events
+			events: events,
+			recipes: [...recipes],
+			selectedRecipeId,
+			recipeError,
+			canRun: snapshot?.equipmentState === "Idle"
+    				&& !runningCommand
+    				&& selectedRecipeId !== null
+    				&& !recipesLoading
+    				&& recipeError === null,
 		};
 	}
 
@@ -84,23 +95,29 @@ export function createRunViewModel(api = miniFabApi) {
 
 	}
 
-	async function run(recipe) {
-		if (!getState().canRun) return;
+async function run() {
+    if (!getState().canRun) return;
 
-		runningCommand = true;
-		notify();
+    const recipeId = selectedRecipeId;
 
-		try {
-			const result = await api.runWafer(recipe);
-			message = result.accepted ? "Wafer run accepted" : `Run rejected (HTTP ${result.httpStatus})`;
-			await refresh();
-		} catch (error) {
-			message = `Run error ${error.message}`;
-		} finally {
-			runningCommand = false;
-			notify();
-		}
-	}
+    runningCommand = true;
+    notify();
+
+    try {
+        const result = await api.runWafer(recipeId);
+
+        message = result.accepted
+            ? `Wafer run accepted (recipe ${recipeId})`
+            : `Run rejected: ${result.error ?? `HTTP ${result.httpStatus}`}`;
+
+        await refresh();
+    } catch (error) {
+        message = `Run error: ${error.message}`;
+    } finally {
+        runningCommand = false;
+        notify();
+    }
+}
 
 	function subscribe(callback) {
 		subscribers.add(callback);
@@ -112,6 +129,7 @@ export function createRunViewModel(api = miniFabApi) {
 	function start() {
 		if (timerId !== null) return;
 
+		loadRecipes();
 		refresh();
 		timerId = setInterval(refresh, 250);
 	}
@@ -121,10 +139,44 @@ export function createRunViewModel(api = miniFabApi) {
 		timerId = null;
 	}
 
+	async function loadRecipes() {
+    recipesLoading = true;
+    recipeError = null;
+    notify();
+
+    try {
+        const loaded = await api.getRecipes();
+
+        recipes = loaded;
+
+        if (!recipes.some(r => r.id === selectedRecipeId)) {
+            selectedRecipeId = recipes.length > 0
+                ? recipes[0].id
+                : null;
+        }
+    } catch (error) {
+        recipes = [];
+        selectedRecipeId = null;
+        recipeError = `Recipe load error: ${error.message}`;
+    } finally {
+        recipesLoading = false;
+        notify();
+    }
+}
+
+function selectRecipe(id) {
+    const recipe = recipes.find(r => r.id === id);
+
+    selectedRecipeId = recipe ? recipe.id : null;
+    notify();
+}
+
 	return {
 		getState,
 		subscribe,
 		refresh,
+		loadRecipes,
+		selectRecipe,
 		run,
 		start,
 		stop

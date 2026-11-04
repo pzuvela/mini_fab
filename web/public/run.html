@@ -45,37 +45,22 @@
             </div>
         </div>
 
+
 <div class="recipe-config">
-    <h2>Recipe Configuration</h2>
+    <h2>Recipe Selection</h2>
 
     <label>
-        Recipe ID
-        <input id="recipeId"
-               type="number"
-               min="1"
-               step="1"
-               value="1"
-               required>
+        Saved Recipe
+        <select id="recipeSelect" disabled>
+            <option value="">Loading recipes...</option>
+        </select>
     </label>
 
-    <label>
-        Recipe Name
-        <input id="recipeName"
-               type="text"
-               value="Recipe1"
-               required>
-    </label>
+    <div id="recipeDetails" class="recipe-details">
+        Select a saved recipe
+    </div>
 
-    <label>
-        Duration (seconds)
-        <input id="durationSeconds"
-               type="number"
-               min="0.1"
-               max="3600"
-               step="any"
-               value="5"
-               required>
-    </label>
+    <a href="/recipes.html">Manage Recipes</a>
 </div>
 
         <div class="control-bar">
@@ -121,7 +106,9 @@
             message: document.querySelector("#message"),
             runButton: document.querySelector("#runButton"),
 	    eventRows: document.querySelector("#eventRows"),
-	    eventCount: document.querySelector("#eventCount")
+	    eventCount: document.querySelector("#eventCount"),
+	    recipeSelect: document.querySelector("#recipeSelect"),
+	    recipeDetails: document.querySelector("#recipeDetails")
         };
 
         // View: only presentation logic.
@@ -159,6 +146,53 @@
 
     			elements.eventRows.appendChild(row);
 		}
+
+const select = elements.recipeSelect;
+const selectedValue = state.selectedRecipeId === null
+    ? ""
+    : String(state.selectedRecipeId);
+
+const currentOptions = Array.from(select.options)
+    .slice(1)
+    .map(option => `${option.value}:${option.textContent}`);
+
+const newOptions = state.recipes.map(
+    recipe => `${recipe.id}:${recipe.name}`
+);
+
+if (currentOptions.join("|") !== newOptions.join("|")) {
+    select.replaceChildren();
+
+    for (const recipe of state.recipes) {
+        const option = document.createElement("option");
+        option.value = String(recipe.id);
+        option.textContent = `${recipe.id} — ${recipe.name}`;
+        select.appendChild(option);
+    }
+}
+
+if (state.recipes.length === 0) {
+    select.replaceChildren();
+
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = state.recipeError
+        ? "Failed to load recipes"
+        : "No saved recipes";
+
+    select.appendChild(option);
+}
+
+select.value = selectedValue;
+select.disabled = state.recipes.length === 0;
+
+const selectedRecipe = state.recipes.find(
+    recipe => recipe.id === state.selectedRecipeId
+);
+
+elements.recipeDetails.textContent = selectedRecipe
+    ? `Duration: ${selectedRecipe.durationSeconds} seconds`
+    : (state.recipeError ?? "No recipe selected");
 
         });
 

@@ -307,3 +307,35 @@ td:nth-child(2) {
 #message {
     margin-top: 16px;
 }
+
+.recipe-config select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #334155;
+    border-radius: 7px;
+    background: #0f172a;
+    color: #e2e8f0;
+    font: inherit;
+}
+
+.recipe-config select:focus {
+    outline: none;
+    border-color: #38bdf8;
+}
+
+.recipe-config select:disabled {
+    opacity: 0.5;
+}
+
+.recipe-details {
+    align-self: end;
+    padding: 12px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.recipe-config a {
+    align-self: end;
+    color: #38bdf8;
+    padding: 12px 0;
+}

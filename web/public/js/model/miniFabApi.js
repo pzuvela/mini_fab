@@ -1,18 +1,18 @@
 export const miniFabApi = {
 
-async runWafer(recipe) {
+async runWafer(recipeId) {
     const response = await fetch("/api/run", {
         method: "POST",
         body: new URLSearchParams({
-            recipeId: recipe.id,
-            recipeName: recipe.name,
-            durationSeconds: recipe.durationSeconds
+            recipeId: String(recipeId)
         })
     });
 
+    const result = await response.json();
+
     return {
         httpStatus: response.status,
-        ...await response.json()
+        ...result
     };
 },
 
