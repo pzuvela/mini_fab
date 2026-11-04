@@ -10,66 +10,6 @@
 #include "engine/process_engine.h"
 #include "equipment/process_module/sim_process_module.h"
 
-std::string toString(Station station)
-{
-    switch (station)
-    {
-        case Station::LoadPort:
-            return "LoadPort";
-
-        case Station::Aligner:
-            return "Aligner";
-
-        case Station::ProcessModule:
-            return "ProcessModule";
-
-	case Station::Output:
-		return "Output";
-    }
-
-    return "Unknown";
-}
-
-
-std::string toString(EquipmentState state)
-{
-    switch (state)
-    {
-        case EquipmentState::Idle:
-            return "Idle";
-        case EquipmentState::Moving:
-            return "Moving";
-        case EquipmentState::Processing:
-            return "Processing";
-        case EquipmentState::Stopping:
-            return "Stopping";
-        case EquipmentState::Recovering:
-            return "Recovering";
-        case EquipmentState::Faulted:
-            return "Faulted";
-    }
-
-    return "Unknown";
-}
-
-std::string toString(OperationResult result)
-{
-    switch (result)
-    {
-        case OperationResult::Completed:
-            return "Completed";
-
-        case OperationResult::Cancelled:
-            return "Cancelled";
-
-        case OperationResult::Failed:
-            return "Failed";
-    }
-
-    return "Unknown";
-}
-
-
 int main()
 {
 	Wafer wafer{ "W1", Location{ Station::LoadPort, 3 } };

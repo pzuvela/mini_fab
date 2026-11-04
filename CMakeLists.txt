@@ -40,9 +40,9 @@ target_include_directories(mini_fab_controller PUBLIC
 )
 
 target_link_libraries(mini_fab_controller PUBLIC
-    mini_fab_engine
-    mini_fab_tracking
-    mini_fab_equipment
+	mini_fab_engine
+	mini_fab_tracking
+	mini_fab_equipment
 )
 
 add_executable(mini_fab_demo
@@ -96,6 +96,7 @@ if(MINIFAB_BUILD_WEB)
 	    mini_fab_engine
 	    mini_fab_tracking
 	    mini_fab_equipment
+	    mini_fab_controller
 	    httplib::httplib
 	    Threads::Threads
 	)

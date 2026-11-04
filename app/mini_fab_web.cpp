@@ -1,10 +1,13 @@
 #include <iostream>
 #include <string>
+
 #include "httplib.h"
+#include "controller/mini_fab_controller.h"
 
 
 int main()
 {
+	MiniFabController controller;
 	httplib::Server server;
 	std::string ip = "127.0.0.1";
 	int port = 8080;
@@ -19,6 +22,7 @@ int main()
 			);
 		}
 	);
+
 
 	std::cout << "MiniFab server on port " << port << "\n";
 
