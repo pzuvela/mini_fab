@@ -83,6 +83,7 @@ FetchContent_MakeAvailable(SQLiteCpp)
 
 add_library(mini_fab_recipes STATIC
     recipes/sqlite_recipe_repository.cpp
+	recipes/recipe_manager.cpp
 )
 
 target_include_directories(mini_fab_recipes PUBLIC
