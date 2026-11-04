@@ -41,3 +41,30 @@ enable_testing()
 
 # Tests
 add_subdirectory(tests)
+
+
+
+option(MINIFAB_BUILD_WEB "Build MiniFab web server" OFF)
+
+if(MINIFAB_BUILD_WEB)
+
+	FetchContent_Declare(
+    		httplib
+    		URL https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.58.0.zip
+    		DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+	)
+
+	FetchContent_MakeAvailable(httplib)
+
+	find_package(Threads REQUIRED)
+
+	add_executable(mini_fab_web
+		app/mini_fab_web.cpp
+	)
+
+	target_link_libraries(mini_fab_web PRIVATE
+		mini_fab_core
+		httplib::httplib
+		Threads::Threads
+	)
+endif()
