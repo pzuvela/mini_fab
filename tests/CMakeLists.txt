@@ -22,6 +22,7 @@ target_link_libraries(mini_fab_tests PRIVATE
 	mini_fab_equipment
 	mini_fab_controller
 	mini_fab_serialization
+	mini_fab_recipes
 	GTest::gtest_main
 )
 
