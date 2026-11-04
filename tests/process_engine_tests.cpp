@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <barrier>
+#include <algorithm>
 
 #include "engine/process_engine.h"
 #include "engine/equipment_state.h"
@@ -630,11 +631,36 @@ namespace MiniFab::Tests
 		EXPECT_EQ(result, OperationResult::Failed);
 		EXPECT_EQ(engine.state(), EquipmentState::Idle);
 
-		auto events = eventLog_.getEvents();
+		std::vector<EquipmentEvent> events = eventLog_.getEvents();
 
-		for (const auto& event : events)
-		{
-			EXPECT_NE(event.type, EventType::RunAccepted);
-		}
+		EXPECT_TRUE(std::ranges::none_of(
+			events,
+			[](const EquipmentEvent& event) {
+				return event.type == EventType::RunAccepted;
+			}
+		));
+	}
+
+	TEST_F(ProcessEngineTest, ValidWaferGeneratesRunAcceptedEvent)
+	{
+		const std::string waferId = "1";
+
+		MockRobot robot { true, true };
+		MockProcessModule processModule { true, true  };
+		ProcessEngine engine{mgr_, robot, processModule, eventLog_};
+
+		OperationResult result = engine.processWafer(waferId, destination_, recipe_);
+
+		EXPECT_EQ(result, OperationResult::Completed);
+		EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+		std::vector<EquipmentEvent> events = eventLog_.getEvents();
+
+		EXPECT_TRUE(std::ranges::any_of(
+			events,
+			[](const EquipmentEvent& event) {
+				return event.type == EventType::RunAccepted;
+			}
+		));
 	}
 }
