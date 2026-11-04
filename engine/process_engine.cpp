@@ -55,10 +55,47 @@ OperationResult ProcessEngine::process(
 {
 	if (!processModule_.isReady())
 	{
+		eventLog_.record(
+			EventType::ProcessModuleInitializing,
+			"Initializing process module"
+		);
 		processModule_.initialize();
+		eventLog_.record(
+			EventType::ProcessModuleReady,
+			"Process module initialized"
+		);
 	}
 
-	return processModule_.process(wafer, recipe, stopToken);
+	eventLog_.record(
+		EventType::ProcessStarted,
+		"Processing wafer " + wafer.id + " with recipe " + recipe.name
+	);
+
+	OperationResult result = processModule_.process(wafer, recipe, stopToken);
+
+	switch (result)
+	{
+		case OperationResult::Completed:
+			eventLog_.record(
+				EventType::ProcessCompleted,
+				"Processing completed for wafer " + wafer.id
+			);
+			break;
+		case OperationResult::Cancelled:
+			eventLog_.record(
+				EventType::ProcessCancelled,
+				"Processing cancelled for wafer " + wafer.id
+			);
+			break;
+		case OperationResult::Failed:
+			eventLog_.record(
+				EventType::ProcessFailed,
+				"Processing failed for wafer " + wafer.id
+			);
+			break;
+	}
+
+	return result;
 }
 
 Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId)
