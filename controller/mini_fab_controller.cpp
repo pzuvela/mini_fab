@@ -1,4 +1,5 @@
 #include <chrono>
+#include <stdexcept>
 
 #include "mini_fab_controller.h"
 #include "domain/wafer.h"
@@ -28,6 +29,12 @@ MiniFabController::MiniFabController()
 
 }
 
+MiniFabController::MiniFabController(RecipeManager& recipeManager)
+	: MiniFabController()
+{
+	recipeManager_ = &recipeManager;
+}
+
 EquipmentSnapshot MiniFabController::status() const
 {
 	return EquipmentSnapshot{
@@ -51,3 +58,48 @@ std::vector<EquipmentEvent> MiniFabController::events() const
 {
 	return eventLog_.getEvents();
 }
+
+OperationResult MiniFabController::runWafer(int recipeId)
+{
+    if (!recipeManager_)
+        return OperationResult::Failed;
+
+    auto recipe = recipeManager_->getById(recipeId);
+
+    if (!recipe.has_value())
+        return OperationResult::Failed;
+
+    return runWafer(*recipe);
+}
+
+std::vector<Recipe> MiniFabController::getRecipes() const
+{
+    if (!recipeManager_)
+        return {};
+
+    return recipeManager_->getAll();
+}
+
+std::optional<Recipe> MiniFabController::getRecipe(int id) const
+{
+    if (!recipeManager_)
+        return std::nullopt;
+
+    return recipeManager_->getById(id);
+}
+
+bool MiniFabController::addRecipe(const Recipe& recipe)
+{
+    return recipeManager_ && recipeManager_->add(recipe);
+}
+
+bool MiniFabController::updateRecipe(const Recipe& recipe)
+{
+    return recipeManager_ && recipeManager_->update(recipe);
+}
+
+bool MiniFabController::removeRecipe(int id)
+{
+    return recipeManager_ && recipeManager_->remove(id);
+}
+

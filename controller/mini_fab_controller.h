@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <optional>
 
 #include "equipment_snapshot.h"
 #include "wafer/wafer_manager.h"
@@ -10,6 +11,7 @@
 #include "equipment/operation_result.h"
 #include "equipment/event_log.h"
 #include "equipment/equipment_event.h"
+#include "recipes/recipe_manager.h"
 
 
 class MiniFabController
@@ -22,11 +24,21 @@ private:
 	SimProcessModule processModule_;
 	EventLog eventLog_;
 	ProcessEngine engine_;
+	RecipeManager* recipeManager_ = nullptr;
 
 public:
 	MiniFabController();
+	explicit MiniFabController(RecipeManager& recipeManager);
 
 	OperationResult runWafer(const Recipe& recipe);
+	OperationResult runWafer(int RecipeId);
+
+	std::vector<Recipe> getRecipes() const;
+	std::optional<Recipe> getRecipe(int id) const;
+
+	bool addRecipe(const Recipe& recipe);
+	bool updateRecipe(const Recipe& recipe);
+	bool removeRecipe(int id);
 
 	EquipmentSnapshot status() const;
 

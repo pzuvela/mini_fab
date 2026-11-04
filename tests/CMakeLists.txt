@@ -8,6 +8,7 @@ add_executable(mini_fab_tests
     equipment_snapshot_json_tests.cpp
     sqlite_recipe_repository_tests.cpp
     recipe_manager_tests.cpp
+    mini_fab_recipe_controller_tests.cpp
 
     mocks/mock_robot.cpp
     mocks/blocking_mock_robot.cpp
