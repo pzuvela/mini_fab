@@ -36,6 +36,32 @@ int main()
 		}
 	);
 
+
+	server.Post("/api/run",
+    		[&controller](const httplib::Request&,
+                  	httplib::Response& response)
+    		{
+        		OperationResult result = controller.runWafer();
+
+		        if (result == OperationResult::Completed)
+        		{
+            			response.status = 202; // Accepted
+            			response.set_content(
+                			R"({"accepted":true})",
+                			"application/json"
+            			);
+        		}
+        		else
+        		{
+            			response.status = 409; // Conflict
+            			response.set_content(
+                			R"({"accepted":false})",
+                			"application/json"
+            			);
+        		}
+    		}
+	);
+
 	std::cout << "MiniFab server on port " << port << "\n";
 
 	server.listen(ip, port);

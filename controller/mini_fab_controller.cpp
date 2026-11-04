@@ -26,3 +26,19 @@ EquipmentSnapshot MiniFabController::status() const
 		.processModuleWaferId = processModule_.processingWaferId()
 	};
 }
+
+OperationResult MiniFabController:runWafer()
+{
+	Recipe recipe{
+		.id = 1,
+		.name = "Recipe1",
+		.durationSeconds = 50
+	};
+
+	return engine_.startProcessWafer(
+		"W1",
+		Location{Station::ProcessModule, 1};,
+		recipe
+	);
+
+}
