@@ -6,6 +6,7 @@
 #include "equipment/process_module/sim_process_module.h"
 #include "engine/process_engine.h"
 #include "equipment/operation_result.h"
+#include "equipment/event_log.h"
 
 
 class MiniFabController
@@ -16,6 +17,7 @@ private:
 	WaferManager manager_;
 	SimRobot robot_;
 	SimProcessModule processModule_;
+	EventLog eventLog_;
 	ProcessEngine engine_;
 
 public:

@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <string>
+#include <cstdint>
+
 #include "event_type.h"
 #include "event_severity.h"
 

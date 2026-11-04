@@ -7,10 +7,10 @@
 #include "equipment/process_module/iprocess_module.h"
 #include "wafer/iwafer_manager.h"
 
-ProcessEngine::ProcessEngine(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule)
-	: mgr_(mgr), robot_(robot), processModule_(processModule)
+ProcessEngine::ProcessEngine(IWaferManager& mgr, IRobot& robot, IProcessModule& processModule, EventLog& eventLog)
+	: mgr_(mgr), robot_(robot), processModule_(processModule), eventLog_(eventLog)
 {
-	std::cout << "Instantiated wafer manager, robot & process module\n";
+	std::cout << "Instantiated wafer manager, robot, process module & event log\n";
 }
 
 MovementStageResult ProcessEngine::run(
@@ -65,6 +65,11 @@ Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId)
 	{
 		state_ = EquipmentState::Moving;
 	}
+
+	eventLog_.record(
+		EventType::RunAccepted,
+		"Wafer " + waferId + " accepted for processing"
+	);
 
 	return wafer;
 }

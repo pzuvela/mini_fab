@@ -7,7 +7,7 @@
 
 
 MiniFabController::MiniFabController()
-	: robot_(std::chrono::milliseconds{300}), engine_(manager_, robot_, processModule_)
+	: robot_(std::chrono::milliseconds{300}), engine_(manager_, robot_, processModule_, eventLog_)
 {
 	manager_.addWafer(
 		Wafer{
@@ -15,6 +15,17 @@ MiniFabController::MiniFabController()
 			.location = Location{ Station::LoadPort, 3 }
 		}
 	);
+
+	eventLog_.record(
+		EventType::EquipmentStarted,
+		"MiniFab equipment initialzed"
+	);
+
+	eventLog_.record(
+		EventType::WaferRegistered,
+		"Wafer W1 registered at LoadPort / Slot 3"
+	);
+
 }
 
 EquipmentSnapshot MiniFabController::status() const

@@ -12,6 +12,7 @@
 #include "equipment/robot/irobot.h"
 #include "equipment/process_module/iprocess_module.h"
 #include "wafer/wafer_tracking_recovery_context.h"
+#include "equipment/event_log.h"
 
 
 class ProcessEngine
@@ -26,6 +27,7 @@ private:
     std::future<OperationResult> resultFuture_;
     std::optional<FaultSource> faultSource_;
     std::optional<WaferTrackingRecoveryContext> recoveryContext_;
+    EventLog& eventLog_;
 
     MovementStageResult run(
         Wafer& wafer,
@@ -90,7 +92,8 @@ public:
     ProcessEngine(
         IWaferManager& waferManager,
         IRobot& robot,
-        IProcessModule& processModule
+        IProcessModule& processModule,
+	EventLog& eventLog
     );
 
     OperationResult processWafer(

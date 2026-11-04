@@ -8,7 +8,7 @@
 #include <cstdint>
 
 #include "equipment_event.h"
-#include "event_log_config.h"
+#include "config/event_log_config.h"
 
 
 class EventLog
@@ -22,11 +22,13 @@ private:
 
 public:
 	explicit EventLog(EventLogConfig config = {})
-		: config_(onfig)
+		: config_(config)
 	{
 	}
 
 	void record(EventType type, std::string message) {
+		std::lock_guard<std::mutex> lock(mutex_);
+
 		EquipmentEvent event{
 			nextSequenceId_++,
 			std::chrono::system_clock::now(),
@@ -35,7 +37,6 @@ public:
 			std::move(message)
 		};
 
-		std::lock_guard<std::mutex> lock(mutex_);
 		events_.push_back(std::move(event));
 
 		if (config_.maxEvents.has_value()) {
