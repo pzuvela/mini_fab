@@ -9,7 +9,7 @@ export const miniFabApi = {
 			httpStatus: response.status,
 			...await response.json()
 		};
-	}
+	},
 
 	async getStatus() {
 	    const response = await fetch("/api/status", { cache: "no-store" });

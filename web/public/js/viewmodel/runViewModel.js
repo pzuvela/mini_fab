@@ -12,7 +12,7 @@ export function createRunViewModel(api = miniFabApi) {
 	function getState() {
 		return {
 			equipmentState: snapshot?.equipmentState ?? "Unknown",
-			waferLocation: snapshot?WaferLocation ? `${snapshot.waferLocation.station} / Slot
+			waferLocation: snapshot?.WaferLocation ? `${snapshot.waferLocation.station} / Slot
 								${snapshot.waferLocation.slot}`
 							      : "Unknown",
 			robot: snapshot?.robotWaferId ?? "Empty",
@@ -37,6 +37,7 @@ export function createRunViewModel(api = miniFabApi) {
 
 		try {
 			snapshot = await api.getStatus();
+			message = "Connected";
 		} catch(error) {
 			snapshot = null;
 			message = `Status error: ${error.message}`;
