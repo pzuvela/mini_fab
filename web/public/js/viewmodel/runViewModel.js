@@ -12,7 +12,7 @@ export function createRunViewModel(api = miniFabApi) {
 	function getState() {
 		return {
 			equipmentState: snapshot?.equipmentState ?? "Unknown",
-			waferLocation: snapshot?.WaferLocation ? `${snapshot.waferLocation.station} / Slot
+			waferLocation: snapshot?.waferLocation ? `${snapshot.waferLocation.station} / Slot
 								${snapshot.waferLocation.slot}`
 							      : "Unknown",
 			robot: snapshot?.robotWaferId ?? "Empty",
