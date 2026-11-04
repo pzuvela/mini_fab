@@ -26,7 +26,7 @@ private:
 public:
 	MiniFabController();
 
-	OperationResult runWafer();
+	OperationResult runWafer(const Recipe& recipe);
 
 	EquipmentSnapshot status() const;
 

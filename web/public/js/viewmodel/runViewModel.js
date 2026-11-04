@@ -84,14 +84,14 @@ export function createRunViewModel(api = miniFabApi) {
 
 	}
 
-	async function run() {
+	async function run(recipe) {
 		if (!getState().canRun) return;
 
 		runningCommand = true;
 		notify();
 
 		try {
-			const result = await api.runWafer();
+			const result = await api.runWafer(recipe);
 			message = result.accepted ? "Wafer run accepted" : `Run rejected (HTTP ${result.httpStatus})`;
 			await refresh();
 		} catch (error) {

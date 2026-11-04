@@ -38,20 +38,13 @@ EquipmentSnapshot MiniFabController::status() const
 	};
 }
 
-OperationResult MiniFabController::runWafer()
+OperationResult MiniFabController::runWafer(const Recipe& recipe)
 {
-	Recipe recipe{
-		.id = 1,
-		.name = "Recipe1",
-		.durationSeconds = 50
-	};
-
 	return engine_.startProcessWafer(
 		"W1",
 		Location{Station::ProcessModule, 1},
 		recipe
 	);
-
 }
 
 std::vector<EquipmentEvent> MiniFabController::events() const

@@ -213,3 +213,40 @@ td:nth-child(2) {
         display: none;
     }
 }
+
+.recipe-config {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #29364b;
+}
+
+.recipe-config h2 {
+    width: 100%;
+}
+
+.recipe-config label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 160px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.recipe-config input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #334155;
+    border-radius: 7px;
+    background: #0f172a;
+    color: #e2e8f0;
+    font: inherit;
+}
+
+.recipe-config input:focus {
+    outline: none;
+    border-color: #38bdf8;
+}
