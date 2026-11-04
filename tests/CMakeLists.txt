@@ -4,6 +4,7 @@ add_executable(mini_fab_tests
     sim_robot_tests.cpp
     process_engine_tests.cpp
     wafer_manager_tests.cpp
+    mini_fab_controller_tests.cpp
 
     mocks/mock_robot.cpp
     mocks/blocking_mock_robot.cpp
@@ -17,6 +18,7 @@ target_link_libraries(mini_fab_tests PRIVATE
 	mini_fab_engine
 	mini_fab_tracking
 	mini_fab_equipment
+	mini_fab_controller
 	GTest::gtest_main
 )
 
