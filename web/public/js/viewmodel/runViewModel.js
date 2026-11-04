@@ -21,8 +21,8 @@ export function createRunViewModel(api = miniFabApi) {
 			robot: snapshot?.robotWaferId ?? "Empty",
 			processModule: snapshot?.processModuleWaferId ?? "Empty",
 			canRun: snapshot?.equipmentState === "Idle" && !runningCommand,
-			events: events,
-			message
+			message,
+			events: events
 		};
 	}
 
