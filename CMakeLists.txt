@@ -110,10 +110,6 @@ target_include_directories(mini_fab_serialization PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-option(MINIFAB_BUILD_WEB "Build MiniFab web server" OFF)
-
-if(MINIFAB_BUILD_WEB)
-
 	FetchContent_Declare(
     		httplib
     		URL https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.58.0.zip
@@ -122,13 +118,29 @@ if(MINIFAB_BUILD_WEB)
 
 	FetchContent_MakeAvailable(httplib)
 
+
+add_library(mini_fab_web_parsing STATIC
+    web/parsing/recipe_parser.cpp
+)
+
+target_include_directories(mini_fab_web_parsing PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(mini_fab_web_parsing PUBLIC
+    httplib::httplib
+)
+
+option(MINIFAB_BUILD_WEB "Build MiniFab web server" OFF)
+
+if(MINIFAB_BUILD_WEB)
+
 	find_package(Threads REQUIRED)
 
 	add_executable(mini_fab_web
 		app/mini_fab_web.cpp
 		web/routes/equipment_routes.cpp
 		web/routes/recipe_routes.cpp
-		web/parsing/recipe_parser.cpp
 	)
 
 	target_link_libraries(mini_fab_web PRIVATE
@@ -137,6 +149,7 @@ if(MINIFAB_BUILD_WEB)
 	    mini_fab_equipment
 	    mini_fab_controller
 	    mini_fab_serialization
+	    mini_fab_web_parsing
 	    httplib::httplib
 	    Threads::Threads
 	)
