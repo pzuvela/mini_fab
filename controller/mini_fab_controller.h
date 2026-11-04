@@ -5,7 +5,7 @@
 #include "equipment/robot/sim_robot.h"
 #include "equipment/process_module/sim_process_module.h"
 #include "engine/process_engine.h"
-#include "engine/operation_result.h"
+#include "equipment/operation_result.h"
 
 
 class MiniFabController
