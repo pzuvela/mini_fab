@@ -208,6 +208,10 @@ elements.recipeDetails.textContent = selectedRecipe
     ? `Duration: ${selectedRecipe.durationSeconds} seconds`
     : (state.recipeError ?? "No recipe selected");
 
+}); // End vm.subscribe() — rendering only!
+
+// Register event handlers ONCE, outside subscribe.
+
 elements.runButton.addEventListener("click", () => {
     vm.run();
 });
@@ -220,13 +224,10 @@ elements.recipeSelect.addEventListener("change", event => {
     );
 });
 
-    vm.run();
-});
+vm.start();
 
-        vm.start();
-
-        window.addEventListener("pagehide", () => vm.stop());
-    </script>
+window.addEventListener("pagehide", () => vm.stop()); 
+</script>
 
     
 <script src="/js/appConfig.js"></script>
