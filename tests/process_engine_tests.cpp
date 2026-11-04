@@ -14,6 +14,7 @@
 #include "wafer/wafer_manager.h"
 #include "domain/wafer.h"
 #include "domain/location.h"
+#include "equipment/event_log.h"
 
 namespace MiniFab::Tests
 {
@@ -42,12 +43,14 @@ namespace MiniFab::Tests
         MockWaferManager mgr_{ std::make_unique<Wafer>(wafer_), true };
 
         SimProcessModule processModule_;
+
+	EventLog eventLog_ = EventLog( {} );
     };
 
     TEST_F(ProcessEngineTest, RequestsLocationUpdateWhenRobotMoveSucceeds)
     {
         MockRobot robot{ true };
-        ProcessEngine engine(mgr_, robot, processModule_);
+        ProcessEngine engine(mgr_, robot, processModule_, eventLog_);
 
         engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -58,7 +61,7 @@ namespace MiniFab::Tests
     TEST_F(ProcessEngineTest, DoesNotRequestLocationUpdateWhenRobotMoveFails)
     {
         MockRobot robot{ false };
-        ProcessEngine engine(mgr_, robot, processModule_);
+        ProcessEngine engine(mgr_, robot, processModule_, eventLog_);
 
         engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -69,7 +72,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -80,7 +83,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ false };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -91,7 +94,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -104,7 +107,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -117,7 +120,7 @@ namespace MiniFab::Tests
         MockRobot robot{ true };
         MockProcessModule processModule{ false };
         MockWaferManager mgr{ std::make_unique<Wafer>(wafer_), false };
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -131,7 +134,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
@@ -140,7 +143,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         engine.processWafer(wafer_.id, destination_, recipe_);
         robot.setMoveShouldSucceed(true);
@@ -152,11 +155,11 @@ namespace MiniFab::Tests
         EXPECT_FALSE(processModule.processWasCalled());
     }
 
-    TEST_F(ProcessEngineTest, ResetReturnsEngineToIdleAfterFault) 
+    TEST_F(ProcessEngineTest, ResetReturnsEngineToIdleAfterFault)
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -170,7 +173,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         RecoveryResult recoveryResult = engine.reset();
 
@@ -182,7 +185,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ false };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -200,7 +203,7 @@ namespace MiniFab::Tests
     {
         MockRobot robot{ true };
         MockProcessModule processModule{ true };
-        ProcessEngine engine(mgr_, robot, processModule);
+        ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.processWafer("404", destination_, recipe_);
 
@@ -218,7 +221,7 @@ namespace MiniFab::Tests
 
         mgr.addWafer(wafer_);
 
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
         mgr.addWafer(
             Wafer{
@@ -255,7 +258,7 @@ namespace MiniFab::Tests
 
         mgr.addWafer(wafer_);
 
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
@@ -278,7 +281,7 @@ namespace MiniFab::Tests
 
         mgr.addWafer(wafer_);
 
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
@@ -301,7 +304,7 @@ namespace MiniFab::Tests
 
         mgr.addWafer(wafer_);
 
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
@@ -339,7 +342,7 @@ namespace MiniFab::Tests
             }
         );
 
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
         ASSERT_EQ(
 		engine.startProcessWafer(
@@ -380,7 +383,7 @@ namespace MiniFab::Tests
             }
         );
 
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
         std::barrier startBarrier{ 2 };
 
@@ -422,7 +425,7 @@ namespace MiniFab::Tests
 
         mgr.addWafer(wafer_);
 
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
         OperationResult operationResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
@@ -447,7 +450,7 @@ namespace MiniFab::Tests
 
         mgr.addWafer(wafer_);
 
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
 	    engine.startProcessWafer(wafer_.id, destination_, recipe_);
 
@@ -477,7 +480,7 @@ namespace MiniFab::Tests
 
         mgr.addWafer(wafer_);
 
-        ProcessEngine engine(mgr, robot, processModule);
+        ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
         StateTransition stateTransition = engine.cancel();
 
@@ -495,7 +498,7 @@ namespace MiniFab::Tests
 	    WaferManager mgr;
 	    mgr.addWafer(wafer_);
 
-	    ProcessEngine engine{mgr, robot, processModule};
+	    ProcessEngine engine{mgr, robot, processModule, eventLog_};
 
 	    engine.startProcessWafer(
 		    wafer_.id, destination_, recipe_
@@ -517,7 +520,7 @@ namespace MiniFab::Tests
     {
 	    MockRobot robot{ false };
 	    MockProcessModule processModule{ true };
-	    ProcessEngine engine(mgr_, robot, processModule);
+	    ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -527,11 +530,11 @@ namespace MiniFab::Tests
 	    EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
-    TEST_F(ProcessEngineTest, RecoveryFailureKeepsEngineFaulted) 
+    TEST_F(ProcessEngineTest, RecoveryFailureKeepsEngineFaulted)
     {
 	    MockRobot robot { false, false };
 	    MockProcessModule processModule{ true };
-	    ProcessEngine engine(mgr_, robot, processModule);
+	    ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -541,11 +544,11 @@ namespace MiniFab::Tests
 	    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
 
-    TEST_F(ProcessEngineTest, CanRetryRecoveryAfterRecoveryFailure) 
+    TEST_F(ProcessEngineTest, CanRetryRecoveryAfterRecoveryFailure)
     {
 	    MockRobot robot { false, false };
 	    MockProcessModule processModule{ true };
-	    ProcessEngine engine(mgr_, robot, processModule);
+	    ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
 
@@ -566,7 +569,7 @@ namespace MiniFab::Tests
     {
 	    MockRobot robot { false, true };
 	    MockProcessModule processModule { false, false };
-	    ProcessEngine engine(mgr_, robot, processModule);
+	    ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
 	    RecoveryResult recoveryResult = engine.reset();
@@ -580,7 +583,7 @@ namespace MiniFab::Tests
     {
 	    MockRobot robot { true, true };
 	    MockProcessModule processModule { false, true };
-	    ProcessEngine engine(mgr_, robot, processModule);
+	    ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
 	    RecoveryResult recoveryResult = engine.reset();
@@ -598,7 +601,7 @@ namespace MiniFab::Tests
 	WaferManager mgr;
 	mgr.addWafer(wafer_);
 
-	ProcessEngine engine(mgr, robot, processModule);
+	ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
 	ASSERT_EQ(
 		engine.startProcessWafer(wafer_.id, destination_, recipe_), 

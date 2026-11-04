@@ -9,6 +9,8 @@
 #include "equipment/robot/sim_robot.h"
 #include "engine/process_engine.h"
 #include "equipment/process_module/sim_process_module.h"
+#include "equipment/event_log.h"
+
 
 int main()
 {
@@ -25,7 +27,9 @@ int main()
 
 	mgr.addWafer(wafer);
 
-	ProcessEngine engine{mgr, robot, processModule};
+	EventLog eventLog = EventLog( {} );
+
+	ProcessEngine engine{mgr, robot, processModule, eventLog};
 
 	engine.startProcessWafer(wafer.id, processModuleLocation, recipe);
 
