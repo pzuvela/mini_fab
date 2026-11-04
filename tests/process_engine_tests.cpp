@@ -663,4 +663,65 @@ namespace MiniFab::Tests
 			}
 		));
 	}
+
+	TEST_F(ProcessEngineTest, ReadyRobotDoesNotGenerateInitializationEvents)
+	{
+		const std::string waferId = "1";
+
+		MockRobot robot { true, true };
+		robot.initialize();
+		MockProcessModule processModule { true, true  };
+		ProcessEngine engine{mgr_, robot, processModule, eventLog_};
+
+		OperationResult result = engine.processWafer(waferId, destination_, recipe_);
+
+		EXPECT_EQ(result, OperationResult::Completed);
+		EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+		std::vector<EquipmentEvent> events = eventLog_.getEvents();
+
+		EXPECT_TRUE(std::ranges::none_of(
+			events,
+			[](const EquipmentEvent& event) {
+				return event.type == EventType::RobotInitializing || event.type == EventType::RobotReady;
+			}
+		));
+	}
+
+
+	TEST_F(ProcessEngineTest, UnitializedRobotGeneratesInitializationEventsInCorrectOrder)
+	{
+		const std::string waferId = "1";
+
+		MockRobot robot { true, true };
+		MockProcessModule processModule { true, true  };
+		ProcessEngine engine{mgr_, robot, processModule, eventLog_};
+
+		OperationResult result = engine.processWafer(waferId, destination_, recipe_);
+
+		EXPECT_EQ(result, OperationResult::Completed);
+		EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+		std::vector<EquipmentEvent> events = eventLog_.getEvents();
+
+
+		const EquipmentEvent* initializing = nullptr;
+		const EquipmentEvent* ready = nullptr;
+
+		for (const EquipmentEvent& event : events)
+		{
+			if (event.type == EventType::RobotInitializing)
+				initializing = &event;
+
+			if (event.type == EventType::RobotReady)
+				ready = &event;
+
+			if (initializing && ready)
+				break;
+		}
+
+		ASSERT_NE(initializing, nullptr);
+		ASSERT_NE(ready, nullptr);
+		EXPECT_LT(initializing->sequenceId, ready->sequenceId);
+	}
 }
