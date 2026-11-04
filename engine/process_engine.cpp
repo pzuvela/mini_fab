@@ -13,7 +13,7 @@ ProcessEngine::ProcessEngine(IWaferManager& mgr, IRobot& robot, IProcessModule& 
 	std::cout << "Instantiated wafer manager, robot, process module & event log\n";
 }
 
-MovementStageResult ProcessEngine::run(
+MovementStageResult ProcessEngine::executeMoveWafer(
 	Wafer& wafer,
 	const Location& destination,
 	std::stop_token stopToken
@@ -21,7 +21,15 @@ MovementStageResult ProcessEngine::run(
 {
 	if (!robot_.isReady())
 	{
+		eventLog_.record(
+			EventType::RobotInitializing,
+			"Initializing Robot"
+		);
 		robot_.initialize();
+		eventLog_.record(
+			EventType::RobotReady,
+			"Robot initialized"
+		);
 	}
 
 	OperationResult movementResult = robot_.moveWafer(wafer, destination, stopToken);
@@ -118,7 +126,7 @@ OperationResult ProcessEngine::returnWaferToOriginalLocation(
 	bool hasTransitioned = tryTransition(EquipmentState::Processing, EquipmentState::Moving);
 	if (!hasTransitioned) return resultFromFailedTransition(stopToken);
 
-	MovementStageResult returnResult = run(wafer, originalLocation, stopToken);
+	MovementStageResult returnResult = executeMoveWafer(wafer, originalLocation, stopToken);
 
 	switch (returnResult.movementResult)
 	{
@@ -152,7 +160,7 @@ OperationResult ProcessEngine::moveWaferToProcessModule(
         std::stop_token stopToken
 )
 {
-	MovementStageResult result = run(wafer, processModuleLocation, stopToken);
+	MovementStageResult result = executeMoveWafer(wafer, processModuleLocation, stopToken);
 
 	bool hasTransitioned;
 

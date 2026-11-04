@@ -29,7 +29,7 @@ private:
     std::optional<WaferTrackingRecoveryContext> recoveryContext_;
     EventLog& eventLog_;
 
-    MovementStageResult run(
+    MovementStageResult executeMoveWafer(
         Wafer& wafer,
         const Location& destination,
 	std::stop_token stopToken
