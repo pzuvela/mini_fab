@@ -102,6 +102,7 @@ add_library(mini_fab_serialization STATIC
     web/serialization/equipment_snapshot_json.cpp
     web/serialization/equipment_events_json.cpp
     web/serialization/json_utils.cpp
+    web/serialization/recipe_json.cpp
     equipment/event_type.cpp
 )
 

@@ -5,11 +5,15 @@
 #include "controller/mini_fab_controller.h"
 #include "web/serialization/equipment_snapshot_json.h"
 #include "web/serialization/equipment_events_json.h"
-
+#include "recipes/sqlite_recipe_repository.h"
+#include "recipes/recipe_manager.h"
+#include "web/serialization/recipe_json.h"
 
 int main()
 {
-	MiniFabController controller;
+	SqliteRecipeRepository repository("minifab.db");
+	RecipeManager recipeManager(repository);
+	MiniFabController controller(recipeManager);
 	httplib::Server server;
 	std::string ip = "127.0.0.1";
 	int port = 8080;
@@ -42,6 +46,18 @@ int main()
 			);
 		}
 	);
+
+server.Get("/api/recipes",
+    [&controller](const httplib::Request&,
+                  httplib::Response& response)
+    {
+
+response.set_content(
+    MiniFab::Web::toJson(controller.getRecipes()),
+    "application/json"
+);
+    }
+);
 
 
 server.Post("/api/run",
