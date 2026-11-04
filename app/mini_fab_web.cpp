@@ -13,6 +13,12 @@ int main()
 	std::string ip = "127.0.0.1";
 	int port = 8080;
 
+	if (!server.set_mount_point("/", "./web/public"))
+	{
+    		std::cerr << "Failed to mount web/public\n";
+    	return 1;
+	}
+
 	server.Get("/api/health",
 		[](const httplib::Request&,
 			httplib::Response& response)

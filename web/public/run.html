@@ -1,0 +1,36 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+    <title>MiniFab</title>
+</head>
+<body>
+    <h1>MiniFab Equipment Control</h1>
+
+    <button id="runButton">Run Wafer</button>
+    <p id="message">Ready</p>
+
+    <script type="module">
+        import { runWafer } from
+            "/js/viewmodel/runViewModel.js";
+
+        const button = document.querySelector("#runButton");
+        const message = document.querySelector("#message");
+
+        button.addEventListener("click", async () => {
+            button.disabled = true;
+
+            try {
+                message.textContent = await runWafer();
+            } catch (error) {
+                message.textContent = `Error: ${error.message}`;
+            } finally {
+                button.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
