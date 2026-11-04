@@ -806,4 +806,44 @@ namespace MiniFab::Tests
                 ));
 	}
 
+TEST_F(ProcessEngineTest, RecordsSuccessfulWaferLifecycleInOrder)
+{
+    MockRobot robot{ true };
+    MockProcessModule processModule{ true };
+
+    ProcessEngine engine(
+        mgr_, robot, processModule, eventLog_
+    );
+
+    ASSERT_EQ(
+        engine.processWafer(wafer_.id, destination_, recipe_),
+        OperationResult::Completed
+    );
+
+    const auto events = eventLog_.getEvents();
+
+    const std::vector<EventType> expected{
+        EventType::RunAccepted,
+        EventType::EquipmentMoving,
+        EventType::WaferLocationUpdated,
+        EventType::ProcessStarted,
+        EventType::ProcessCompleted,
+        EventType::EquipmentMoving,
+        EventType::WaferLocationUpdated
+    };
+
+    std::size_t nextExpected = 0;
+
+    for (const auto& event : events)
+    {
+        if (nextExpected < expected.size() &&
+            event.type == expected[nextExpected])
+        {
+            ++nextExpected;
+        }
+    }
+
+    EXPECT_EQ(nextExpected, expected.size());
+}
+
 }
