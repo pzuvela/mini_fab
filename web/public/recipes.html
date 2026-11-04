@@ -15,7 +15,7 @@
             <p class="eyebrow">EQUIPMENT CONTROL SYSTEM</p>
             <h1>MiniFab <span>Recipes</span></h1>
         </div>
-<span class="version" data-app-version></span>
+        <span class="version" data-app-version></span>
     </header>
 
     <nav class="main-nav">
@@ -25,13 +25,140 @@
 
     <section class="panel">
         <div class="panel-heading">
-            <h2>Recipe Management</h2>
+            <h2>Recipe Editor</h2>
         </div>
 
-        <p>Recipe library coming soon.</p>
+        <form id="recipeForm" class="recipe-config">
+            <label>
+                Recipe ID
+                <input id="recipeId" type="number"
+                       min="1" step="1" required>
+            </label>
+
+            <label>
+                Recipe Name
+                <input id="recipeName" type="text" required>
+            </label>
+
+            <label>
+                Duration (seconds)
+                <input id="durationSeconds" type="number"
+                       min="0.000001" max="3600"
+                       step="any" required>
+            </label>
+
+            <button id="saveButton" type="submit">
+                Save Recipe
+            </button>
+        </form>
+
+        <p id="message" role="status">Loading recipes...</p>
     </section>
-<script src="/js/appConfig.js"></script>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Saved Recipes</h2>
+            <span id="recipeCount" class="event-count">0 recipes</span>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Duration (s)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="recipeRows"></tbody>
+            </table>
+        </div>
+    </section>
 
 </main>
+
+<script type="module">
+    import { createRecipeViewModel } from
+        "/js/viewmodel/recipeViewModel.js";
+
+    const vm = createRecipeViewModel();
+
+    const form = document.querySelector("#recipeForm");
+    const idInput = document.querySelector("#recipeId");
+    const nameInput = document.querySelector("#recipeName");
+    const durationInput =
+        document.querySelector("#durationSeconds");
+
+    const saveButton = document.querySelector("#saveButton");
+    const message = document.querySelector("#message");
+    const rows = document.querySelector("#recipeRows");
+    const count = document.querySelector("#recipeCount");
+
+    vm.subscribe(state => {
+        message.textContent = state.message;
+        count.textContent = `${state.recipes.length} recipes`;
+        saveButton.disabled = state.busy;
+
+        rows.replaceChildren();
+
+        for (const recipe of state.recipes) {
+            const row = document.createElement("tr");
+
+            for (const value of [
+                recipe.id,
+                recipe.name,
+                recipe.durationSeconds
+            ]) {
+                const cell = document.createElement("td");
+                cell.textContent = value;
+                row.appendChild(cell);
+            }
+
+            const actions = document.createElement("td");
+
+            const editButton = document.createElement("button");
+            editButton.textContent = "Edit";
+            editButton.disabled = state.busy;
+
+            editButton.addEventListener("click", () => {
+                idInput.value = recipe.id;
+                nameInput.value = recipe.name;
+                durationInput.value = recipe.durationSeconds;
+                idInput.focus();
+            });
+
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Delete";
+            deleteButton.disabled = state.busy;
+
+            deleteButton.addEventListener("click", () => {
+                if (confirm(`Delete recipe ${recipe.id}?`)) {
+                    vm.remove(recipe.id);
+                }
+            });
+
+            actions.append(editButton, deleteButton);
+            row.appendChild(actions);
+            rows.appendChild(row);
+        }
+    });
+
+    form.addEventListener("submit", event => {
+        event.preventDefault();
+
+        if (!form.reportValidity()) return;
+
+        vm.save({
+            id: Number(idInput.value),
+            name: nameInput.value,
+            durationSeconds: Number(durationInput.value)
+        });
+    });
+
+    vm.load();
+</script>
+
+<script src="/js/appConfig.js"></script>
 </body>
 </html>

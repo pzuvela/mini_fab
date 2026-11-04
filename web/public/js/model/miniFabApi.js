@@ -34,6 +34,56 @@ async runWafer(recipe) {
     		}
 
     		return response.json();
-	}
+	},
+
+async getRecipes() {
+    const response = await fetch("/api/recipes", {
+        cache: "no-store"
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+
+    return response.json();
+},
+
+async saveRecipe(recipe) {
+    const response = await fetch(
+        `/api/recipes/${recipe.id}`,
+        {
+            method: "PUT",
+            body: new URLSearchParams({
+                recipeId: recipe.id,
+                recipeName: recipe.name,
+                durationSeconds: recipe.durationSeconds
+            })
+        }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            result.error ?? `HTTP ${response.status}`
+        );
+    }
+
+    return result;
+},
+
+async deleteRecipe(id) {
+    const response = await fetch(`/api/recipes/${id}`, {
+        method: "DELETE"
+    });
+
+    if (!response.ok) {
+        const result = await response.json();
+        throw new Error(
+            result.error ?? `HTTP ${response.status}`
+        );
+    }
+}
+
 };
 

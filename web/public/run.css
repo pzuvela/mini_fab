@@ -273,3 +273,37 @@ td:nth-child(2) {
     color: #38bdf8;
     border-bottom-color: #38bdf8;
 }
+
+#recipeForm {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: end;
+}
+
+#recipeForm label {
+    flex: 1 1 180px;
+}
+
+#recipeForm button {
+    align-self: end;
+}
+
+#recipeRows td:last-child {
+    white-space: nowrap;
+}
+
+#recipeRows button {
+    margin-right: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+#recipeRows button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#message {
+    margin-top: 16px;
+}
