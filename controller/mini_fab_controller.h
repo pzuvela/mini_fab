@@ -12,7 +12,7 @@
 #include "equipment/event_log.h"
 #include "equipment/equipment_event.h"
 #include "recipes/recipe_manager.h"
-#include "recipes/recipe_upser_result.h"
+#include "recipes/recipe_upsert_result.h"
 
 
 class MiniFabController
