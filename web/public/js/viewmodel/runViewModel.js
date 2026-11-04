@@ -106,11 +106,12 @@ async function run() {
     try {
         const result = await api.runWafer(recipeId);
 
+        await refresh();
+
         message = result.accepted
             ? `Wafer run accepted (recipe ${recipeId})`
             : `Run rejected: ${result.error ?? `HTTP ${result.httpStatus}`}`;
 
-        await refresh();
     } catch (error) {
         message = `Run error: ${error.message}`;
     } finally {

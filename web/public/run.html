@@ -148,33 +148,40 @@
 		}
 
 const select = elements.recipeSelect;
-const selectedValue = state.selectedRecipeId === null
-    ? ""
-    : String(state.selectedRecipeId);
 
-const currentOptions = Array.from(select.options)
-    .slice(1)
-    .map(option => `${option.value}:${option.textContent}`);
-
-const newOptions = state.recipes.map(
-    recipe => `${recipe.id}:${recipe.name}`
+const expectedOptions = state.recipes.map(
+    recipe => ({
+        value: String(recipe.id),
+        label: `${recipe.id} — ${recipe.name}`
+    })
 );
 
-if (currentOptions.join("|") !== newOptions.join("|")) {
+const optionsChanged =
+    select.options.length !== expectedOptions.length ||
+    expectedOptions.some((expected, index) => {
+        const actual = select.options[index];
+
+        return actual.value !== expected.value ||
+               actual.textContent !== expected.label;
+    });
+
+if (optionsChanged) {
     select.replaceChildren();
 
-    for (const recipe of state.recipes) {
+    for (const optionData of expectedOptions) {
         const option = document.createElement("option");
-        option.value = String(recipe.id);
-        option.textContent = `${recipe.id} — ${recipe.name}`;
+
+        option.value = optionData.value;
+        option.textContent = optionData.label;
+
         select.appendChild(option);
     }
 }
 
-if (state.recipes.length === 0) {
-    select.replaceChildren();
-
+if (state.recipes.length === 0 &&
+    select.options.length === 0) {
     const option = document.createElement("option");
+
     option.value = "";
     option.textContent = state.recipeError
         ? "Failed to load recipes"
@@ -183,7 +190,14 @@ if (state.recipes.length === 0) {
     select.appendChild(option);
 }
 
-select.value = selectedValue;
+const selectedValue = state.selectedRecipeId === null
+    ? ""
+    : String(state.selectedRecipeId);
+
+if (select.value !== selectedValue) {
+    select.value = selectedValue;
+}
+
 select.disabled = state.recipes.length === 0;
 
 const selectedRecipe = state.recipes.find(
@@ -194,18 +208,19 @@ elements.recipeDetails.textContent = selectedRecipe
     ? `Duration: ${selectedRecipe.durationSeconds} seconds`
     : (state.recipeError ?? "No recipe selected");
 
-        });
-
 elements.runButton.addEventListener("click", () => {
-    const recipe = {
-        id: Number(document.querySelector("#recipeId").value),
-        name: document.querySelector("#recipeName").value,
-        durationSeconds: Number(
-            document.querySelector("#durationSeconds").value
-        )
-    };
+    vm.run();
+});
 
-    vm.run(recipe);
+elements.recipeSelect.addEventListener("change", event => {
+    const value = event.target.value;
+
+    vm.selectRecipe(
+        value === "" ? null : Number(value)
+    );
+});
+
+    vm.run();
 });
 
         vm.start();
