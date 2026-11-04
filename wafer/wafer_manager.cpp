@@ -8,6 +8,8 @@
 
     bool WaferManager::addWafer(const Wafer& wafer)
     {
+	std::lock_guard<std::mutex> lock(mutex_);
+
         std::pair<
             std::unordered_map<std::string, std::unique_ptr<Wafer>>::iterator,
             bool
@@ -21,6 +23,8 @@
 
     Wafer* WaferManager::findWafer(const std::string& waferId)
     {
+	std::lock_guard<std::mutex> lock(mutex_);
+
         std::unordered_map<std::string, std::unique_ptr<Wafer>>::iterator iterator = wafers_.find(waferId);
 
         if (iterator == wafers_.end()) return nullptr;
@@ -31,11 +35,26 @@
 
 LocationUpdateResult WaferManager::updateLocation(const std::string& waferId, Location location)
 {
-	Wafer* wafer = findWafer(waferId);
+	std::lock_guard<std::mutex> lock(mutex_);
 
-	if (wafer == nullptr) return LocationUpdateResult::WaferNotFound;
+	auto iterator = wafers_.find(waferId);
 
-	wafer->location = location;
+	if (iterator == wafers_.end()) return LocationUpdateResult::WaferNotFound;
 
-	return LocationUpdateResult::Updated; 
+	iterator->second->location = location;
+
+	return LocationUpdateResult::Updated;
+}
+
+std::optional<Location> WaferManager::getLocation(
+	const std::string& waferId
+) const
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	auto iterator = wafers_.find(waferId);
+
+	if (iterator == wafers_.end()) return std::nullopt;
+
+	return iterator->second->location;
 }

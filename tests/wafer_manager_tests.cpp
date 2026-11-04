@@ -67,7 +67,7 @@ namespace MiniFab::Tests
 		Wafer* managedWafer = mgr.findWafer(wafer_.id);
 
 		Location originalLocation = managedWafer->location;
-		
+
 		LocationUpdateResult result = mgr.updateLocation("Wafer", location_);
 
 		EXPECT_EQ(result, LocationUpdateResult::WaferNotFound);
@@ -88,7 +88,29 @@ namespace MiniFab::Tests
 		EXPECT_NE(wafer_.location, location_);
 		EXPECT_EQ(managedWafer->location, location_);
 	}
+
+	TEST_F(WaferManagerTest, ReturnsLocationSnapshot)
+	{
+	    WaferManager mgr;
+
+	    mgr.addWafer({
+	        "W1",
+	        Location{Station::LoadPort, 3}
+	    });
+
+	    auto location = mgr.getLocation("W1");
+
+	    ASSERT_TRUE(location.has_value());
+	    EXPECT_EQ(location->station, Station::LoadPort);
+	    EXPECT_EQ(location->slot, 3);
+	}
+
+	TEST_F(WaferManagerTest, UnknownWaferReturnsNullOpt)
+	{
+	    WaferManager mgr;
+
+	    auto location = mgr.getLocation("Bla");
+
+	    ASSERT_EQ(location, std::nullopt);
+	}
 }
-
-
-
