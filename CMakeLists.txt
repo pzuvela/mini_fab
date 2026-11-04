@@ -69,6 +69,30 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
+FetchContent_Declare(
+    SQLiteCpp
+    GIT_REPOSITORY https://github.com/SRombauts/SQLiteCpp.git
+    GIT_TAG 3.3.3
+)
+
+set(SQLITECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_RUN_CPPLINT OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(SQLiteCpp)
+
+add_library(mini_fab_recipes STATIC
+    recipes/sqlite_recipe_repository.cpp
+)
+
+target_include_directories(mini_fab_recipes PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(mini_fab_recipes PUBLIC
+    SQLiteCpp
+)
+
 # Tests
 add_subdirectory(tests)
 
