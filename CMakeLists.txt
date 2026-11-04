@@ -76,6 +76,7 @@ add_library(mini_fab_serialization STATIC
     web/serialization/equipment_snapshot_json.cpp
     web/serialization/equipment_events_json.cpp
     web/serialization/json_utils.cpp
+    equipment/event_type.cpp
 )
 
 target_include_directories(mini_fab_serialization PUBLIC

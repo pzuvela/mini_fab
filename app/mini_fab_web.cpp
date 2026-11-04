@@ -4,7 +4,7 @@
 #include "httplib.h"
 #include "controller/mini_fab_controller.h"
 #include "web/serialization/equipment_snapshot_json.h"
-#include "web/serialization/eqiupment_events_json.h"
+#include "web/serialization/equipment_events_json.h"
 
 
 int main()

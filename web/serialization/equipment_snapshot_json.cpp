@@ -9,7 +9,7 @@ namespace
 {
 	void writeOptionalId(std::ostream& out, const std::optional<std::string>& id)
 	{
-		if (id) writeJsonString(out, *id);
+		if (id) MiniFab::Web::writeJsonString(out, *id);
 		else out << "null";
 	}
 }
@@ -21,7 +21,7 @@ namespace MiniFab::Web
 		std::ostringstream out;
 
 		out << "{\"equipmentState\":";
-		writeJsonString(out, toString(snapshot.state));
+		MiniFab::Web::writeJsonString(out, toString(snapshot.state));
 
 		out << ",\"waferLocation\":";
 
@@ -30,7 +30,7 @@ namespace MiniFab::Web
 			const Location& location = *snapshot.waferLocation;
 
 			out << "{\"station\":";
-			writeJsonString(out, toString(location.station));
+			MiniFab::Web::writeJsonString(out, toString(location.station));
 
 			out << ",\"slot\":" << location.slot << "}";
 

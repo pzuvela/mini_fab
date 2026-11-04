@@ -1,12 +1,12 @@
-
+#include "equipment_snapshot_json.h"
 #include "equipment_events_json.h"
 #include "json_utils.h"
+#include "equipment/event_type.h"
 
 #include <chrono>
 #include <sstream>
 #include <string_view>
 
-#include "equipment/event_type_string.h"
 
 namespace MiniFab::Web
 {
