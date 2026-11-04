@@ -32,6 +32,11 @@ MovementStageResult ProcessEngine::executeMoveWafer(
 		);
 	}
 
+	eventLog_.record(
+		EventType::EquipmentMoving,
+		"Moving wafer " + wafer.id
+	);
+
 	OperationResult movementResult = robot_.moveWafer(wafer, destination, stopToken);
 
 	std::optional<LocationUpdateResult> locationUpdateResult = std::nullopt;
@@ -39,6 +44,14 @@ MovementStageResult ProcessEngine::executeMoveWafer(
 	if (movementResult == OperationResult::Completed)
 	{
 		locationUpdateResult = mgr_.updateLocation(wafer.id, destination);
+
+		if (locationUpdateResult == LocationUpdateResult::Updated)
+		{
+			eventLog_.record(
+				EventType::WaferLocationUpdated,
+				"Location updated for wafer " + wafer.id + " to " + std::string(toString(destination.station)) + " / " + std::to_string(destination.slot)
+			);
+		}
 	}
 
 	return MovementStageResult{
