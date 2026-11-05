@@ -94,7 +94,8 @@ std::vector<Wafer> WaferManager::getWafers() const
 {
 	std::lock_guard<std::mutex> lock(mutex_);
 
-	std::vector<Wafer> wafers.reserve(wafers_.size());
+	std::vector<Wafer> wafers;
+	wafers.reserve(wafers_.size());
 
 	for (const auto& [waferId, wafer] : wafers_)
 	{
