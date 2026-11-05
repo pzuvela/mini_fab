@@ -57,3 +57,64 @@ TEST(JobSchedulerTests, CancelQueuedRemovesMiddleJob)
 	EXPECT_EQ(job3.value(), (Job{id3, 30}));
 }
 
+TEST(JobSchedulerTests, DispatchAcceptedMovesJobToActive)
+{
+    JobScheduler scheduler;
+
+    const auto jobId = scheduler.enqueue(10);
+
+    bool callbackCalled = false;
+
+    auto tryStart = [&callbackCalled](const Job& job) {
+        callbackCalled = true;
+
+        EXPECT_EQ(job.recipeId, 10);
+        return true;
+    };
+
+    const bool dispatched = scheduler.dispatchNext(tryStart);
+
+    EXPECT_TRUE(dispatched);
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_EQ(scheduler.pendingCount(), 0);
+
+    const std::optional<Job> activeJob = scheduler.activeJob();
+
+    ASSERT_TRUE(activeJob.has_value());
+    EXPECT_EQ(activeJob.value(), (Job{jobId, 10}));
+}
+
+
+TEST(JobSchedulerTests, DispatchRejectedKeepsJobQueued)
+{
+    JobScheduler scheduler;
+
+    const auto jobId = scheduler.enqueue(20);
+
+    bool callbackCalled = false;
+
+    auto tryStart = [&callbackCalled](const Job& job) {
+        callbackCalled = true;
+
+        EXPECT_EQ(job.recipeId, 20);
+        return false;
+    };
+
+    const bool dispatched = scheduler.dispatchNext(tryStart);
+
+    EXPECT_FALSE(dispatched);
+    EXPECT_TRUE(callbackCalled);
+
+    // Rejected job must remain queued.
+    EXPECT_EQ(scheduler.pendingCount(), 1);
+
+    // No job should become active.
+    EXPECT_FALSE(scheduler.activeJob().has_value());
+
+    // Verify the original job was preserved.
+    const std::optional<Job> queuedJob = scheduler.dequeue();
+
+    ASSERT_TRUE(queuedJob.has_value());
+    EXPECT_EQ(queuedJob.value(), (Job{jobId, 20}));
+}
+
