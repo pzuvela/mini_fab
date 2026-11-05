@@ -2,6 +2,9 @@
 
 #include <vector>
 #include <optional>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 #include "equipment_snapshot.h"
 #include "wafer/wafer_manager.h"
@@ -32,12 +35,19 @@ private:
 	ProcessEngine engine_;
 	RecipeManager* recipeManager_ = nullptr;
 	JobScheduler scheduler_;
+	mutable std::mutex schedulerMutex_;
+	std::condition_variable_any schedulerCv_;
+	std::jthread schedulerWorker_;
+
+	void schedulerLoop(std::stop_token stopToken);
 
 public:
 	explicit MiniFabController(IEventRepository* eventRepository = nullptr);
 	explicit MiniFabController(RecipeManager& recipeManager);
 
 	MiniFabController(RecipeManager& recipeManager, IEventRepository& eventReposutory);
+
+	~MiniFabController();
 
 	StartResult runWafer(const Recipe& recipe, std::uint64_t* acceptedRunId = nullptr);
 	StartResult runWafer(int RecipeId, std::uint64_t* acceptedRunId = nullptr);
@@ -71,4 +81,7 @@ public:
 	bool waitForActiveJobCompletion();
 
 	std::size_t pendingJobCount() const;
+
+	void startScheduler();
+	void stopScheduler();
 };

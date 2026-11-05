@@ -46,6 +46,11 @@ MiniFabController::MiniFabController(
     recipeManager_ = &recipeManager;
 }
 
+MiniFabController::~MiniFabController()
+{
+	stopScheduler();
+}
+
 EquipmentSnapshot MiniFabController::status() const
 {
 	return EquipmentSnapshot{
@@ -136,7 +141,21 @@ RecoveryResult MiniFabController::resetEquipment()
 
 std::uint64_t MiniFabController::enqueueJob(const std::string& waferId, int recipeId, int processModuleId)
 {
-	return scheduler_.enqueue(waferId, recipeId, processModuleId);
+	std::uint64_t jobId;
+
+	{
+		std::lock_guard lock(schedulerMutex_);
+
+		jobId = scheduler_.enqueue(
+			waferId,
+			recipeId,
+			processModuleId
+		);
+	}
+
+	schedulerCv_.notify_one();
+
+	return jobId;
 }
 
 StartResult MiniFabController::runWafer(
@@ -159,6 +178,8 @@ StartResult MiniFabController::runWafer(
 
 bool MiniFabController::dispatchNextJob()
 {
+	std::lock_guard<std::mutex> lock(schedulerMutex_);
+
 	return scheduler_.dispatchNext(
 		[this](const Job& job)
 		{
@@ -169,16 +190,65 @@ bool MiniFabController::dispatchNextJob()
 
 bool MiniFabController::waitForActiveJobCompletion()
 {
-	std::optional<Job> activeJob = scheduler_.activeJob();
+	std::optional<Job> activeJob;
+
+	{
+		std::lock_guard<std::mutex> lock(schedulerMutex_);
+		activeJob = scheduler_.activeJob();
+	}
 
 	if (!activeJob) return false;
 
 	engine_.waitForCompletion();
 
-	return scheduler_.completeActiveJob(activeJob->id);
+	{
+		std::lock_guard<std::mutex> lock(schedulerMutex_);
+		return scheduler_.completeActiveJob(activeJob->id);
+	}
 }
 
 std::size_t MiniFabController::pendingJobCount() const
 {
+	std::lock_guard<std::mutex> lock(schedulerMutex_);
 	return scheduler_.pendingCount();
+}
+
+void MiniFabController::startScheduler()
+{
+	if (schedulerWorker_.joinable()) return;
+
+	schedulerWorker_ = std::jthread(
+		[this](std::stop_token stopToken)
+		{
+			schedulerLoop(stopToken);
+		}
+	);
+}
+
+void MiniFabController::stopScheduler()
+{
+	if (!schedulerWorker_.joinable()) return;
+
+	schedulerWorker_.request_stop();
+	schedulerCv_.notify_all();
+	schedulerWorker_.join();
+}
+
+void MiniFabController::schedulerLoop(std::stop_token stopToken)
+{
+	std::unique_lock<std::mutex> lock(schedulerMutex_);
+
+	while (!stopToken.stop_requested())
+	{
+		bool hasWork = schedulerCv_.wait(
+			lock,
+			stopToken,
+			[this]()
+			{
+				return scheduler_.pendingCount() > 0;
+			}
+		);
+
+		if (!hasWork || stopToken.stop_requested()) break;
+	}
 }
