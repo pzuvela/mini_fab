@@ -23,6 +23,7 @@
 #include "equipment/recovery_result.h"
 #include "scheduler/job_scheduler.h"
 #include "scheduler/dispatch_result.h"
+#include "completion_owner.h"
 
 
 class MiniFabController
@@ -41,8 +42,13 @@ private:
 	std::condition_variable_any schedulerCv_;
 	std::jthread schedulerWorker_;
 	std::uint64_t schedulerRevision_ = 0;
+	CompletionOwner completionOwner_ = CompletionOwner::None;
+	bool completionClaimed_ = false;
+
 
 	void schedulerLoop(std::stop_token stopToken);
+	DispatchResult dispatchNextJobImpl(CompletionOwner owner);
+	bool waitForActiveJobCompletionImpl(CompletionOwner caller);
 
 public:
 	explicit MiniFabController(IEventRepository* eventRepository = nullptr);

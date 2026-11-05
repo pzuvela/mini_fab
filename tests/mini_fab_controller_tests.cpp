@@ -389,4 +389,69 @@ TEST(MiniFabControllerTest, SchedulerResumesAfterBusyJobCompletes)
     EXPECT_EQ(controller.jobStatus(job2), JobStatus::Completed);
 }
 
+TEST(MiniFabControllerTest, ManualCallerCannotConsumeSchedulerJob)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.5}));
+
+    controller.startScheduler();
+
+    const auto jobId = controller.enqueueJob("W1", 1, 1);
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(jobId) == JobStatus::Running;
+    }));
+
+    // The scheduler owns this job's completion.
+    EXPECT_FALSE(controller.waitForActiveJobCompletion());
+
+    // The scheduler must still complete it normally.
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(jobId) == JobStatus::Completed;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.pendingJobCount(), 0);
+}
+
+TEST(MiniFabControllerTest, ManualJobKeepsCompletionOwnership)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
+
+    const auto job1 = controller.enqueueJob("W1", 1, 1);
+    const auto job2 = controller.enqueueJob("W1", 1, 1);
+
+    ASSERT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Started
+    );
+
+    controller.startScheduler();
+
+    EXPECT_EQ(controller.jobStatus(job1), JobStatus::Running);
+
+    // Manual caller owns job1.
+    EXPECT_TRUE(controller.waitForActiveJobCompletion());
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(job2) == JobStatus::Completed;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.jobStatus(job1), JobStatus::Completed);
+    EXPECT_EQ(controller.jobStatus(job2), JobStatus::Completed);
+}
+
 

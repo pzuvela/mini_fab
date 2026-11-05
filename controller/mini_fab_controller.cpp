@@ -190,6 +190,12 @@ StartResult MiniFabController::runWafer(
 
 DispatchResult MiniFabController::dispatchNextJob()
 {
+	return dispatchNextJobImpl(CompletionOwner::Manual);
+}
+
+
+DispatchResult MiniFabController::dispatchNextJobImpl(CompletionOwner owner)
+{
 	std::lock_guard<std::mutex> lock(schedulerMutex_);
 
 	if (scheduler_.activeJob().has_value()) return DispatchResult::Busy;
@@ -211,29 +217,50 @@ DispatchResult MiniFabController::dispatchNextJob()
 		}
 	);
 
-	return started ? DispatchResult::Started : DispatchResult::Busy;
+	if (!started) return DispatchResult::Busy;
+
+	completionOwner_ = owner;
+	completionClaimed_ = false;
+
+	return DispatchResult::Started;
 }
 
 bool MiniFabController::waitForActiveJobCompletion()
+{
+	return waitForActiveJobCompletionImpl(CompletionOwner::Manual);
+}
+
+bool MiniFabController::waitForActiveJobCompletionImpl(CompletionOwner caller)
 {
 	std::optional<Job> activeJob;
 
 	{
 		std::lock_guard<std::mutex> lock(schedulerMutex_);
 		activeJob = scheduler_.activeJob();
+
+		if (!activeJob) return false;
+
+		if (completionOwner_ != caller) return false;
+
+		if (completionClaimed_) return false;
+
+		completionClaimed_ = true;
 	}
 
-	if (!activeJob) return false;
+	const OperationResult result = engine_.waitForCompletion();
 
 	bool released = false;
-
-	const OperationResult result = engine_.waitForCompletion();
 
 	{
 		std::lock_guard<std::mutex> lock(schedulerMutex_);
 		released = scheduler_.finishActiveJob(activeJob->id, result);
 
-		if (released) ++schedulerRevision_;
+		if (released)
+		{
+			completionOwner_ = CompletionOwner::None;
+			completionClaimed_ = false;
+			++schedulerRevision_;
+		}
 	}
 
 	if (released) schedulerCv_.notify_all();
@@ -291,10 +318,10 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 			observedRevision = schedulerRevision_;
 		}
 
-		switch (dispatchNextJob())
+		switch (dispatchNextJobImpl(CompletionOwner::Scheduler))
 		{
 			case DispatchResult::Started:
-				waitForActiveJobCompletion();
+				waitForActiveJobCompletion(CompletionOwner::Scheduler);
 				break;
 
 			case DispatchResult::Rejected:
