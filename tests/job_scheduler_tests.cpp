@@ -10,8 +10,8 @@ TEST(JobSchedulerTests, EnqueueAndDequeuePreserverFIFOOrder)
 {
 	JobScheduler scheduler;
 
-	const auto id1 = scheduler.enqueue(2);
-	const auto id2 = scheduler.enqueue(3);
+	const auto id1 = scheduler.enqueue("W1", 2, 1);
+	const auto id2 = scheduler.enqueue("W2", 3, 2);
 
 	ASSERT_EQ(scheduler.pendingCount(), 2);
 
@@ -19,10 +19,10 @@ TEST(JobSchedulerTests, EnqueueAndDequeuePreserverFIFOOrder)
 	std::optional<Job> job2 = scheduler.dequeue();
 
 	ASSERT_TRUE(job1.has_value());
-	EXPECT_EQ(job1.value(), (Job{id1, 2}));
+	EXPECT_EQ(job1.value(), (Job{"W1", id1, 2}));
 
 	ASSERT_TRUE(job2.has_value());
-	EXPECT_EQ(job2.value(), (Job{id2, 3}));
+	EXPECT_EQ(job2.value(), (Job{"W2", id2, 3}));
 
 	std::optional<Job> emptyJob = scheduler.dequeue();
 
@@ -33,9 +33,9 @@ TEST(JobSchedulerTests, CancelQueuedRemovesMiddleJob)
 {
 	JobScheduler scheduler;
 
-	const auto id1 = scheduler.enqueue(10);
-	const auto id2 = scheduler.enqueue(20);
-	const auto id3 = scheduler.enqueue(30);
+	const auto id1 = scheduler.enqueue("W1", 10, 1);
+	const auto id2 = scheduler.enqueue("W2", 20, 2);
+	const auto id3 = scheduler.enqueue("W2", 30, 3);
 
 	bool cancelled = scheduler.cancelQueued(id2);
 
@@ -51,17 +51,17 @@ TEST(JobSchedulerTests, CancelQueuedRemovesMiddleJob)
 	std::optional<Job> job3 = scheduler.dequeue();
 
 	ASSERT_TRUE(job1.has_value());
-	EXPECT_EQ(job1.value(), (Job{id1, 10}));
+	EXPECT_EQ(job1.value(), (Job{"W1", id1, 10}));
 
 	ASSERT_TRUE(job3.has_value());
-	EXPECT_EQ(job3.value(), (Job{id3, 30}));
+	EXPECT_EQ(job3.value(), (Job{"W3", id3, 30}));
 }
 
 TEST(JobSchedulerTests, DispatchAcceptedMovesJobToActive)
 {
     JobScheduler scheduler;
 
-    const auto jobId = scheduler.enqueue(10);
+    const auto jobId = scheduler.enqueue("W1",  10, 1);
 
     bool callbackCalled = false;
 
@@ -81,7 +81,7 @@ TEST(JobSchedulerTests, DispatchAcceptedMovesJobToActive)
     const std::optional<Job> activeJob = scheduler.activeJob();
 
     ASSERT_TRUE(activeJob.has_value());
-    EXPECT_EQ(activeJob.value(), (Job{jobId, 10}));
+    EXPECT_EQ(activeJob.value(), (Job{"W1", jobId, 10}));
 }
 
 
@@ -89,7 +89,7 @@ TEST(JobSchedulerTests, DispatchRejectedKeepsJobQueued)
 {
     JobScheduler scheduler;
 
-    const auto jobId = scheduler.enqueue(20);
+    const auto jobId = scheduler.enqueue("W1", 20, 1);
 
     bool callbackCalled = false;
 
@@ -122,8 +122,8 @@ TEST(JobSchedulerTests, CompleteActiveJobAllowsNextDispatch)
 {
     JobScheduler scheduler;
 
-    const auto id1 = scheduler.enqueue(10);
-    const auto id2 = scheduler.enqueue(20);
+    const auto id1 = scheduler.enqueue("W1", 10, 1);
+    const auto id2 = scheduler.enqueue("W2", 20, 2);
 
     auto accept = [](const Job&) { return true; };
 
@@ -149,8 +149,8 @@ TEST(JobSchedulerTests, CompleteActiveJobRejectsWrongOrDuplicateId)
 {
     JobScheduler scheduler;
 
-    const auto id1 = scheduler.enqueue(10);
-    const auto id2 = scheduler.enqueue(20);
+    const auto id1 = scheduler.enqueue("W1", 10, 1);
+    const auto id2 = scheduler.enqueue("W2", 20, 2);
 
     auto accept = [](const Job&) { return true; };
 
