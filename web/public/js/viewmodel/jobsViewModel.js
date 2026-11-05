@@ -3,6 +3,11 @@ import { jobsApi } from "../model/jobsApi.js";
 export function createJobsViewModel() {
     const state = {
         jobs: [],
+        events: [],
+        recipes: [],
+        selectedRecipeId: null,
+        recipeError: null,
+        eventError: null,
         scheduler: null,
         connected: false,
         loading: true,
@@ -21,6 +26,8 @@ export function createJobsViewModel() {
         const snapshot = {
             ...state,
             jobs: [...state.jobs],
+            events: [...state.events],
+            recipes: [...state.recipes],
             scheduler: state.scheduler
                 ? { ...state.scheduler }
                 : null
@@ -36,6 +43,8 @@ export function createJobsViewModel() {
         listener({
             ...state,
             jobs: [...state.jobs],
+            events: [...state.events],
+            recipes: [...state.recipes],
             scheduler: state.scheduler
                 ? { ...state.scheduler }
                 : null
@@ -76,6 +85,42 @@ export function createJobsViewModel() {
         }
     }
 
+    async function refreshEvents() {
+        try {
+            const data = await jobsApi.getEvents();
+            if (!active) return;
+            state.events = data.events ?? [];
+            state.eventError = null;
+        } catch (error) {
+            if (active) state.eventError = error.message;
+        } finally {
+            if (active) notify();
+        }
+    }
+
+    async function loadRecipes() {
+        try {
+            const recipes = await jobsApi.getRecipes();
+            if (!active) return;
+            state.recipes = recipes;
+            state.recipeError = null;
+            if (!recipes.some(r => r.id === state.selectedRecipeId))
+                state.selectedRecipeId = recipes[0]?.id ?? null;
+        } catch (error) {
+            if (!active) return;
+            state.recipes = [];
+            state.selectedRecipeId = null;
+            state.recipeError = error.message;
+        } finally {
+            if (active) notify();
+        }
+    }
+
+    function selectRecipe(id) {
+        state.selectedRecipeId = state.recipes.some(r => r.id === id) ? id : null;
+        notify();
+    }
+
     async function command(action, successMessage) {
         if (state.busy) return;
 
@@ -103,10 +148,13 @@ export function createJobsViewModel() {
         if (active) return;
 
         active = true;
+        void loadRecipes();
         void refresh();
+        void refreshEvents();
 
         timer = setInterval(() => {
             void refresh();
+            void refreshEvents();
         }, 1000);
     }
 
@@ -121,6 +169,8 @@ export function createJobsViewModel() {
         start,
         stop,
         refresh,
+        selectRecipe,
+        loadRecipes,
 
         startScheduler: () =>
             command(
@@ -140,10 +190,12 @@ export function createJobsViewModel() {
                 "Scheduler fault reset"
             ),
 
-        submitJob: (waferId, recipeId) =>
-            command(
-                () => jobsApi.submitJob(waferId, recipeId),
+        submitJob: waferId => {
+            if (state.selectedRecipeId === null) return;
+            return command(
+                () => jobsApi.submitJob(waferId, state.selectedRecipeId),
                 "Job submitted"
-            )
+            );
+        }
     };
 }
