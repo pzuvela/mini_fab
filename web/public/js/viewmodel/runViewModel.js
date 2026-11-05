@@ -45,7 +45,7 @@ export function createRunViewModel(api = miniFabApi) {
 			canCancel: ["Moving", "Processing"].includes(
 				snapshot?.equipmentState
 			) && !controlCommandPending,
-			canReset: snapshot?.equipmentstate === "Faulted" && !controlCommandPending,
+			canReset: snapshot?.equipmentState === "Faulted" && !controlCommandPending,
 		};
 	}
 

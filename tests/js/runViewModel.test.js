@@ -11,6 +11,8 @@ function createMockApi() {
     const submittedRecipes = [];
     let nextRunId = 1;
     let currentRunId = null;
+    const cancelRequests = [];
+    const resetRequests = [];
 
     const api = {
         async getStatus() {
@@ -46,12 +48,24 @@ function createMockApi() {
                 accepted: true,
 		runId: currentRunId
             };
-        }
+        },
+
+	async cancelRun() {
+ 	   	cancelRequests.push(true);
+		return { httpStatus: 202, accepted: true };
+	},
+
+	async resetEquipment() {
+    		resetRequests.push(true);
+    		return { httpStatus: 200, recovered: true };
+	}
     };
 
     return {
         api,
         submittedRecipes,
+	cancelRequests,
+	resetRequests,
         setEquipmentState(value) {
             equipmentState = value;
         },

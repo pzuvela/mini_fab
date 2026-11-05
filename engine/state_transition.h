@@ -1,3 +1,5 @@
+#pragma once
+
 #include "equipment_state.h"
 
 

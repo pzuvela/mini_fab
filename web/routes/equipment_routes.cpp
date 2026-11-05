@@ -132,7 +132,7 @@ server.Post("/api/cancel",
     [&controller](const httplib::Request&,
                   httplib::Response& response)
     {
-        const auto result = controller.cancelWafer();
+        const auto result = controller.cancelRun();
 
         if (result.isCancelled)
         {
