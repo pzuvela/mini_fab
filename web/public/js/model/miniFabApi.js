@@ -1,3 +1,16 @@
+async function readJson(response) {
+    let result;
+    try {
+        result = await response.json();
+    } catch {
+        throw new Error(`Invalid API response (HTTP ${response.status})`);
+    }
+    if (!response.ok && !result.error) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    return result;
+}
+
 export const miniFabApi = {
 
 async runWafer(recipeId) {
@@ -23,7 +36,7 @@ async runWafer(recipeId) {
 	        throw new Error(`HTTP ${response.status}`);
 	    }
 
-	    return response.json();
+	    return readJson(response);
 	},
 
 	async getEvents() {
@@ -33,7 +46,7 @@ async runWafer(recipeId) {
         		throw new Error(`HTTP ${response.status}`);
     		}
 
-    		return response.json();
+    		return readJson(response);
 	},
 
 async getRecipes() {
@@ -45,7 +58,7 @@ async getRecipes() {
         throw new Error(`HTTP ${response.status}`);
     }
 
-    return response.json();
+    return readJson(response);
 },
 
 async saveRecipe(recipe) {
@@ -61,7 +74,7 @@ async saveRecipe(recipe) {
         }
     );
 
-    const result = await response.json();
+    const result = await readJson(response);
 
     if (!response.ok) {
         throw new Error(
@@ -78,7 +91,7 @@ async deleteRecipe(id) {
     });
 
     if (!response.ok) {
-        const result = await response.json();
+        const result = await readJson(response);
         throw new Error(
             result.error ?? `HTTP ${response.status}`
         );
@@ -92,7 +105,7 @@ async cancelRun() {
 
     return {
         httpStatus: response.status,
-        ...await response.json()
+        ...await readJson(response)
     };
 },
 
@@ -103,7 +116,7 @@ async resetEquipment() {
 
     return {
         httpStatus: response.status,
-        ...await response.json()
+        ...await readJson(response)
     };
 },
 
