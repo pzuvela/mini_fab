@@ -199,3 +199,61 @@ test("RunCompleted event finishes the run", async () => {
     assert.equal(vm.getState().runPhase, "finished");
     assert.match(vm.getState().message, /completed successfully/i);
 });
+
+test("RunFailed event finishes the run", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    await vm.run();
+
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+
+    mock.addEvent("RunFailed");
+
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await vm.refreshEvents();
+
+    assert.equal(vm.getState().runPhase, "finished");
+    assert.match(vm.getState().message, /run failed/i);
+});
+
+test("RunCancelled event finishes the run", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    await vm.run();
+
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+
+    mock.addEvent("RunCancelled");
+
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await vm.refreshEvents();
+
+    assert.equal(vm.getState().runPhase, "finished");
+    assert.match(vm.getState().message, /run cancelled/i);
+});
+
+test("Faulted equipment waits for RunFailed event", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    await vm.run();
+
+    mock.setEquipmentState("Faulted");
+    await vm.refresh();
+
+    assert.equal(vm.getState().runPhase, "accepted");
+
+    mock.addEvent("RunFailed");
+
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await vm.refreshEvents();
+
+    assert.equal(vm.getState().runPhase, "finished");
+    assert.match(vm.getState().message, /run failed/i);
+});
+
+
