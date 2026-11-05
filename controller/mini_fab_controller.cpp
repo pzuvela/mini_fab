@@ -236,11 +236,10 @@ void MiniFabController::stopScheduler()
 
 void MiniFabController::schedulerLoop(std::stop_token stopToken)
 {
-	std::unique_lock<std::mutex> lock(schedulerMutex_);
-
 	while (!stopToken.stop_requested())
 	{
 		{
+			std::unique_lock<std::mutex> lock(schedulerMutex_);
 
 			bool hasWork = schedulerCv_.wait(
 				lock,
