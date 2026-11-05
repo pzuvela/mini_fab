@@ -7,9 +7,10 @@
 #include <string>
 
 #include "equipment/equipment_event.h"
+#include "ievent_repository.h"
 
 
-class SqliteEventRepository
+class SqliteEventRepository : public IEventRepository
 {
 private:
 	mutable std::mutex mutex_;
@@ -22,7 +23,7 @@ public:
 		const std::string& databasePath
 	);
 
-	std::uint64_t insert(const EquipmentEvent& event);
-	std::vector<EquipmentEvent> getAll() const;
+	std::uint64_t insert(const EquipmentEvent& event) override;
+	std::vector<EquipmentEvent> getAll() const override;
 };
 

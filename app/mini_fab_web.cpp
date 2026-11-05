@@ -5,15 +5,17 @@
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
 #include "recipes/recipe_manager.h"
-
+#include "persistence/sqlite_event_repository.h"
 #include "web/routes/equipment_routes.h"
 #include "web/routes/recipe_routes.h"
 
 int main()
 {
     SqliteRecipeRepository repository("minifab.db");
+    SqliteEventRepository repository("minifab.db");
+
     RecipeManager recipeManager(repository);
-    MiniFabController controller(recipeManager);
+    MiniFabController controller(recipeManager, eventRepository);
 
     httplib::Server server;
 

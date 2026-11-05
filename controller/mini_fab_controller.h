@@ -14,6 +14,7 @@
 #include "recipes/recipe_manager.h"
 #include "recipes/recipe_upsert_result.h"
 #include "engine/start_result.h"
+#include "persistence/ievent_repository.h"
 
 
 class MiniFabController
@@ -29,8 +30,10 @@ private:
 	RecipeManager* recipeManager_ = nullptr;
 
 public:
-	MiniFabController();
+	explicit MiniFabController(IEventRepository* eventRepository = nullptr);
 	explicit MiniFabController(RecipeManager& recipeManager);
+
+	MiniFabController(RecipeManager& recipeManager, IEventRepository& eventReposutory);
 
 	StartResult runWafer(const Recipe& recipe);
 	StartResult runWafer(int RecipeId);

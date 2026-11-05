@@ -11,6 +11,7 @@ add_executable(mini_fab_tests
     mini_fab_recipe_controller_tests.cpp
     recipe_parser_tests.cpp
     sqlite_event_repository_tests.cpp
+    event_log_persistence_tests.cpp
 
     mocks/mock_robot.cpp
     mocks/blocking_mock_robot.cpp

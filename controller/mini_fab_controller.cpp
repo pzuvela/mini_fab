@@ -7,8 +7,10 @@
 #include "domain/station.h"
 
 
-MiniFabController::MiniFabController()
-	: robot_(std::chrono::milliseconds{300}), engine_(manager_, robot_, processModule_, eventLog_)
+MiniFabController::MiniFabController(
+	IEventRepository* eventRepository
+)
+	: robot_(std::chrono::milliseconds{300}), eventLog_({}, eventRepository), engine_(manager_, robot_, processModule_, eventLog_)
 {
 	manager_.addWafer(
 		Wafer{
@@ -33,6 +35,15 @@ MiniFabController::MiniFabController(RecipeManager& recipeManager)
 	: MiniFabController()
 {
 	recipeManager_ = &recipeManager;
+}
+
+MiniFabController::MiniFabController(
+    RecipeManager& recipeManager,
+    IEventRepository& eventRepository
+)
+    : MiniFabController(&eventRepository)
+{
+    recipeManager_ = &recipeManager;
 }
 
 EquipmentSnapshot MiniFabController::status() const
