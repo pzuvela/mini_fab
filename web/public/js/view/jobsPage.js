@@ -14,7 +14,10 @@ const elements = {
     resetScheduler: document.querySelector("#resetScheduler"),
     submitJob: document.querySelector("#submitJob"),
     waferId: document.querySelector("#waferId"),
-    recipeId: document.querySelector("#recipeId"),
+    recipeSelect: document.querySelector("#recipeSelect"),
+    eventRows: document.querySelector("#eventRows"),
+    eventCount: document.querySelector("#eventCount"),
+    eventError: document.querySelector("#eventError"),
     jobRows: document.querySelector("#jobRows"),
     jobCount: document.querySelector("#jobCount"),
     message: document.querySelector("#message")
@@ -89,7 +92,48 @@ vm.subscribe(state => {
     elements.resetScheduler.disabled =
         !available || schedulerState !== "Faulted";
 
-    elements.submitJob.disabled = !available;
+    elements.submitJob.disabled = !available || state.selectedRecipeId === null;
+
+    const select = elements.recipeSelect;
+    const expected = state.recipes.map(r => ({
+        value: String(r.id), label: `${r.id} — ${r.name}`
+    }));
+    const changed = select.options.length !== expected.length ||
+        expected.some((item, i) => select.options[i].value !== item.value ||
+            select.options[i].textContent !== item.label);
+    if (changed) {
+        select.replaceChildren();
+        for (const item of expected) {
+            const option = document.createElement("option");
+            option.value = item.value;
+            option.textContent = item.label;
+            select.appendChild(option);
+        }
+    }
+    if (expected.length === 0 && select.options.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = state.recipeError ? "Failed to load recipes" : "No saved recipes";
+        select.appendChild(option);
+    }
+    select.value = state.selectedRecipeId === null ? "" : String(state.selectedRecipeId);
+    select.disabled = expected.length === 0;
+
+    elements.eventError.textContent = state.eventError ?? "";
+    elements.eventCount.textContent = `${state.events.length} events`;
+    const fragment = document.createDocumentFragment();
+    for (const event of state.events) {
+        const row = document.createElement("tr");
+        [event.sequenceId, new Date(event.timestamp).toLocaleTimeString(),
+         event.type, event.severity, event.message].forEach((value, index) => {
+            const cell = document.createElement("td");
+            cell.textContent = value ?? "";
+            if (index === 3) cell.className = `severity severity-${String(value).toLowerCase()}`;
+            row.appendChild(cell);
+        });
+        fragment.appendChild(row);
+    }
+    elements.eventRows.replaceChildren(fragment);
 
     renderJobs(state.jobs);
 });
@@ -107,15 +151,16 @@ elements.resetScheduler.addEventListener("click", () => {
 });
 
 elements.submitJob.addEventListener("click", () => {
-    const waferId = elements.waferId.value;
-    const recipeId = Number(elements.recipeId.value);
-
-    if (!Number.isSafeInteger(recipeId) || recipeId <= 0) {
-        elements.message.textContent = "Invalid recipe ID";
+    const waferId = elements.waferId.value.trim();
+    if (!waferId) {
+        elements.message.textContent = "Wafer ID is required";
         return;
     }
+    void vm.submitJob(waferId);
+});
 
-    void vm.submitJob(waferId, recipeId);
+elements.recipeSelect.addEventListener("change", event => {
+    vm.selectRecipe(event.target.value === "" ? null : Number(event.target.value));
 });
 
 vm.start();
