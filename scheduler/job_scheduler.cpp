@@ -58,7 +58,7 @@ bool JobScheduler::dispatchNext(const std::function<bool(const Job&)>& tryStart)
 	return true;
 }
 
-std::optional<Job> activeJob() const 
+std::optional<Job> JobScheduler::activeJob() const
 {
 	return activeJob_;
 }
