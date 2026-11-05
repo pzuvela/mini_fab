@@ -2,7 +2,7 @@
 
 #include "httplib.h"
 
-class MiniFabController
+class MiniFabController;
 
 namespace MiniFab::Web
 {
