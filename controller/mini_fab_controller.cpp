@@ -134,3 +134,36 @@ RecoveryResult MiniFabController::resetEquipment()
     return engine_.reset();
 }
 
+std::uint64_t MiniFabController::enqueueJob(const std::string& waferId, int recipeId, int processModuleId)
+{
+	return scheduler_.enqueue(waferId, recipeId, processModuleId);
+}
+
+StartResult MiniFabController::runWafer(
+	const std::string& waferId,
+	int recipeId,
+	int processModuleId,
+	std::uint64_t* acceptedRunId
+)
+{
+	if (!recipeManager_) return StartResult::Rejected;
+
+	auto recipe = recipeManager_->getById(recipeId);
+
+	if (!recipe.has_value()) return StartResult::Rejected;
+
+	if (processModuleId != 1) return StartResult::Rejected;
+
+	return engine_.startProcessWafer(waferId, Location{ Station::ProcessModule, processModuleId }, recipe.value(), acceptedRunId);
+}
+
+bool MiniFabController::dispatchNextJob()
+{
+	return scheduler_.dispatchNext(
+		[this](const Job& job)
+		{
+			return runWafer(job.waferId, job.recipeId, job.processModuleId, ) == StartResult::Accepted
+		}
+	);
+}
+

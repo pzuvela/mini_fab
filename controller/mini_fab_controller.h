@@ -42,6 +42,13 @@ public:
 	StartResult runWafer(const Recipe& recipe, std::uint64_t* acceptedRunId = nullptr);
 	StartResult runWafer(int RecipeId, std::uint64_t* acceptedRunId = nullptr);
 
+	StartResult runWafer(
+		const std::string& waferId,
+		int recipeId,
+		int processModuleId,
+		std::uint64_t* acceptedRunId = nullptr
+	);
+
 	std::vector<Recipe> getRecipes() const;
 	std::optional<Recipe> getRecipe(int id) const;
 
@@ -56,4 +63,8 @@ public:
 
 	StateTransition cancelRun();
 	RecoveryResult resetEquipment();
+
+	std::uint64_t enqueueJob(const std::string& wfaerId, int recipeId, int processModuleId);
+
+	bool dispatchNextJob();
 };
