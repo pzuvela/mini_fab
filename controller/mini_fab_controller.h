@@ -67,4 +67,6 @@ public:
 	std::uint64_t enqueueJob(const std::string& wfaerId, int recipeId, int processModuleId);
 
 	bool dispatchNextJob();
+
+	bool waitForActiveJobCompletion();
 };

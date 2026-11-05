@@ -167,3 +167,13 @@ bool MiniFabController::dispatchNextJob()
 	);
 }
 
+bool MiniFabController::waitForActiveJobCompletion()
+{
+	std::optional<Job> activeJob = scheduler_.activeJob();
+
+	if (!activeJob) return false;
+
+	engine_.waitForCompletion();
+
+	return scheduler_.completeActiveJob(activeJob->id);
+}
