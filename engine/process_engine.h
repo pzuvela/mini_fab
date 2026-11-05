@@ -47,6 +47,7 @@ private:
         Wafer& wafer,
         const Location& processModuleLocation,
         const Recipe& recipe,
+	std::uint64_t& runId,
 	std::stop_token stopToken = {}
     );
 

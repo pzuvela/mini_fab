@@ -288,6 +288,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 	Wafer& wafer,
 	const Location& processModuleLocation,
 	const Recipe& recipe,
+	std::uint64_t& runId,
 	std::stop_token stopToken
 )
 {
@@ -312,7 +313,7 @@ OperationResult ProcessEngine::executeProcessWafer(
 		);
 	}
 
-	recordRunOutcome(wafer.id, result);
+	recordRunOutcome(wafer.id, result, runId);
 
 	return result;
 }
@@ -323,14 +324,17 @@ OperationResult ProcessEngine::processWafer(
 	const Recipe& recipe
 )
 {
-	Wafer* wafer = acceptWaferForProcessing(waferId);
+	std::uint64_t runId = 0;
+
+	Wafer* wafer = acceptWaferForProcessing(waferId, runId);
 
 	if (wafer == nullptr) return OperationResult::Failed;
 
 	return executeProcessWafer(
 		*wafer,
 		processModuleLocation,
-		recipe
+		recipe,
+		runId
 	);
 }
 
@@ -360,17 +364,17 @@ StartResult ProcessEngine::startProcessWafer(
 	try
 	{
 		std::jthread newWorker(
-			[this, wafer, processModuleLocation, recipe, promise = std::move(promise)](std::stop_token stopToken) mutable
+			[this, wafer, processModuleLocation, recipe, runId, promise = std::move(promise)](std::stop_token stopToken) mutable
 			{
 				try
 				{
-					OperationResult operationResult = this->executeProcessWafer(*wafer, processModuleLocation, recipe, stopToken);
+					OperationResult operationResult = this->executeProcessWafer(*wafer, processModuleLocation, recipe, runId, stopToken);
 					promise.set_value(operationResult);
 				}
 				catch (...)
 				{
 					setFaulted(FaultSource::ProcessModule);
-					recordRunOutcome(wafer->id, OperationResult::Failed);
+					recordRunOutcome(wafer->id, OperationResult::Failed, runId);
 					promise.set_exception(std::current_exception());
 				}
 			}

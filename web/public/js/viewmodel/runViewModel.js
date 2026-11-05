@@ -18,7 +18,7 @@ export function createRunViewModel(api = miniFabApi) {
 	let recipesLoading = false;
 	let recipeError = null;
 	let eventsRefreshing = false;
-	let currentRunId = null'
+	let currentRunId = null;
 
 	const subscribers = new Set();
 
