@@ -162,7 +162,7 @@ bool MiniFabController::dispatchNextJob()
 	return scheduler_.dispatchNext(
 		[this](const Job& job)
 		{
-			return runWafer(job.waferId, job.recipeId, job.processModuleId, ) == StartResult::Accepted
+			return runWafer(job.waferId, job.recipeId, job.processModuleId) == StartResult::Accepted
 		}
 	);
 }
