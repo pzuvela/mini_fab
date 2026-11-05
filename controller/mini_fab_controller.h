@@ -13,6 +13,7 @@
 #include "equipment/equipment_event.h"
 #include "recipes/recipe_manager.h"
 #include "recipes/recipe_upsert_result.h"
+#include "engine/start_result.h"
 
 
 class MiniFabController
@@ -31,8 +32,8 @@ public:
 	MiniFabController();
 	explicit MiniFabController(RecipeManager& recipeManager);
 
-	OperationResult runWafer(const Recipe& recipe);
-	OperationResult runWafer(int RecipeId);
+	StartResult runWafer(const Recipe& recipe);
+	StartResult runWafer(int RecipeId);
 
 	std::vector<Recipe> getRecipes() const;
 	std::optional<Recipe> getRecipe(int id) const;

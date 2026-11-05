@@ -327,7 +327,7 @@ OperationResult ProcessEngine::processWafer(
 	);
 }
 
-OperationResult ProcessEngine::startProcessWafer(
+StartResult ProcessEngine::startProcessWafer(
 	const std::string& waferId,
 	const Location& processModuleLocation,
 	const Recipe& recipe
@@ -337,7 +337,7 @@ OperationResult ProcessEngine::startProcessWafer(
 
 	Wafer* wafer = acceptWaferForProcessing(waferId);
 
-	if (wafer == nullptr) return OperationResult::Failed;
+	if (wafer == nullptr) return StartResult::Rejected;
 
 	if (worker_.joinable()) worker_.join();
 
@@ -371,7 +371,7 @@ OperationResult ProcessEngine::startProcessWafer(
 		setFaulted(FaultSource::ProcessModule);
 		throw;
 	}
-	return OperationResult::Completed;
+	return StartResult::Accepted;
 }
 
 EquipmentState ProcessEngine::state() const

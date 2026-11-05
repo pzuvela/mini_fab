@@ -7,6 +7,7 @@
 
 #include "engine/process_engine.h"
 #include "engine/equipment_state.h"
+#include "engine/start_result.h"
 #include "equipment/process_module/sim_process_module.h"
 #include "mocks/mock_process_module.h"
 #include "mocks/blocking_mock_process_module.h"
@@ -246,14 +247,14 @@ namespace MiniFab::Tests
         ASSERT_EQ(
 
             engine.startProcessWafer(wafer_.id, destination_, recipe_),
-	    OperationResult::Completed
+	    StartResult::Accepted
         );
 
         processModule.waitUntilProcessingStarts();
 
         EXPECT_EQ(
             engine.startProcessWafer("Wafer2", destination_, recipe_),
-	    OperationResult::Failed
+	    StartResult::Rejected
         );
 
         processModule.release();
@@ -270,15 +271,15 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
-        OperationResult operationResult = engine.startProcessWafer(
+        StartResult startResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         );
 
-        ASSERT_EQ(operationResult, OperationResult::Completed);
+        ASSERT_EQ(startResult, StartResult::Accepted);
 
-        operationResult = engine.waitForCompletion();
+        startResult = engine.waitForCompletion();
 
-        EXPECT_EQ(operationResult, OperationResult::Completed);
+        EXPECT_EQ(startResult, StartResult::Accepted);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
@@ -293,15 +294,15 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
-        OperationResult operationResult = engine.startProcessWafer(
+        StartResult startResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         );
 
-        ASSERT_EQ(operationResult, OperationResult::Completed);
+        ASSERT_EQ(startResult, StartResult::Accepted);
 
         operationResult = engine.waitForCompletion();
 
-        EXPECT_EQ(operationResult, OperationResult::Failed);
+        EXPECT_EQ(startResult, StartResult::Rejected);
         EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
 
@@ -316,15 +317,15 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
-        OperationResult operationResult = engine.startProcessWafer(
+        StartResult startResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         );
 
-        ASSERT_EQ(operationResult, OperationResult::Completed);
+        ASSERT_EQ(startResult, StartResult::Accepted);
 
         operationResult = engine.waitForCompletion();
 
-        EXPECT_EQ(operationResult, OperationResult::Completed);
+        EXPECT_EQ(startResult, StartResult::Accepted);
 
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
 
@@ -358,7 +359,7 @@ namespace MiniFab::Tests
 		engine.startProcessWafer(
             		wafer_.id, destination_, recipe_
         	),
-		OperationResult::Completed
+		StartResult::Accepted
 	);
 
         ASSERT_EQ(engine.waitForCompletion(), OperationResult::Completed);
@@ -368,7 +369,7 @@ namespace MiniFab::Tests
 		engine.startProcessWafer(
             		"Wafer2", destination_, recipe_
         	),
-		OperationResult::Completed
+		StartResult::Accepted
 	);
 
         EXPECT_EQ(engine.waitForCompletion(), OperationResult::Completed);
@@ -397,8 +398,8 @@ namespace MiniFab::Tests
 
         std::barrier startBarrier{ 2 };
 
-        OperationResult firstStarted = OperationResult::Failed;
-        OperationResult secondStarted = OperationResult::Failed;
+        StartResult firstStarted = OperationResult::Rejected;
+        StartResult secondStarted = OperationResult::Rejected;
 
         std::thread firstThread([&]() {
             startBarrier.arrive_and_wait();
@@ -437,11 +438,11 @@ namespace MiniFab::Tests
 
         ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
-        OperationResult operationResult = engine.startProcessWafer(
+        StartResult startResult = engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         );
 
-        ASSERT_EQ(operationResult, OperationResult::Completed);
+        ASSERT_EQ(startResult, StartResult::Accepted);
 
         EXPECT_THROW(
             engine.waitForCompletion(),
@@ -615,7 +616,7 @@ namespace MiniFab::Tests
 
 	ASSERT_EQ(
 		engine.startProcessWafer(wafer_.id, destination_, recipe_), 
-		OperationResult::Completed
+		StartResult::Accepted
 	);
 
 	robot.waitUntilReturnMovementStarts();
@@ -903,7 +904,7 @@ TEST_F(ProcessEngineTest,
         engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         ),
-        OperationResult::Completed
+        StartResult::Accepted
     );
 
     processModule.waitUntilProcessingStarts();
@@ -949,7 +950,7 @@ TEST_F(ProcessEngineTest,
         engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         ),
-        OperationResult::Completed
+        StartResult::Accepted
     );
 
     processModule.waitUntilProcessingStarts();
@@ -1009,7 +1010,7 @@ TEST_F(ProcessEngineTest,
         engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         ),
-        OperationResult::Completed
+        StartResult::Accepted
     );
 
     // Wait for the equipment to return to Idle,
@@ -1033,7 +1034,7 @@ TEST_F(ProcessEngineTest,
         engine.startProcessWafer(
             wafer_.id, destination_, recipe_
         ),
-        OperationResult::Completed
+        StartResult::Accepted
     );
 
     EXPECT_EQ(
@@ -1044,5 +1045,31 @@ TEST_F(ProcessEngineTest,
     EXPECT_EQ(engine.state(), EquipmentState::Idle);
 }
 
+TEST_F(ProcessEngineTest,
+    AcceptedRunCanLaterFailDuringExecution)
+{
+    MockRobot robot{true};
+    MockProcessModule processModule{false};
+
+    WaferManager mgr;
+    mgr.addWafer(wafer_);
+
+    ProcessEngine engine(
+        mgr, robot, processModule, eventLog_
+    );
+
+    StartResult startResult = engine.startProcessWafer(
+        wafer_.id,
+        destination_,
+        recipe_
+    );
+
+    EXPECT_EQ(startResult, StartResult::Accepted);
+
+    OperationResult finalResult = engine.waitForCompletion();
+
+    EXPECT_EQ(finalResult, OperationResult::Failed);
+    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+}
 
 }

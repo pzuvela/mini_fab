@@ -4,6 +4,7 @@
 #include "web/serialization/equipment_snapshot_json.h"
 #include "web/serialization/equipment_events_json.h"
 #include "web/parsing/recipe_parser.h"
+#include "engine/start_result.h"
 
 #include <cmath>
 #include <stdexcept>
@@ -105,7 +106,7 @@ server.Post("/api/run",
 
         const auto result = controller.runWafer(recipeId);
 
-        if (result == OperationResult::Completed)
+        if (result == StartResult::Accepted)
         {
             response.status = 202;
             response.set_content(

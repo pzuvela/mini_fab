@@ -45,7 +45,7 @@ EquipmentSnapshot MiniFabController::status() const
 	};
 }
 
-OperationResult MiniFabController::runWafer(const Recipe& recipe)
+StartResult MiniFabController::runWafer(const Recipe& recipe)
 {
 	return engine_.startProcessWafer(
 		"W1",
@@ -59,15 +59,15 @@ std::vector<EquipmentEvent> MiniFabController::events() const
 	return eventLog_.getEvents();
 }
 
-OperationResult MiniFabController::runWafer(int recipeId)
+StartResult MiniFabController::runWafer(int recipeId)
 {
     if (!recipeManager_)
-        return OperationResult::Failed;
+        return StartResult::Rejected;
 
     auto recipe = recipeManager_->getById(recipeId);
 
     if (!recipe.has_value())
-        return OperationResult::Failed;
+        return StartResult::Rejected;
 
     return runWafer(*recipe);
 }

@@ -13,6 +13,7 @@
 #include "equipment/process_module/iprocess_module.h"
 #include "wafer/wafer_tracking_recovery_context.h"
 #include "equipment/event_log.h"
+#include "start_result.h"
 
 
 class ProcessEngine
@@ -56,7 +57,7 @@ private:
     OperationResult returnWaferToOriginalLocation(
 	Wafer& wafer,
 	const Location& originalLocation,
-	std::stop_token stopToken 
+	std::stop_token stopToken
     );
 
     OperationResult moveWaferToProcessModule(
@@ -70,7 +71,7 @@ private:
 	Wafer& wafer,
 	const Recipe& recipe,
 	const Location& location,
-	std::stop_token stopToken 
+	std::stop_token stopToken
     );
 
     std::optional<FaultSource> beginRecovery();
@@ -103,7 +104,7 @@ public:
         const Recipe& recipe
     );
 
-    OperationResult startProcessWafer(
+    StartResult startProcessWafer(
         const std::string& waferId,
         const Location& processModuleLocation,
         const Recipe& recipe
