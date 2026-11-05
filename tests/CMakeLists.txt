@@ -10,6 +10,7 @@ add_executable(mini_fab_tests
     recipe_manager_tests.cpp
     mini_fab_recipe_controller_tests.cpp
     recipe_parser_tests.cpp
+    sqlite_event_repository_tests.cpp
 
     mocks/mock_robot.cpp
     mocks/blocking_mock_robot.cpp
@@ -27,6 +28,7 @@ target_link_libraries(mini_fab_tests PRIVATE
 	mini_fab_serialization
 	mini_fab_recipes
         mini_fab_web_parsing
+	mini_fab_events
 	GTest::gtest_main
 )
 

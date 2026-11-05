@@ -1,6 +1,7 @@
 #include <array>
 #include <cstddef>
 #include <string_view>
+#include <stdexcept>
 
 #include "event_type.h"
 
@@ -54,3 +55,15 @@ namespace MiniFab
         return eventTypeNames[index];
     }
 }
+
+EventType eventTypeFromString(std::string_view name)
+{
+    for (std::size_t i = 0; i < eventTypeNames.size(); ++i)
+    {
+        if (eventTypeNames[i] == name)
+            return static_cast<EventType>(i);
+    }
+
+    throw std::invalid_argument("Unknown event type");
+}
+

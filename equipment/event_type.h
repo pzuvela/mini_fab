@@ -48,6 +48,7 @@ enum class EventType
 namespace MiniFab
 {
 	std::string_view toString(EventType type);
+	EventType eventTypeFromString(std::string_view name);
 }
 
 

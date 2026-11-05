@@ -119,6 +119,10 @@ add_library(mini_fab_serialization STATIC
     equipment/event_type.cpp
 )
 
+target_link_libraries(mini_fab_events PUBLIC
+    mini_fab_serialization
+)
+
 target_include_directories(mini_fab_serialization PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
