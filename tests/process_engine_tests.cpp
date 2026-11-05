@@ -245,7 +245,6 @@ namespace MiniFab::Tests
         );
 
         ASSERT_EQ(
-
             engine.startProcessWafer(wafer_.id, destination_, recipe_),
 	    StartResult::Accepted
         );
@@ -277,13 +276,13 @@ namespace MiniFab::Tests
 
         ASSERT_EQ(startResult, StartResult::Accepted);
 
-        startResult = engine.waitForCompletion();
+        OperationResult operationResult = engine.waitForCompletion();
 
-        EXPECT_EQ(startResult, StartResult::Accepted);
+        EXPECT_EQ(operationResult, OperationResult::Completed);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
-    TEST_F(ProcessEngineTest, AsyncProcessWaferReturnsFailedCompletion) 
+    TEST_F(ProcessEngineTest, AsyncProcessWaferReturnsFailedCompletion)
     {
         MockRobot robot{ true };
         MockProcessModule processModule{false};
@@ -300,9 +299,9 @@ namespace MiniFab::Tests
 
         ASSERT_EQ(startResult, StartResult::Accepted);
 
-        operationResult = engine.waitForCompletion();
+        OperationResult operationResult = engine.waitForCompletion();
 
-        EXPECT_EQ(startResult, StartResult::Rejected);
+        EXPECT_EQ(operationResult, OperationResult::Failed);
         EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
 
@@ -323,9 +322,9 @@ namespace MiniFab::Tests
 
         ASSERT_EQ(startResult, StartResult::Accepted);
 
-        operationResult = engine.waitForCompletion();
+        OperationResult operationResult = engine.waitForCompletion();
 
-        EXPECT_EQ(startResult, StartResult::Accepted);
+        EXPECT_EQ(operationResult, OperationResult::Completed);
 
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
 
@@ -398,8 +397,8 @@ namespace MiniFab::Tests
 
         std::barrier startBarrier{ 2 };
 
-        StartResult firstStarted = OperationResult::Rejected;
-        StartResult secondStarted = OperationResult::Rejected;
+        StartResult firstStarted = StartResult::Rejected;
+        StartResult secondStarted = StartResult::Rejected;
 
         std::thread firstThread([&]() {
             startBarrier.arrive_and_wait();
@@ -482,7 +481,7 @@ namespace MiniFab::Tests
 	    EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
-    TEST_F(ProcessEngineTest, RemainsIdleWhenCancelledWhileIdle) 
+    TEST_F(ProcessEngineTest, RemainsIdleWhenCancelledWhileIdle)
     {
 	MockRobot robot{ true };
         BlockingMockProcessModule processModule;
@@ -604,7 +603,7 @@ namespace MiniFab::Tests
 	    EXPECT_FALSE(robot.recoverWasCalled());
     }
 
-    TEST_F(ProcessEngineTest, DoesNotRemainStoppingWhenReturnMoveCompletesDuringCancellation) 
+    TEST_F(ProcessEngineTest, DoesNotRemainStoppingWhenReturnMoveCompletesDuringCancellation)
     {
 	TwoStageBlockingMockRobot robot;
 	MockProcessModule processModule{ true };
@@ -615,7 +614,7 @@ namespace MiniFab::Tests
 	ProcessEngine engine(mgr, robot, processModule, eventLog_);
 
 	ASSERT_EQ(
-		engine.startProcessWafer(wafer_.id, destination_, recipe_), 
+		engine.startProcessWafer(wafer_.id, destination_, recipe_),
 		StartResult::Accepted
 	);
 

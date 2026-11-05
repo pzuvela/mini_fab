@@ -2,6 +2,8 @@
 
 #include "controller/mini_fab_controller.h"
 #include "recipes/sqlite_recipe_repository.h"
+#include "engine/start_result.h"
+
 
 TEST(MiniFabRecipeControllerTests, ListsSavedRecipes)
 {
@@ -44,7 +46,7 @@ TEST(MiniFabRecipeControllerTests, RejectsMissingRecipeRun)
 
     EXPECT_EQ(
         controller.runWafer(999),
-        OperationResult::Failed
+        StartResult::Rejected
     );
 
     EXPECT_EQ(
