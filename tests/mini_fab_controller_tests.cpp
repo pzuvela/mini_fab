@@ -191,4 +191,115 @@ TEST(MiniFabControllerTest, DestructorStopsScheduler)
     });
 }
 
+TEST(MiniFabControllerTest, AutoSchedulerProcessesQueuedJobs)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
+
+    const auto job1 = controller.enqueueJob("W1", 1, 1);
+    const auto job2 = controller.enqueueJob("W1", 1, 1);
+
+    EXPECT_EQ(controller.jobStatus(job1), JobStatus::Queued);
+    EXPECT_EQ(controller.jobStatus(job2), JobStatus::Queued);
+
+    controller.startScheduler();
+
+    // Wait for the first job to complete.
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(job1) == JobStatus::Completed;
+    }));
+
+    // The second job must not have completed before the first.
+    // It may be queued or running by now.
+    const auto secondStatus = controller.jobStatus(job2);
+
+    ASSERT_TRUE(secondStatus.has_value());
+    EXPECT_NE(*secondStatus, JobStatus::Failed);
+    EXPECT_NE(*secondStatus, JobStatus::Cancelled);
+
+    // Wait for the second job to complete.
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(job2) == JobStatus::Completed;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.pendingJobCount(), 0);
+    EXPECT_EQ(controller.status().state, EquipmentState::Idle);
+
+    EXPECT_EQ(controller.jobStatus(job1), JobStatus::Completed);
+    EXPECT_EQ(controller.jobStatus(job2), JobStatus::Completed);
+}
+
+TEST(MiniFabControllerTest, AutoSchedulerWakesForNewJob)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
+
+    controller.startScheduler();
+
+    EXPECT_EQ(controller.pendingJobCount(), 0);
+
+    const auto jobId = controller.enqueueJob("W1", 1, 1);
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(jobId) == JobStatus::Completed;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.jobStatus(jobId), JobStatus::Completed);
+    EXPECT_EQ(controller.status().state, EquipmentState::Idle);
+}
+
+TEST(MiniFabControllerTest, CompletedJobStatusPersists)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
+
+    const auto jobId = controller.enqueueJob("W1", 1, 1);
+
+    controller.startScheduler();
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(jobId) == JobStatus::Completed;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.jobStatus(jobId), JobStatus::Completed);
+    EXPECT_EQ(controller.jobStatus(999999), std::nullopt);
+}
+
+TEST(MiniFabControllerTest, StoppedSchedulerDoesNotDispatchJobs)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
+
+    controller.startScheduler();
+    controller.stopScheduler();
+
+    const auto jobId = controller.enqueueJob("W1", 1, 1);
+
+    EXPECT_EQ(controller.jobStatus(jobId), JobStatus::Queued);
+    EXPECT_EQ(controller.pendingJobCount(), 1);
+    EXPECT_EQ(controller.status().state, EquipmentState::Idle);
+}
+
 
