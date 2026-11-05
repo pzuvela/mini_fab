@@ -62,3 +62,14 @@ std::optional<Job> JobScheduler::activeJob() const
 {
 	return activeJob_;
 }
+
+bool JobScheduler::completeActiveJob(std::uint64_t jobId)
+{
+	if (!activeJob_) return false;
+
+	if (activeJob_->id != jobId) return false;
+
+	activeJob_.reset();
+
+	return true;
+}

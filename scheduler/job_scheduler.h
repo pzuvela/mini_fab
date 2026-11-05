@@ -21,4 +21,5 @@ public:
 	std::size_t pendingCount() const;
 	bool dispatchNext(const std::function<bool(const Job&)>& tryStart);
 	std::optional<Job> activeJob() const;
+	bool completeActiveJob(std::uint64_t jobId);
 };
