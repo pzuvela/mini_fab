@@ -42,3 +42,18 @@ bool JobScheduler::cancelQueued(std::uint64_t jobId)
 
 	return true;
 }
+
+bool JobScheduler::dispatchNext(const std::function<bool(const Job&)>& tryStart) 
+{
+	if (activeJob_) return false;
+	if (queue_.empty()) return false;
+
+	std::optional<Job> job = queue_.front();
+
+	if (!tryStart(queue_.front())) return false;
+
+	activeJob_ = queue_.front();
+	queue_.pop_front();
+
+	return true;
+}
