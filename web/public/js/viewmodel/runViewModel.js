@@ -18,6 +18,7 @@ export function createRunViewModel(api = miniFabApi) {
 	let recipesLoading = false;
 	let recipeError = null;
 	let eventsRefreshing = false;
+	let currentRunId = null'
 
 	const subscribers = new Set();
 
@@ -120,6 +121,11 @@ async function refreshEvents() {
         lastEventSequenceId = latestId;
 
 	for (const event of newEvents) {
+
+		if (event.runId !== currentRunId || currentRunId === null) {
+			continue;
+		}
+
     		if (runPhase !== "accepted" && runPhase !== "running") {
         		continue;
     		}
@@ -153,6 +159,9 @@ async function refreshEvents() {
 
 
 async function run() {
+
+    currentRunId = null;
+
     if (!getState().canRun) return;
 
     const recipeId = selectedRecipeId;
@@ -166,6 +175,8 @@ async function run() {
         const result = await api.runWafer(recipeId);
 
 	if (result.accepted) {
+		currentRunId = result.runId;
+
     		if (runPhase === "accepted") {
         		runMessage = `Run accepted (recipe ${recipeId})`;
     		}

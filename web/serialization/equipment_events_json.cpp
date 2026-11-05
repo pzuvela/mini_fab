@@ -57,6 +57,8 @@ namespace MiniFab::Web
             out << ",\"message\":";
             writeJsonString(out, event.message);
 
+	    out << ",\"runId\":" << event.runId;
+
             out << "}";
         }
 

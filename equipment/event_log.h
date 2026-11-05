@@ -47,7 +47,7 @@ public:
 		}
 	}
 
-	void record(EventType type, std::string message) {
+	std::uint64_t record(EventType type, std::string message, std::uint64_t runId = 0) {
 		std::lock_guard<std::mutex> lock(mutex_);
 
 		EquipmentEvent event{
@@ -55,7 +55,8 @@ public:
 			std::chrono::system_clock::now(),
 			type,
 			EventSeverity::Info,
-			std::move(message)
+			std::move(message),
+			runId
 		};
 
 		if (repository_)
@@ -75,6 +76,8 @@ public:
 				events_.pop_front();
 			}
 		}
+
+		return nextSequenceId_ - 1;
 	}
 
 	std::vector<EquipmentEvent> getEvents() const {

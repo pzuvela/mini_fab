@@ -20,6 +20,28 @@ void SqliteEventRepository::initializeSchema()
             message TEXT NOT NULL
         );
     )");
+
+SQLite::Statement query(
+    db_,
+    "PRAGMA table_info(equipment_events)"
+);
+
+bool hasRunId = false;
+
+while (query.executeStep())
+{
+    if (query.getColumn(1).getString() == "run_id")
+        hasRunId = true;
+}
+
+if (!hasRunId)
+{
+    db_.exec(
+        "ALTER TABLE equipment_events "
+        "ADD COLUMN run_id INTEGER NOT NULL DEFAULT 0"
+    );
+}
+
 }
 
 std::uint64_t SqliteEventRepository::insert(

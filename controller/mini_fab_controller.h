@@ -35,8 +35,8 @@ public:
 
 	MiniFabController(RecipeManager& recipeManager, IEventRepository& eventReposutory);
 
-	StartResult runWafer(const Recipe& recipe);
-	StartResult runWafer(int RecipeId);
+	StartResult runWafer(const Recipe& recipe, std::uint64_t* acceptedRunId = nullptr);
+	StartResult runWafer(int RecipeId, std::uint64_t* acceptedRunId = nullptr);
 
 	std::vector<Recipe> getRecipes() const;
 	std::optional<Recipe> getRecipe(int id) const;

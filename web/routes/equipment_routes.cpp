@@ -68,8 +68,7 @@ server.Post("/api/run",
 
         try
         {
-            const auto idText =
-                request.get_param_value("recipeId");
+            const auto idText = request.get_param_value("recipeId");
 
             std::size_t pos = 0;
             recipeId = std::stoi(idText, &pos);
@@ -104,15 +103,19 @@ server.Post("/api/run",
             return;
         }
 
-        const auto result = controller.runWafer(recipeId);
+	std::uint64_t runId = 0;
+
+        const auto result = controller.runWafer(recipeId, &runId);
 
         if (result == StartResult::Accepted)
         {
-            response.status = 202;
-            response.set_content(
-                R"({"accepted":true})",
-                "application/json"
-            );
+		response.status = 202;
+
+		response.set_content(
+    			"{\"accepted\":true,\"runId\":" +
+    			std::to_string(runId) + "}",
+    			"application/json"
+		);
         }
         else
         {

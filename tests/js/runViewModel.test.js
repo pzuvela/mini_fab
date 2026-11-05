@@ -9,6 +9,8 @@ function createMockApi() {
     let equipmentState = "Idle";
     let events = [];
     const submittedRecipes = [];
+    let nextRunId = 1;
+    let currentRunId = null;
 
     const api = {
         async getStatus() {
@@ -37,10 +39,12 @@ function createMockApi() {
 
         async runWafer(recipeId) {
             submittedRecipes.push(recipeId);
+	    currentRunId = nextRunId++;
 
             return {
                 httpStatus: 202,
-                accepted: true
+                accepted: true,
+		runId: currentRunId
             };
         }
     };
@@ -51,13 +55,14 @@ function createMockApi() {
         setEquipmentState(value) {
             equipmentState = value;
         },
-	addEvent(type) {
+	addEvent(type, runId = currentRunId) {
 	    events.push({
         	sequenceId: events.length + 1,
         	timestamp: Date.now(),
         	type,
         	severity: "Info",
-        	message: type
+        	message: type,
+		runId
     	});
 	}
     };
@@ -256,4 +261,33 @@ test("Faulted equipment waits for RunFailed event", async () => {
     assert.match(vm.getState().message, /run failed/i);
 });
 
+
+test("Old RunCompleted event must not finish a newer run", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    // First run
+    await vm.run();
+
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+
+    // First run completes, but event polling hasn't seen it yet.
+    mock.setEquipmentState("Idle");
+    mock.addEvent("RunCompleted", 1);
+
+    // Equipment is idle, so a second run can be accepted.
+    await vm.refresh();
+    await vm.run();
+
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+
+    // Delayed event polling retrieves the first run's completion.
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await vm.refreshEvents();
+
+    // The old event must not finish the second run.
+    assert.equal(vm.getState().runPhase, "running");
+});
 

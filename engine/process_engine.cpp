@@ -111,7 +111,7 @@ OperationResult ProcessEngine::process(
 	return result;
 }
 
-Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId)
+Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId, std::uint64_t& runId)
 {
 	std::lock_guard<std::mutex> lock(mutex_);
 
@@ -122,7 +122,7 @@ Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId)
 	if (wafer != nullptr)
 	{
 		state_ = EquipmentState::Moving;
-		eventLog_.record(
+		runId = eventLog_.record(
 			EventType::RunAccepted,
 			"Wafer " + waferId + " accepted for processing"
 		);
@@ -337,14 +337,19 @@ OperationResult ProcessEngine::processWafer(
 StartResult ProcessEngine::startProcessWafer(
 	const std::string& waferId,
 	const Location& processModuleLocation,
-	const Recipe& recipe
+	const Recipe& recipe,
+	std::uint64_t* acceptedRunId
 )
 {
 	std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex_);
 
-	Wafer* wafer = acceptWaferForProcessing(waferId);
+	std::uint64_t runId = 0;
+
+	Wafer* wafer = acceptWaferForProcessing(waferId, runId);
 
 	if (wafer == nullptr) return StartResult::Rejected;
+
+	if (acceptedRunId) *acceptedRunId = runId;
 
 	if (worker_.joinable()) worker_.join();
 
@@ -531,8 +536,9 @@ bool ProcessEngine::tryTransition(EquipmentState expectedState, EquipmentState n
 }
 
 void ProcessEngine::recordRunOutcome(
-    const std::string& waferId,
-    OperationResult result
+	const std::string& waferId,
+	OperationResult result,
+	std::uint64_t runId
 )
 {
     switch (result)
@@ -540,21 +546,24 @@ void ProcessEngine::recordRunOutcome(
         case OperationResult::Completed:
             eventLog_.record(
                 EventType::RunCompleted,
-                "Run completed for wafer " + waferId
+                "Run completed for wafer " + waferId,
+		runId
             );
             break;
 
         case OperationResult::Cancelled:
             eventLog_.record(
                 EventType::RunCancelled,
-                "Run cancelled for wafer " + waferId
+                "Run cancelled for wafer " + waferId,
+		runId
             );
             break;
 
         case OperationResult::Failed:
             eventLog_.record(
                 EventType::RunFailed,
-                "Run failed for wafer " + waferId
+                "Run failed for wafer " + waferId,
+		runId
             );
             break;
     }

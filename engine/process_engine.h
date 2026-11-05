@@ -109,7 +109,8 @@ public:
     StartResult startProcessWafer(
         const std::string& waferId,
         const Location& processModuleLocation,
-        const Recipe& recipe
+        const Recipe& recipe,
+	std::uint64_t* acceptedRunId = nullptr
     );
 
     OperationResult waitForCompletion();
