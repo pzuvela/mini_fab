@@ -72,7 +72,6 @@ async function refresh() {
 		}
         } else if (runPhase === "running") {
         	if (latest.equipmentState === "Faulted") {
-                	runPhase = "finished";
                 	runMessage = "Equipment faulted. Awaiting run outcome...";
         	}
 	}

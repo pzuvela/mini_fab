@@ -118,7 +118,7 @@ test("Run button re-enables after processing", async () => {
     await vm.refresh();
 
     assert.equal(vm.getState().canRun, true);
-    assert.equal(vm.getState().runPhase, "finished");
+    assert.equal(vm.getState().runPhase, "running");
 });
 
 test("Same recipe can be run twice sequentially", async () => {
@@ -193,6 +193,7 @@ test("RunCompleted event finishes the run", async () => {
 
     mock.addEvent("RunCompleted");
 
+    await new Promise(resolve => settimeout(resolve, 1100));
     await vm.refreshEvents();
 
     assert.equal(vm.getState().runPhase, "finished");
