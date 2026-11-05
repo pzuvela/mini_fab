@@ -198,6 +198,8 @@ DispatchResult MiniFabController::dispatchNextJobImpl(CompletionOwner owner)
 {
 	std::lock_guard<std::mutex> lock(schedulerMutex_);
 
+	if (schedulerFaulted_) return DispatchResult::Busy;
+
 	if (scheduler_.activeJob().has_value()) return DispatchResult::Busy;
 
 	const auto nextJob = scheduler_.nextQueuedJob();
@@ -247,13 +249,34 @@ bool MiniFabController::waitForActiveJobCompletionImpl(CompletionOwner caller)
 		completionClaimed_ = true;
 	}
 
-	const OperationResult result = engine_.waitForCompletion();
+	OperationResult result = OperationResult::Failed;
+
+	std::string error;
+
+	try
+	{
+		result = engine_.waitForCompletion();
+	}
+	catch (const std::exception& ex)
+	{
+		error = ex.what();
+	}
+	catch (...)
+	{
+		error = "Unknown exception during process completion";
+	}
 
 	bool released = false;
 
 	{
 		std::lock_guard<std::mutex> lock(schedulerMutex_);
 		released = scheduler_.finishActiveJob(activeJob->id, result);
+
+		if (!error.empty())
+		{
+			schedulerFaulted_ = true;
+			schedulerError_ = error;
+		}
 
 		if (released)
 		{
@@ -263,9 +286,9 @@ bool MiniFabController::waitForActiveJobCompletionImpl(CompletionOwner caller)
 		}
 	}
 
-	if (released) schedulerCv_.notify_all();
+	schedulerCv_.notify_all();
 
-	return released && result == OperationResult::Completed;
+	return released && error.empty() && result == OperationResult::Completed;
 }
 
 std::size_t MiniFabController::pendingJobCount() const
@@ -315,6 +338,8 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 
 			if (!hasWork || stopToken.stop_requested()) break;
 
+			if (schedulerFaulted_) break;
+
 			observedRevision = schedulerRevision_;
 		}
 
@@ -346,6 +371,11 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 			case DispatchResult::Empty:
 				break;
 		}
+
+		{
+			std::lock_guard<std::mutex> lock(schedulerMutex_);
+			if (schedulerFaulted_) break;
+		}
 	}
 }
 
@@ -364,4 +394,39 @@ bool MiniFabController::isValidJob(const Job& job) const
 	if (!manager_.getLocation(job.waferId).has_value()) return false;
 
 	return recipeManager_->getById(job.recipeId).has_value();
+}
+
+SchedulerState MiniFabController::schedulerState() const
+{
+	std::lock_guard<std::mutex> lock(schedulerMutex_);
+
+	if (schedulerFaulted_) return SchedulerState::Faulted;
+
+	return schedulerWorker_.joinable() ? SchedulerState::Running : SchedulerState::Stopped;
+}
+
+std::string MiniFabController::schedulerError() const
+{
+	std::lock_guard<std::mutex> lock(schedulerMutex_);
+	return schedulerError_;
+}
+
+bool MiniFabController::resetSchedulerFault()
+{
+    {
+        std::lock_guard lock(schedulerMutex_);
+
+        if (!schedulerFaulted_) return false;
+
+        if (scheduler_.activeJob()) return false;
+
+        if (engine_.state() != EquipmentState::Idle) return false;
+
+        schedulerFaulted_ = false;
+        schedulerError_.clear();
+        ++schedulerRevision_;
+    }
+
+    schedulerCv_.notify_all();
+    return true;
 }

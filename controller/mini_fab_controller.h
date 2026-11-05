@@ -6,6 +6,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <cstdint>
+#include <string>
 
 #include "equipment_snapshot.h"
 #include "wafer/wafer_manager.h"
@@ -24,6 +25,7 @@
 #include "scheduler/job_scheduler.h"
 #include "scheduler/dispatch_result.h"
 #include "completion_owner.h"
+#include "scheduler/scheduler_state.h"
 
 
 class MiniFabController
@@ -44,7 +46,8 @@ private:
 	std::uint64_t schedulerRevision_ = 0;
 	CompletionOwner completionOwner_ = CompletionOwner::None;
 	bool completionClaimed_ = false;
-
+	bool schedulerFaulted_ = false;
+	std::string schedulerError_;
 
 	void schedulerLoop(std::stop_token stopToken);
 	DispatchResult dispatchNextJobImpl(CompletionOwner owner);
@@ -97,4 +100,8 @@ public:
 	std::optional<JobStatus> jobStatus(std::uint64_t jobId) const;
 
 	bool isValidJob(const Job& job) const;
+
+	SchedulerState schedulerState() const;
+	std::string schedulerError() const;
+	bool resetSchedulerFault();
 };

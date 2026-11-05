@@ -455,3 +455,18 @@ TEST(MiniFabControllerTest, ManualJobKeepsCompletionOwnership)
 }
 
 
+TEST(MiniFabControllerTest, SchedulerInitiallyHasNoFault)
+{
+    MiniFabController controller;
+
+    EXPECT_EQ(
+        controller.schedulerState(),
+        SchedulerState::Stopped
+    );
+
+    EXPECT_TRUE(controller.schedulerError().empty());
+
+    EXPECT_FALSE(controller.resetSchedulerFault());
+}
+
+
