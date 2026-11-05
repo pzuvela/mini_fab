@@ -96,8 +96,17 @@ target_link_libraries(mini_fab_recipes PUBLIC
     SQLiteCpp
 )
 
+add_library(mini_fab_event_types STATIC
+	equipment/event_type.cpp
+)
+
+target_include_directories(mini_fab_event_types PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+
 add_library(mini_fab_events STATIC
-    persistence/sqlite_event_repository.cpp
+	persistence/sqlite_event_repository.cpp
 )
 
 target_include_directories(mini_fab_events PUBLIC
@@ -105,7 +114,8 @@ target_include_directories(mini_fab_events PUBLIC
 )
 
 target_link_libraries(mini_fab_events PUBLIC
-    SQLiteCpp
+	mini_fab_event_types
+	SQLiteCpp
 )
 
 # Tests
@@ -116,11 +126,10 @@ add_library(mini_fab_serialization STATIC
     web/serialization/equipment_events_json.cpp
     web/serialization/json_utils.cpp
     web/serialization/recipe_json.cpp
-    equipment/event_type.cpp
 )
 
-target_link_libraries(mini_fab_events PUBLIC
-    mini_fab_serialization
+target_link_libraries(mini_fab_serialization PUBLIC
+	mini_fab_event_types
 )
 
 target_include_directories(mini_fab_serialization PUBLIC

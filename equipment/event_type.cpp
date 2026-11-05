@@ -54,7 +54,6 @@ namespace MiniFab
 
         return eventTypeNames[index];
     }
-}
 
 EventType eventTypeFromString(std::string_view name)
 {
@@ -67,3 +66,4 @@ EventType eventTypeFromString(std::string_view name)
     throw std::invalid_argument("Unknown event type");
 }
 
+}

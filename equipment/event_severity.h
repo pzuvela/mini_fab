@@ -12,7 +12,7 @@ enum class EventSeverity{
 
 namespace MiniFab
 {
-    std::string_view toString(EventSeverity severity)
+    inline std::string_view toString(EventSeverity severity)
     {
         switch (severity)
         {
@@ -25,7 +25,7 @@ namespace MiniFab
         throw std::invalid_argument("Unknown event severity");
     }
 
-    EventSeverity severityFromString(const std::string& value)
+    inline EventSeverity severityFromString(const std::string& value)
     {
         if (value == "Info") return EventSeverity::Info;
         if (value == "Warning") return EventSeverity::Warning;
