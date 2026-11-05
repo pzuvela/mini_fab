@@ -42,6 +42,7 @@ private:
 	JobScheduler scheduler_;
 	mutable std::mutex schedulerMutex_;
 	std::condition_variable_any schedulerCv_;
+	mutable std::mutex schedulerLifecycleMutex_;
 	std::jthread schedulerWorker_;
 	std::uint64_t schedulerRevision_ = 0;
 	CompletionOwner completionOwner_ = CompletionOwner::None;

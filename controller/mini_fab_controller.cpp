@@ -299,7 +299,14 @@ std::size_t MiniFabController::pendingJobCount() const
 
 void MiniFabController::startScheduler()
 {
+	std::lock_guard<std::mutex> lifecycleLock(schedulerLifecycleMutex_);
+
 	if (schedulerWorker_.joinable()) return;
+
+	{
+		std::lock_guard<std::mutex> stateLock(schedulerMutex_);
+		if (schedulerFaulted_) return;
+	}
 
 	schedulerWorker_ = std::jthread(
 		[this](std::stop_token stopToken)
@@ -311,6 +318,8 @@ void MiniFabController::startScheduler()
 
 void MiniFabController::stopScheduler()
 {
+	std::lock_guard<std::mutex> lifecycleLock(schedulerLifecycleMutex_);
+
 	if (!schedulerWorker_.joinable()) return;
 
 	schedulerWorker_.request_stop();
@@ -398,6 +407,7 @@ bool MiniFabController::isValidJob(const Job& job) const
 
 SchedulerState MiniFabController::schedulerState() const
 {
+	std::lock_guard<std::mutex> lifecycleLock(schedulerLifecycleMutex_);
 	std::lock_guard<std::mutex> lock(schedulerMutex_);
 
 	if (schedulerFaulted_) return SchedulerState::Faulted;
