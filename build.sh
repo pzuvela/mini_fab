@@ -12,7 +12,18 @@ cmake -S . -B "$BUILD_DIR" \
 echo "=== Building MiniFab ==="
 cmake --build "$BUILD_DIR" -j$(nproc)
 
-echo "=== Running tests ==="
+echo "=== Running C++ tests ==="
 ctest --test-dir "$BUILD_DIR" --output-on-failure
+
+echo "=== Running JavaScript tests ==="
+if command -v node >/dev/null 2>&1 &&
+   command -v npm >/dev/null 2>&1; then
+    npm test
+else
+    echo "ERROR: Node.js and npm are required for frontend tests." >&2
+    exit 1
+fi
+
+echo "=== All MiniFab tests passed ==="
 
 echo "=== Done ==="
