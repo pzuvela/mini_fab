@@ -11,6 +11,8 @@
 #include "persistence/sqlite_recipe_repository.h"
 #include "recipes/recipe_manager.h"
 #include "web/routes/job_routes.h"
+#include "web/routes/recipe_routes.h"
+#include "web/routes/equipment_routes.h"
 
 using namespace std::chrono_literals;
 
@@ -56,6 +58,8 @@ protected:
             server_,
             controller_
         );
+        MiniFab::Web::registerRecipeRoutes(server_, controller_);
+        MiniFab::Web::registerEquipmentRoutes(server_, controller_);
 
         // Ask the OS for an available localhost port.
         port_ = server_.bind_to_any_port("127.0.0.1");
@@ -334,3 +338,67 @@ TEST_F(JobRoutesTest, RetainsCompletedJobInList)
     );
 }
 
+
+TEST_F(JobRoutesTest, RecipeDropdownReceivesSavedRecipes)
+{
+    ASSERT_TRUE(controller_.addRecipe({2, "Slow Etch", 0.02}));
+    auto cli = client();
+    auto response = cli.Get("/api/recipes");
+
+    ASSERT_TRUE(response);
+    ASSERT_EQ(response->status, 200);
+    EXPECT_NE(response->body.find(R"("id":1)"), std::string::npos);
+    EXPECT_NE(response->body.find(R"("name":"Fast Etch")"), std::string::npos);
+    EXPECT_NE(response->body.find(R"("id":2)"), std::string::npos);
+    EXPECT_NE(response->body.find(R"("name":"Slow Etch")"), std::string::npos);
+}
+
+TEST_F(JobRoutesTest, EnqueuesSelectedRecipeId)
+{
+    ASSERT_TRUE(controller_.addRecipe({2, "Slow Etch", 0.02}));
+    auto response = postJob("waferId=W1&recipeId=2&processModuleId=1");
+    ASSERT_TRUE(response);
+    ASSERT_EQ(response->status, 201);
+
+    auto cli = client();
+    auto jobs = cli.Get("/api/jobs");
+    ASSERT_TRUE(jobs);
+    EXPECT_NE(jobs->body.find(R"("recipeId":2)"), std::string::npos);
+    EXPECT_NE(jobs->body.find(R"("waferId":"W1")"), std::string::npos);
+}
+
+TEST_F(JobRoutesTest, EventLogReturnsEventsForJobsPage)
+{
+    auto cli = client();
+    auto response = cli.Get("/api/events");
+    ASSERT_TRUE(response);
+    ASSERT_EQ(response->status, 200);
+    EXPECT_NE(response->body.find(R"("events":[)"), std::string::npos);
+    EXPECT_NE(response->body.find(R"("sequenceId":)"), std::string::npos);
+    EXPECT_NE(response->body.find(R"("timestamp":)"), std::string::npos);
+    EXPECT_NE(response->body.find(R"("severity":)"), std::string::npos);
+    EXPECT_NE(response->body.find(R"("message":)"), std::string::npos);
+}
+
+TEST_F(JobRoutesTest, EventLogRecordsCompletedScheduledWafer)
+{
+    ASSERT_EQ(postJob()->status, 201);
+    controller_.startScheduler();
+    ASSERT_TRUE(waitUntil([this] {
+        return controller_.jobStatus(1) == JobStatus::Completed;
+    }));
+
+    auto cli = client();
+    auto response = cli.Get("/api/events");
+    ASSERT_TRUE(response);
+    ASSERT_EQ(response->status, 200);
+    EXPECT_NE(response->body.find("Processing completed for wafer W1"), std::string::npos);
+}
+
+TEST_F(JobRoutesTest, RejectsEmptyWaferIdFromEditableField)
+{
+    auto response = postJob("waferId=&recipeId=1&processModuleId=1");
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 400);
+    EXPECT_EQ(controller_.pendingJobCount(), 0);
+}
