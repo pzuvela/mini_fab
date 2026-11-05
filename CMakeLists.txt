@@ -177,6 +177,7 @@ if(MINIFAB_BUILD_WEB)
 		app/mini_fab_web.cpp
 		web/routes/equipment_routes.cpp
 		web/routes/recipe_routes.cpp
+		web/routes/job_routes.cpp
 	)
 
 	target_link_libraries(mini_fab_web PRIVATE
