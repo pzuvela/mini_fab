@@ -10,8 +10,7 @@
 #include "web/routes/equipment_routes.h"
 #include "web/routes/recipe_routes.h"
 #include "web/routes/job_routes.h"
-#include "web/routes/scheduler_routes.h:
-
+#include "web/routes/scheduler_routes.h"
 
 int main()
 {

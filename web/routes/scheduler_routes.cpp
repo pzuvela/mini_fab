@@ -11,18 +11,6 @@ namespace MiniFab::Web
 {
 namespace
 {
-    const char* toString(SchedulerState state)
-    {
-        switch (state)
-        {
-            case SchedulerState::Stopped: return "Stopped";
-            case SchedulerState::Running: return "Running";
-            case SchedulerState::Faulted: return "Faulted";
-        }
-
-        return "Unknown";
-    }
-
     void sendJson(
         httplib::Response& response,
         int status,
@@ -37,7 +25,7 @@ namespace
         std::ostringstream out;
 
         out << "{\"state\":\""
-            << toString(controller.schedulerState())
+            << MiniFab::Web::toString(controller.schedulerState())
             << "\",\"pendingJobs\":"
             << controller.pendingJobCount()
             << ",\"error\":";
