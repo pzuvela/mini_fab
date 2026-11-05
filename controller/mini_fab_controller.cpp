@@ -285,7 +285,7 @@ std::optional<JobStatus> MiniFabController::jobStatus(std::uint64_t jobId) const
 
 bool MiniFabController::isValidJob(const Job& job) const
 {
-	if (!recipeManager) return false;
+	if (!recipeManager_) return false;
 
 	if (job.processModuleId != 1) return false;
 
