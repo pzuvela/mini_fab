@@ -32,6 +32,14 @@ foreach(target IN ITEMS
 
 endforeach()
 
+add_library(mini_fab_scheduler STATIC
+	scheduler/job_scheduler.cpp
+)
+
+target_include_directories(mini_fab_scheduler PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 add_library(mini_fab_recipes STATIC
    	persistence/sqlite_recipe_repository.cpp
 	recipes/recipe_manager.cpp
