@@ -85,6 +85,7 @@ target_link_libraries(mini_fab_controller PUBLIC
 	mini_fab_equipment
 	mini_fab_recipes
 	mini_fab_events
+	mini_fab_scheduler
 )
 
 add_executable(mini_fab_demo

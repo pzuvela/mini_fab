@@ -17,6 +17,7 @@
 #include "persistence/ievent_repository.h"
 #include "engine/state_transition.h"
 #include "equipment/recovery_result.h"
+#include "scheduler/job_scheduler.h"
 
 
 class MiniFabController
@@ -30,6 +31,7 @@ private:
 	EventLog eventLog_;
 	ProcessEngine engine_;
 	RecipeManager* recipeManager_ = nullptr;
+	JobScheduler scheduler_;
 
 public:
 	explicit MiniFabController(IEventRepository* eventRepository = nullptr);
