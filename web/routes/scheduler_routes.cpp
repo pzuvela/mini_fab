@@ -20,22 +20,32 @@ namespace
         response.set_content(body, "application/json");
     }
 
-    std::string schedulerJson(MiniFabController& controller)
-    {
-        std::ostringstream out;
+std::string schedulerJson(MiniFabController& controller)
+{
+    const auto snapshot = controller.schedulerSnapshot();
 
-        out << "{\"state\":\""
-            << MiniFab::Web::toString(controller.schedulerState())
-            << "\",\"pendingJobs\":"
-            << controller.pendingJobCount()
-            << ",\"error\":";
+    std::ostringstream out;
 
-        writeJsonString(out, controller.schedulerError());
+    out << "{\"state\":\""
+        << toString(snapshot.state)
+        << "\",\"pendingJobs\":"
+        << snapshot.pendingJobs
+        << ",\"activeJobId\":";
 
-        out << "}";
+    if (snapshot.activeJobId)
+        out << *snapshot.activeJobId;
+    else
+        out << "null";
 
-        return out.str();
-    }
+    out << ",\"error\":";
+
+    writeJsonString(out, snapshot.error);
+
+    out << "}";
+
+    return out.str();
+}
+
 }
 
 void registerSchedulerRoutes(

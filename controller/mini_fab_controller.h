@@ -26,6 +26,7 @@
 #include "scheduler/dispatch_result.h"
 #include "completion_owner.h"
 #include "scheduler/scheduler_state.h"
+#include "scheduler/scheduler_snapshot.h"
 
 
 class MiniFabController
@@ -108,4 +109,5 @@ public:
 	SchedulerState schedulerState() const;
 	std::string schedulerError() const;
 	bool resetSchedulerFault();
+	SchedulerSnapshot schedulerSnapshot() const;
 };

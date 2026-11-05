@@ -445,3 +445,29 @@ OperationResult MiniFabController::awaitEngineCompletion()
 {
 	return engine_.waitForCompletion();
 }
+
+SchedulerSnapshot MiniFabController::schedulerSnapshot() const
+{
+    // Lock order: lifecycle -> scheduler.
+    std::lock_guard lifecycleLock(schedulerLifecycleMutex_);
+    std::lock_guard stateLock(schedulerMutex_);
+
+    const SchedulerState state =
+        schedulerFaulted_
+            ? SchedulerState::Faulted
+            : schedulerWorker_.joinable()
+                ? SchedulerState::Running
+                : SchedulerState::Stopped;
+
+    const auto activeJob = scheduler_.activeJob();
+
+    return SchedulerSnapshot{
+        .state = state,
+        .pendingJobs = scheduler_.pendingCount(),
+        .activeJobId = activeJob
+            ? std::optional<std::uint64_t>{activeJob->id}
+            : std::nullopt,
+        .error = schedulerError_
+    };
+}
+
