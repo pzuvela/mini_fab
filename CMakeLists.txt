@@ -128,9 +128,6 @@ target_link_libraries(mini_fab_recipes PUBLIC
     SQLiteCpp
 )
 
-# Tests
-add_subdirectory(tests)
-
 add_library(mini_fab_serialization STATIC
     web/serialization/equipment_snapshot_json.cpp
     web/serialization/equipment_events_json.cpp
@@ -167,6 +164,23 @@ target_link_libraries(mini_fab_web_parsing PUBLIC
     httplib::httplib
 )
 
+add_library(mini_fab_web_routes STATIC
+    web/routes/equipment_routes.cpp
+    web/routes/recipe_routes.cpp
+    web/routes/job_routes.cpp
+)
+
+target_include_directories(mini_fab_web_routes PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(mini_fab_web_routes PUBLIC
+    mini_fab_controller
+    mini_fab_serialization
+    mini_fab_web_parsing
+    httplib::httplib
+)
+
 option(MINIFAB_BUILD_WEB "Build MiniFab web server" OFF)
 
 if(MINIFAB_BUILD_WEB)
@@ -175,18 +189,13 @@ if(MINIFAB_BUILD_WEB)
 
 	add_executable(mini_fab_web
 		app/mini_fab_web.cpp
-		web/routes/equipment_routes.cpp
-		web/routes/recipe_routes.cpp
-		web/routes/job_routes.cpp
 	)
 
 	target_link_libraries(mini_fab_web PRIVATE
 	    mini_fab_engine
 	    mini_fab_tracking
 	    mini_fab_equipment
-	    mini_fab_controller
-	    mini_fab_serialization
-	    mini_fab_web_parsing
+	    mini_fab_web_routes
 	    httplib::httplib
 	    Threads::Threads
 	)
@@ -205,3 +214,6 @@ if(MINIFAB_BUILD_WEB)
     		MINIFAB_PUBLIC_DIR="$<TARGET_FILE_DIR:mini_fab_web>/public"
 	)
 endif()
+
+# Tests
+add_subdirectory(tests)
