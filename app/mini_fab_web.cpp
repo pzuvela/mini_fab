@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #include "httplib.h"
 
@@ -19,9 +20,9 @@ int main()
 
     httplib::Server server;
 
-    if (!server.set_mount_point("/", "./web/public"))
+    if (!server.set_mount_point("/", MINIFAB_PUBLIC_DIR))
     {
-        std::cerr << "Failed to mount web/public\n";
+        std::cerr << "Failed to mount " << MINIFAB_PUBLIC_DIR << "\n";
         return 1;
     }
 

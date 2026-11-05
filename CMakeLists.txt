@@ -180,4 +180,18 @@ if(MINIFAB_BUILD_WEB)
 	    httplib::httplib
 	    Threads::Threads
 	)
+
+	add_custom_target(mini_fab_web_assets ALL
+	    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        	"${CMAKE_CURRENT_SOURCE_DIR}/web/public"
+        	"$<TARGET_FILE_DIR:mini_fab_web>/public"
+    		COMMENT "Copying MiniFab web assets"
+    		VERBATIM
+	)
+
+	add_dependencies(mini_fab_web_assets mini_fab_web)
+
+	target_compile_definitions(mini_fab_web PRIVATE
+    		MINIFAB_PUBLIC_DIR="$<TARGET_FILE_DIR:mini_fab_web>/public"
+	)
 endif()
