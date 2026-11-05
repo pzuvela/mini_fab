@@ -9,7 +9,7 @@ enum class SchedulerState
 
 namespace MiniFab::Web
 {
-	const char* toString(SchedulerState state)
+	inline const char* toString(SchedulerState state)
 	{
 		switch (state)
 		{
