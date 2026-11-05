@@ -7,12 +7,17 @@ export function createRunViewModel(api = miniFabApi) {
 	let lastEventRefresh = 0;
 	let message = "Connecting...";
 	let runningCommand = false;
+	let runPhase = "none";  // none, accepted, running, finished
+	let runMessage = "";
+	let statusError = null;
+	let eventError = null;
 	let refreshing = false;
 	let timerId = null;
 	let recipes = [];
 	let selectedRecipeId = null;
 	let recipesLoading = false;
 	let recipeError = null;
+	let eventsRefreshing = false;
 
 	const subscribers = new Set();
 
@@ -24,13 +29,16 @@ export function createRunViewModel(api = miniFabApi) {
 							      : "Unknown",
 			robot: snapshot?.robotWaferId ?? "Empty",
 			processModule: snapshot?.processModuleWaferId ?? "Empty",
-			message,
+			message: statusError ?? eventError ?? (runMessage || message),
+			runPhase,
 			events: events,
 			recipes: [...recipes],
 			selectedRecipeId,
 			recipeError,
 			canRun: snapshot?.equipmentState === "Idle"
     				&& !runningCommand
+				&& runPhase !== "accepted
+				&& runPhase !== "running"
     				&& selectedRecipeId !== null
     				&& !recipesLoading
     				&& recipeError === null,
@@ -45,55 +53,85 @@ export function createRunViewModel(api = miniFabApi) {
 		}
 	}
 
-	async function refresh() {
-		if (refreshing) return;
+async function refresh() {
+    if (refreshing) return;
 
-		refreshing = true;
+    refreshing = true;
 
-		try {
-			snapshot = await api.getStatus();
-			message = "Connected";
-		} catch(error) {
-			snapshot = null;
-			message = `Status error: ${error.message}`;
-		} finally {
-			refreshing = false;
-			notify();
-		}
+    try {
+        const latest = await api.getStatus();
 
-		await refreshEvents();
-	}
+        snapshot = latest;
+        statusError = null;
 
-	async function refreshEvents() {
-		const now = Date.now();
+        if (runPhase === "accepted") {
+            if (latest.equipmentState !== "Idle") {
+                runPhase = "running";
+                runMessage = "Wafer processing in progress...";
+            }
+        } else if (runPhase === "running") {
+            if (latest.equipmentState === "Faulted") {
+                runPhase = "finished";
+                runMessage = "Wafer run faulted. Check equipment events.";
+            } else if (latest.equipmentState === "Idle") {
+                runPhase = "finished";
+                runMessage = "Equipment returned to Idle. Check events for the outcome.";
+            }
+        }
 
-		if (now - lastEventRefresh < 1000) return;
+        if (runPhase === "none" && !runMessage) {
+            message = "Connected";
+        }
+    } catch (error) {
+        snapshot = null;
+        statusError = `Status error: ${error.message}`;
+    } finally {
+        refreshing = false;
+        notify();
+    }
 
-		lastEventRefresh = now;
+    await refreshEvents();
+}
 
-		try {
-			const result = await api.getEvents();
 
-			const latestId = result.events.at(-1)?.sequenceId ?? 0;
+async function refreshEvents() {
+    if (eventsRefreshing) return;
 
-			if (latestId < lastEventSequenceId) {
-				events = [];
-				lastEventSequenceId = 0;
-			}
+    const now = Date.now();
 
-			const newEvents = result.events.filter(
-				event => event.sequenceId > lastEventSequenceId
-			);
+    if (now - lastEventRefresh < 1000) return;
 
-			events = [...events, ...newEvents];
-			lastEventSequenceId = latestId;
+    eventsRefreshing = true;
+    lastEventRefresh = now;
 
-			notify();
-		} catch (error) {
-			console.error("Event refresh failed:", error);
-		}
+    try {
+        const result = await api.getEvents();
+        eventError = null;
 
-	}
+        const latestId =
+            result.events.at(-1)?.sequenceId ?? 0;
+
+        if (latestId < lastEventSequenceId) {
+            events = [];
+            lastEventSequenceId = 0;
+        }
+
+        const newEvents = result.events.filter(
+            event => event.sequenceId > lastEventSequenceId
+        );
+
+        events = [...events, ...newEvents];
+        lastEventSequenceId = latestId;
+
+        notify();
+    } catch (error) {
+        eventError = `Event error: ${error.message}`;
+        notify();
+    } finally {
+        eventsRefreshing = false;
+    }
+}
+
 
 async function run() {
     if (!getState().canRun) return;
@@ -101,24 +139,33 @@ async function run() {
     const recipeId = selectedRecipeId;
 
     runningCommand = true;
+    runPhase = "accepted";
+    runMessage = `Submitting recipe ${recipeId}...`;
     notify();
 
     try {
         const result = await api.runWafer(recipeId);
 
-        await refresh();
-
-        message = result.accepted
-            ? `Wafer run accepted (recipe ${recipeId})`
-            : `Run rejected: ${result.error ?? `HTTP ${result.httpStatus}`}`;
-
+        if (result.accepted) {
+            runMessage = `Run accepted (recipe ${recipeId})`;
+        } else {
+            runPhase = "finished";
+            runMessage =
+                `Run rejected: ${result.error ?? `HTTP ${result.httpStatus}`}`;
+        }
     } catch (error) {
-        message = `Run error: ${error.message}`;
+        runPhase = "finished";
+        runMessage = `Run error: ${error.message}`;
     } finally {
         runningCommand = false;
         notify();
+
+        // Request a fresh snapshot after the command response.
+        // Polling will continue independently.
+        void refresh();
     }
 }
+
 
 	function subscribe(callback) {
 		subscribers.add(callback);

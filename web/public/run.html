@@ -119,6 +119,12 @@
             elements.pm.textContent = state.processModule;
             elements.message.textContent = state.message;
             elements.runButton.disabled = !state.canRun;
+	    elements.runButton.textContent =
+    		state.runPhase === "accepted"
+        		? "Submitting..."
+        		: state.runPhase === "running"
+            			? "Wafer Running..."
+            			: "▶ Run Wafer";
 	    elements.state.className = "state-badge state-" + state.equipmentState.toLowerCase();
 	    elements.eventCount.textContent = `${state.events.length} events`;
 	    elements.eventRows.replaceChildren();
