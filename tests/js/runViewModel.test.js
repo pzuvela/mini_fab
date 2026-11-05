@@ -421,3 +421,74 @@ test("Failed recovery displays error", async () => {
 
 
 
+
+test("Rejected second run attempt preserves active run correlation", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+    await vm.run();
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+    await vm.run(); // Must not clear currentRunId.
+    mock.addEvent("RunCompleted", 1);
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await vm.refreshEvents();
+    assert.equal(vm.getState().runPhase, "finished");
+});
+
+test("Subscribers cannot mutate ViewModel event state", async () => {
+    const mock = createMockApi();
+    mock.addEvent("WaferMoved", 42);
+    const vm = await prepareViewModel(mock);
+    const state = vm.getState();
+    state.events[0].type = "Modified";
+    state.events.push({ sequenceId: 999 });
+    assert.equal(vm.getState().events.length, 1);
+    assert.equal(vm.getState().events[0].type, "WaferMoved");
+});
+
+test("Unsorted events are processed in sequence order", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+    await vm.run();
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+    mock.api.getEvents = async () => ({ events: [
+        { sequenceId: 2, runId: 1, type: "RunCompleted" },
+        { sequenceId: 1, runId: 1, type: "WaferMoved" }
+    ] });
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await vm.refreshEvents();
+    assert.equal(vm.getState().runPhase, "finished");
+    assert.deepEqual(vm.getState().events.map(event => event.sequenceId), [1, 2]);
+});
+
+test("Failed event fetch can retry immediately", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+    let calls = 0;
+    mock.api.getEvents = async () => {
+        calls++;
+        if (calls === 1) throw new Error("temporary outage");
+        return { events: [] };
+    };
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await vm.refreshEvents();
+    await vm.refreshEvents();
+    assert.equal(calls, 2);
+    assert.doesNotMatch(vm.getState().message, /temporary outage/);
+});
+
+test("Pending control command prevents a new run", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+    mock.setEquipmentState("Faulted");
+    await vm.refresh();
+    let release;
+    mock.api.resetEquipment = () => new Promise(resolve => { release = resolve; });
+    const pending = vm.resetEquipment();
+    mock.setEquipmentState("Idle");
+    await vm.refresh();
+    assert.equal(vm.getState().canRun, false);
+    release({ recovered: true });
+    await pending;
+});
