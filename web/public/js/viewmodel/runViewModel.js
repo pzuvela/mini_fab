@@ -70,7 +70,6 @@ if (runPhase === "accepted") {
         runPhase = "running";
         runMessage = "Wafer processing in progress...";
     }
-}
         } else if (runPhase === "running") {
             if (latest.equipmentState === "Faulted") {
                 runPhase = "finished";
