@@ -111,3 +111,60 @@ Architectural sophistication is valuable only when it makes the system easier to
 Keep the system simple, focused, explicit, readable, and testable.
 
 Introduce complexity only when the problem demonstrates that it is necessary.
+
+## Equipment-Control Invariants
+
+MiniFab is equipment-control software operating simulated hardware. Treat equipment state, wafer location, occupancy, command acceptance, and event ordering as domain invariants, not presentation details.
+
+- The C++ engine/controller are authoritative for equipment state and transitions.
+- A hardware operation reports its result; the state-owning component applies the transition.
+- Do not manufacture a successful state or event to make the UI appear responsive.
+- Validate commands against the current state. Cancellation and fault reset are distinct operations.
+- Keep wafer location and equipment occupancy consistent, including on cancellation, failure, and recovery.
+- Preserve safe ownership and lifetime of asynchronous work. Prefer standard C++ facilities such as `std::jthread`, stop tokens, RAII, and explicit synchronization when needed.
+
+## API and Browser Boundaries
+
+Keep browser JavaScript thin. The API model handles HTTP; ViewModels handle UI-facing state, polling, and commands; HTML handles presentation and event wiring.
+
+- Do not duplicate equipment-state transition logic in JavaScript.
+- Treat command acceptance separately from command completion; refresh state from the backend.
+- Prevent duplicate in-flight control commands where appropriate.
+- Correlate run-specific outcomes using run identifiers; do not mistake stale events for the current run.
+- Return explicit errors rather than masking them as success. In particular, a failed status request must not be presented as `Connected`.
+- Keep REST contracts consistent across C++ routes, browser API adapters, mocks, and tests.
+- Prefer simple native browser modules over frameworks unless a concrete need emerges.
+
+## Persistence and Event Integrity
+
+- Persist events with enough context to reconstruct meaningful equipment activity and associate events with runs.
+- Keep persistence concerns inside repository components rather than embedding SQL in UI or controller code.
+- Treat `minifab.db` and SQLite `-wal`, `-shm`, and `-journal` files as runtime artifacts; never commit them.
+- Avoid destructive database operations without an explicit user-facing contract and tests. Clearing an event display and deleting persisted history are different operations.
+- Avoid changing event semantics or database schema without considering existing persisted data.
+
+## Reproducible Builds and Frontend Assets
+
+- CMake is the source of truth for native build configuration and web-asset deployment.
+- With `MINIFAB_BUILD_WEB=ON`, web assets must be copied from `web/public/` to the executable's `public/` directory on every build, even when C++ code is unchanged.
+- The server must mount the deployed assets, not silently depend on a developer's source-tree working directory.
+- Diagnose browser caching separately from application defects. A green unit test does not prove the browser loaded the current file.
+- Do not introduce duplicate manual asset-copy workflows when the build already owns deployment.
+
+## Verification Before Commit
+
+For behavior changes, test the smallest relevant unit first, then the integration boundary, then the full suite.
+
+- Run `ctest --test-dir build --output-on-failure` for C++ tests.
+- Run `npm test` for JavaScript syntax and unit tests.
+- Use `BUILD_WEB=ON ./build.sh` when validating the complete web-enabled build.
+- For REST or browser changes, verify the real browser/server path when practical; mocks alone cannot detect stale deployed assets, incorrect mounts, or browser cache.
+- Include failure, cancellation, and boundary-state scenarios when relevant.
+- Do not claim a feature works end-to-end solely because unit tests pass.
+- Keep changes small and reviewable; avoid opportunistic refactoring while fixing an unrelated bug.
+
+## Learning and Collaboration
+
+MiniFab is also a deliberate C++ learning project. Prefer changes that preserve the opportunity to understand ownership, references, interfaces, concurrency, state machines, and testing. Explain non-obvious tradeoffs; avoid introducing advanced language features solely for novelty.
+
+Distinguish **implemented**, **tested**, and **proposed** features in code reviews and documentation. Do not describe planned fault injection, event-log deletion, or other backlog items as existing functionality.
