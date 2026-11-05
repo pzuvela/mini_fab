@@ -31,7 +31,7 @@ public:
 	{
 		if (repository_)
 		{
-			auto history = repository_.getAll();
+			auto history = repository_->getAll();
 
 			for (const auto& event : history)
 			{

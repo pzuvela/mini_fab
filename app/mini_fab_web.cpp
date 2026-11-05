@@ -12,7 +12,7 @@
 int main()
 {
     SqliteRecipeRepository repository("minifab.db");
-    SqliteEventRepository repository("minifab.db");
+    SqliteEventRepository eventRepository("minifab.db");
 
     RecipeManager recipeManager(repository);
     MiniFabController controller(recipeManager, eventRepository);
