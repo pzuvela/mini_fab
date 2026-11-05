@@ -35,7 +35,7 @@ TEST(JobSchedulerTests, CancelQueuedRemovesMiddleJob)
 
 	const auto id1 = scheduler.enqueue("W1", 10, 1);
 	const auto id2 = scheduler.enqueue("W2", 20, 2);
-	const auto id3 = scheduler.enqueue("W2", 30, 3);
+	const auto id3 = scheduler.enqueue("W3", 30, 3);
 
 	bool cancelled = scheduler.cancelQueued(id2);
 
