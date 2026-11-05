@@ -89,3 +89,17 @@ std::optional<Location> WaferManager::getLocation(
 
 	return iterator->second->location;
 }
+
+std::vector<Wafer> WaferManager::getWafers() const
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	std::vector<Wafer> wafers.reserve(wafers_.size());
+
+	for (const auto& [waferId, wafer] : wafers_)
+	{
+		wafers.emplace_back(*wafer);
+	}
+
+	return wafers;
+}

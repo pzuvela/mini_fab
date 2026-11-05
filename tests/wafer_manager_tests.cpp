@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
+
 #include "wafer/wafer_manager.h"
 #include "wafer/location_update_result.h"
 #include "domain/wafer.h"
@@ -120,6 +122,50 @@ TEST_F(WaferManagerTest, RejectsOccupiedLocation)
 
     EXPECT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 3}}));
     EXPECT_FALSE(manager.addWafer({"W2", {Station::LoadPort, 3}}));
+}
+
+TEST(WaferManagerTest, GetWafersReturnsIndependentSnapshot)
+{
+    WaferManager manager;
+
+    ASSERT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 1}}));
+    ASSERT_TRUE(manager.addWafer({"W2", {Station::LoadPort, 2}}));
+
+    auto wafers = manager.getWafers();
+
+    ASSERT_EQ(wafers.size(), 2);
+
+    // Unordered map: don't assume iteration order!
+    auto findWafer = [&](const std::string& id) {
+        return std::find_if(
+            wafers.begin(),
+            wafers.end(),
+            [&](const Wafer& wafer) {
+                return wafer.id == id;
+            }
+        );
+    };
+
+    auto w1 = findWafer("W1");
+    auto w2 = findWafer("W2");
+
+    ASSERT_NE(w1, wafers.end());
+    ASSERT_NE(w2, wafers.end());
+
+    EXPECT_EQ(w1->location, (Location{Station::LoadPort, 1}));
+    EXPECT_EQ(w2->location, (Location{Station::LoadPort, 2}));
+
+    // Modify the snapshot
+    w1->location = {Station::LoadPort, 10};
+
+    // Original inventory must remain unchanged
+    auto originalLocation = manager.getLocation("W1");
+
+    ASSERT_TRUE(originalLocation.has_value());
+    EXPECT_EQ(
+        originalLocation.value(),
+        (Location{Station::LoadPort, 1})
+    );
 }
 
 

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <optional>
+#include <vector>
 
 #include "domain/wafer.h"
 #include "iwafer_manager.h"
@@ -26,4 +27,5 @@ public:
 	std::optional<Location> getLocation(
 		const std::string& waferId
 	) const;
+	std::vector<Wafer> getWafers() const;
 };
