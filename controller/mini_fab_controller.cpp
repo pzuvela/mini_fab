@@ -236,7 +236,7 @@ bool MiniFabController::waitForActiveJobCompletion()
 		if (released) ++schedulerRevision_;
 	}
 
-	if (releaseD) schedulerCv_.notify_all();
+	if (released) schedulerCv_.notify_all();
 
 	return released && result == OperationResult::Completed;
 }
