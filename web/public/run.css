@@ -339,3 +339,34 @@ td:nth-child(2) {
     color: #38bdf8;
     padding: 12px 0;
 }
+
+.job-status {
+    font-weight: 600;
+}
+
+.job-queued {
+    color: #9ca3af;
+}
+
+.job-running {
+    color: #60a5fa;
+}
+
+.job-completed {
+    color: #34d399;
+}
+
+.job-failed,
+.job-rejected {
+    color: #f87171;
+}
+
+.job-cancelled {
+    color: #fbbf24;
+}
+
+#schedulerError:not(:empty) {
+    color: #f87171;
+    margin-top: 1rem;
+}
+

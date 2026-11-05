@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>MiniFab — Jobs</title>
+    <link rel="stylesheet" href="/run.css">
+</head>
+
+<body>
+<main class="dashboard">
+
+    <header class="dashboard-header">
+        <div>
+            <p class="eyebrow">EQUIPMENT CONTROL SYSTEM</p>
+            <h1>MiniFab <span>Job Control Center</span></h1>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <a href="/run.html">Run</a>
+        <a href="/recipes.html">Recipes</a>
+        <a href="/jobs.html" class="active">Jobs</a>
+    </nav>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Scheduler</h2>
+            <span id="schedulerState"
+                  class="state-badge">Unknown</span>
+        </div>
+
+        <div class="status-grid">
+            <div class="metric">
+                <span class="metric-label">Queued Jobs</span>
+                <strong id="pendingJobs">—</strong>
+            </div>
+
+            <div class="metric">
+                <span class="metric-label">Active Job</span>
+                <strong id="activeJob">—</strong>
+            </div>
+
+            <div class="metric">
+                <span class="metric-label">Connection</span>
+                <strong id="connection">Connecting...</strong>
+            </div>
+        </div>
+
+        <div class="control-bar">
+            <button id="startScheduler" disabled>
+                ▶ Start Scheduler
+            </button>
+
+            <button id="stopScheduler" disabled>
+                ■ Stop Scheduler
+            </button>
+
+            <button id="resetScheduler" disabled>
+                ↻ Reset Fault
+            </button>
+        </div>
+
+        <p id="schedulerError" role="alert"></p>
+    </section>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Submit Job</h2>
+        </div>
+
+        <div class="control-bar">
+            <label>
+                Wafer
+                <input id="waferId" value="W1" readonly>
+            </label>
+
+            <label>
+                Recipe ID
+                <input id="recipeId"
+                       type="number"
+                       min="1"
+                       value="1">
+            </label>
+
+            <button id="submitJob" disabled>
+                + Enqueue Job
+            </button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Job History</h2>
+            <span id="jobCount" class="event-count">0 jobs</span>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Wafer</th>
+                        <th>Recipe</th>
+                        <th>PM</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody id="jobRows"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <p id="message" role="status">Connecting...</p>
+
+</main>
+
+<script type="module" src="/js/view/jobsPage.js"></script>
+</body>
+</html>
