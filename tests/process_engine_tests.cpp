@@ -346,7 +346,7 @@ namespace MiniFab::Tests
             Wafer{
                 .id = "Wafer2",
                 .location = Location{
-                    .station = Station::Aligner,
+                    .station = Station::LoadPort,
                     .slot = 3
                 }
             }
@@ -387,7 +387,7 @@ namespace MiniFab::Tests
             Wafer{
                 .id = "Wafer2",
                 .location = Location{
-                    .station = Station::Aligner,
+                    .station = Station::LoadPort,
                     .slot = 2
                 }
             }
