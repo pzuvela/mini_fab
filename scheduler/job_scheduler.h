@@ -15,7 +15,7 @@ private:
 	std::optional<Job> activeJob_;
 
 public:
-	std::uint64_t enqueue(int recipeId);
+	std::uint64_t enqueue(std::string& waferId, int recipeId, int processModuleId);
 	std::optional<Job> dequeue();
 	bool cancelQueued(std::uint64_t jobId);
 	std::size_t pendingCount() const;
