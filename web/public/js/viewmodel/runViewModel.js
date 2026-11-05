@@ -20,6 +20,7 @@ export function createRunViewModel(api = miniFabApi) {
 	let eventsRefreshing = false;
 	let currentRunId = null;
 	let controlCommandPending = false;
+	let cancellationPending = false;
 
 	const subscribers = new Set();
 
@@ -44,7 +45,7 @@ export function createRunViewModel(api = miniFabApi) {
     				&& recipeError === null,
 			canCancel: ["Moving", "Processing"].includes(
 				snapshot?.equipmentState
-			) && !controlCommandPending,
+			) && !controlCommandPending && !cancellationPending,
 			canReset: snapshot?.equipmentState === "Faulted" && !controlCommandPending,
 		};
 	}
@@ -66,7 +67,11 @@ async function refresh() {
         const latest = await api.getStatus();
 
         snapshot = latest;
-        statusError = null;
+        if (!["Moving", "Processing"].includes(latest.equipmentState)) {
+ 	   cancellationPending = false;
+	}
+
+	statusError = null;
 
 	if (runPhase === "accepted") {
     		if (latest.equipmentState === "Faulted") {
@@ -256,7 +261,7 @@ async function cancelRun() {
 
     try {
         const result = await api.cancelRun();
-
+	cancellationPending = result.accepted;
         runMessage = result.accepted
             ? "Cancellation requested. Awaiting run outcome..."
             : `Cancel rejected: ${result.error ?? "Unknown error"}`;

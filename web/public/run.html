@@ -65,6 +65,8 @@
 
         <div class="control-bar">
             <button id="runButton" disabled>▶ Run Wafer</button>
+	    <button id="cancelButton" disabled>■ Cancel Run</button>
+    	    <button id="resetButton" disabled>↻ Reset Equipment</button>
             <span id="message">Connecting...</span>
         </div>
     </section>
@@ -108,11 +110,15 @@
 	    eventRows: document.querySelector("#eventRows"),
 	    eventCount: document.querySelector("#eventCount"),
 	    recipeSelect: document.querySelector("#recipeSelect"),
-	    recipeDetails: document.querySelector("#recipeDetails")
+	    recipeDetails: document.querySelector("#recipeDetails"),
+	    cancelButton: document.querySelector("#cancelButton"),
+	    resetButton: document.querySelector("#resetButton")
         };
 
         // View: only presentation logic.
         vm.subscribe(state => {
+	    elements.cancelButton.disabled = !state.canCancel;
+	    elements.resetButton.disabled = !state.canReset;
             elements.state.textContent = state.equipmentState;
             elements.wafer.textContent = state.waferLocation;
             elements.robot.textContent = state.robot;
@@ -220,6 +226,14 @@ elements.recipeDetails.textContent = selectedRecipe
 
 elements.runButton.addEventListener("click", () => {
     vm.run();
+});
+
+elements.cancelButton.addEventListener("click", () => {
+    void vm.cancelRun();
+});
+
+elements.resetButton.addEventListener("click", () => {
+    void vm.resetEquipment();
 });
 
 elements.recipeSelect.addEventListener("change", event => {
