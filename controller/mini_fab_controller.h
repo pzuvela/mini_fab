@@ -69,4 +69,6 @@ public:
 	bool dispatchNextJob();
 
 	bool waitForActiveJobCompletion();
+
+	std::size_t pendingJobCount() const;
 };

@@ -177,3 +177,8 @@ bool MiniFabController::waitForActiveJobCompletion()
 
 	return scheduler_.completeActiveJob(activeJob->id);
 }
+
+std::size_t MiniFabController::pendingJobCount() const
+{
+	return scheduler_.pendingCount();
+}
