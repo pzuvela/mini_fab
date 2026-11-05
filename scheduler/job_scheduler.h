@@ -5,9 +5,12 @@
 #include <optional>
 #include <functional>
 #include <unordered_map>
+#include <vector>
+
 #include "job_status.h"
 #include "job.h"
 #include "equipment/operation_result.h"
+#include "job_snapshot.h"
 
 
 class JobScheduler
@@ -17,6 +20,7 @@ private:
 	std::uint64_t nextJobId_ = 1;
 	std::optional<Job> activeJob_;
 	std::unordered_map<std::uint64_t, JobStatus> jobStatuses_;
+	std::unordered_map<std::uint64_t, Job> jobs_;
 
 public:
 	std::uint64_t enqueue(const std::string& waferId, int recipeId, int processModuleId);
@@ -30,4 +34,5 @@ public:
 	bool finishActiveJob(std::uint64_t jobId, OperationResult result);
 	bool rejectNextJob();
 	std::optional<Job> nextQueuedJob() const;
+	std::vector<JobSnapshot> jobsSnapshot() const;
 };

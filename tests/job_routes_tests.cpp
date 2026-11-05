@@ -266,3 +266,71 @@ TEST_F(JobRoutesTest, JobCompletesThroughScheduler)
     EXPECT_EQ(controller_.pendingJobCount(), 0);
 }
 
+TEST_F(JobRoutesTest, ReturnsEmptyJobList)
+{
+    auto cli = client();
+    auto response = cli.Get("/api/jobs");
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 200);
+    EXPECT_EQ(response->body, "[]");
+}
+
+TEST_F(JobRoutesTest, ListsQueuedJobsInOrder)
+{
+    ASSERT_TRUE(postJob());
+    ASSERT_TRUE(postJob());
+
+    auto cli = client();
+    auto response = cli.Get("/api/jobs");
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 200);
+
+    const auto first = response->body.find(R"("jobId":1)");
+    const auto second = response->body.find(R"("jobId":2)");
+
+    ASSERT_NE(first, std::string::npos);
+    ASSERT_NE(second, std::string::npos);
+
+    EXPECT_LT(first, second);
+    EXPECT_NE(
+        response->body.find(R"("status":"Queued")"),
+        std::string::npos
+    );
+}
+
+TEST_F(JobRoutesTest, RetainsCompletedJobInList)
+{
+    ASSERT_TRUE(postJob());
+
+    controller_.startScheduler();
+
+    ASSERT_TRUE(waitUntil([this]()
+    {
+        return controller_.jobStatus(1)
+            == JobStatus::Completed;
+    }));
+
+    auto cli = client();
+    auto response = cli.Get("/api/jobs");
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 200);
+
+    EXPECT_NE(
+        response->body.find(R"("jobId":1)"),
+        std::string::npos
+    );
+
+    EXPECT_NE(
+        response->body.find(R"("status":"Completed")"),
+        std::string::npos
+    );
+
+    EXPECT_NE(
+        response->body.find(R"("waferId":"W1")"),
+        std::string::npos
+    );
+}
+

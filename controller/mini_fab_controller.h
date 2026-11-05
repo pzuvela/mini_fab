@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "equipment_snapshot.h"
 #include "wafer/wafer_manager.h"
@@ -27,6 +28,7 @@
 #include "completion_owner.h"
 #include "scheduler/scheduler_state.h"
 #include "scheduler/scheduler_snapshot.h"
+#include "scheduler/job_snapshot.h"
 
 
 class MiniFabController
@@ -110,4 +112,6 @@ public:
 	std::string schedulerError() const;
 	bool resetSchedulerFault();
 	SchedulerSnapshot schedulerSnapshot() const;
+
+	std::vector<JobSnapshot> jobsSnapshot() const;
 };

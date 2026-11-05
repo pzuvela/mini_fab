@@ -471,3 +471,10 @@ SchedulerSnapshot MiniFabController::schedulerSnapshot() const
     };
 }
 
+std::vector<JobSnapshot> MiniFabController::jobsSnapshot() const
+{
+    std::lock_guard lock(schedulerMutex_);
+
+    return scheduler_.jobsSnapshot();
+}
+

@@ -133,6 +133,7 @@ add_library(mini_fab_serialization STATIC
     web/serialization/equipment_events_json.cpp
     web/serialization/json_utils.cpp
     web/serialization/recipe_json.cpp
+    web/serialization/job_json.cpp
 )
 
 target_link_libraries(mini_fab_serialization PUBLIC

@@ -1,6 +1,7 @@
 #include "web/routes/job_routes.h"
 #include "controller/mini_fab_controller.h"
 #include "scheduler/job_status.h"
+#include "web/serialization/job_json.h"
 
 #include <charconv>
 #include <cstdint>
@@ -146,5 +147,18 @@ void registerJobRoutes(
             );
         }
     );
+
+server.Get("/api/jobs",
+    [&controller](
+        const httplib::Request&,
+        httplib::Response& response)
+    {
+        response.set_content(
+            toJson(controller.jobsSnapshot()),
+            "application/json"
+        );
+    }
+);
+
 }
 }

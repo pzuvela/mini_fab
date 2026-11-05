@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <vector>
 
 #include "job_scheduler.h"
 
@@ -15,6 +16,7 @@ std::uint64_t JobScheduler::enqueue(
 		.recipeId = recipeId,
 		.processModuleId = processModuleId
 	};
+	jobs_.emplace(jobId, job);
 	queue_.push_back(job);
 	jobStatuses_[jobId] = JobStatus::Queued;
 	return jobId;
@@ -142,3 +144,35 @@ std::optional<Job> JobScheduler::nextQueuedJob() const
 
 	return queue_.front();
 }
+
+std::vector<JobSnapshot> JobScheduler::jobsSnapshot() const
+{
+    std::vector<JobSnapshot> result;
+    result.reserve(jobs_.size());
+
+    for (const auto& [id, job] : jobs_)
+    {
+        auto status = jobStatuses_.find(id);
+
+        if (status == jobStatuses_.end())
+            continue;
+
+        result.push_back(JobSnapshot{
+            .job = job,
+            .status = status->second
+        });
+    }
+
+    std::sort(
+        result.begin(),
+        result.end(),
+        [](const JobSnapshot& a, const JobSnapshot& b)
+        {
+            return a.job.id < b.job.id;
+        }
+    );
+
+    return result;
+}
+
+
