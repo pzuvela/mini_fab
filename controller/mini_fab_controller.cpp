@@ -321,7 +321,7 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 		switch (dispatchNextJobImpl(CompletionOwner::Scheduler))
 		{
 			case DispatchResult::Started:
-				waitForActiveJobCompletion(CompletionOwner::Scheduler);
+				waitForActiveJobCompletionImpl(CompletionOwner::Scheduler);
 				break;
 
 			case DispatchResult::Rejected:
