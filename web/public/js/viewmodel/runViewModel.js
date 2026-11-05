@@ -62,26 +62,23 @@ async function refresh() {
         snapshot = latest;
         statusError = null;
 
-if (runPhase === "accepted") {
-    if (latest.equipmentState === "Faulted") {
-        runPhase = "finished";
-        runMessage = "Wafer run faulted. Check equipment events.";
-    } else if (latest.equipmentState !== "Idle") {
-        runPhase = "running";
-        runMessage = "Wafer processing in progress...";
-    }
+	if (runPhase === "accepted") {
+    		if (latest.equipmentState === "Faulted") {
+        		runPhase = "finished";
+        		runMessage = "Wafer run faulted. Check equipment events.";
+    		} else if (latest.equipmentState !== "Idle") {
+        		runPhase = "running";
+        		runMessage = "Wafer processing in progress...";
+		}
         } else if (runPhase === "running") {
-            if (latest.equipmentState === "Faulted") {
-                runPhase = "finished";
-                runMessage = "Wafer run faulted. Check equipment events.";
-            } else if (latest.equipmentState === "Idle") {
-                runPhase = "finished";
-                runMessage = "Equipment returned to Idle. Check events for the outcome.";
-            }
-        }
+        	if (latest.equipmentState === "Faulted") {
+                	runPhase = "finished";
+                	runMessage = "Equipment faulted. Awaiting run outcome...";
+        	}
+	}
 
         if (runPhase === "none" && !runMessage) {
-            message = "Connected";
+            	message = "Connected";
         }
     } catch (error) {
         snapshot = null;
@@ -124,6 +121,29 @@ async function refreshEvents() {
         events = [...events, ...newEvents];
         lastEventSequenceId = latestId;
 
+	for (const event of newEvents) {
+    		if (runPhase !== "accepted" && runPhase !== "running") {
+        		continue;
+    		}
+
+    		switch (event.type) {
+        		case "RunCompleted":
+            			runPhase = "finished";
+            			runMessage = "Wafer run completed successfully.";
+            			break;
+
+        		case "RunFailed":
+            			runPhase = "finished";
+            			runMessage = "Wafer run failed. Check equipment events.";
+            			break;
+
+        		case "RunCancelled":
+            			runPhase = "finished";
+            			runMessage = "Wafer run cancelled.";
+            			break;
+    		}
+	}
+
         notify();
     } catch (error) {
         eventError = `Event error: ${error.message}`;
@@ -147,12 +167,13 @@ async function run() {
     try {
         const result = await api.runWafer(recipeId);
 
-        if (result.accepted) {
-            runMessage = `Run accepted (recipe ${recipeId})`;
-        } else {
-            runPhase = "finished";
-            runMessage =
-                `Run rejected: ${result.error ?? `HTTP ${result.httpStatus}`}`;
+	if (result.accepted) {
+    		if (runPhase === "accepted") {
+        		runMessage = `Run accepted (recipe ${recipeId})`;
+    		}
+       	} else {
+            	runPhase = "finished";
+            	runMessage = `Run rejected: ${result.error ?? `HTTP ${result.httpStatus}`}`;
         }
     } catch (error) {
         runPhase = "finished";
@@ -224,6 +245,7 @@ function selectRecipe(id) {
 		getState,
 		subscribe,
 		refresh,
+		refreshEvents,
 		loadRecipes,
 		selectRecipe,
 		run,

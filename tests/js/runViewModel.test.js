@@ -7,6 +7,7 @@ import { createRunViewModel } from
 
 function createMockApi() {
     let equipmentState = "Idle";
+    let events = [];
     const submittedRecipes = [];
 
     const api = {
@@ -23,7 +24,7 @@ function createMockApi() {
         },
 
         async getEvents() {
-            return { events: [] };
+            return { events: [...events] };
         },
 
         async getRecipes() {
@@ -49,7 +50,16 @@ function createMockApi() {
         submittedRecipes,
         setEquipmentState(value) {
             equipmentState = value;
-        }
+        },
+	addEvent(type) {
+	    events.push({
+        	sequenceId: events.length + 1,
+        	timestamp: Date.now(),
+        	type,
+        	severity: "Info",
+        	message: type
+    	});
+	}
     };
 }
 
@@ -170,4 +180,21 @@ test("Rejected run displays rejection", async () => {
 
     assert.equal(vm.getState().runPhase, "finished");
     assert.match(vm.getState().message, /rejected/i);
+});
+
+test("RunCompleted event finishes the run", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    await vm.run();
+
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+
+    mock.addEvent("RunCompleted");
+
+    await vm.refreshEvents();
+
+    assert.equal(vm.getState().runPhase, "finished");
+    assert.match(vm.getState().message, /completed successfully/i);
 });
