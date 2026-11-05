@@ -193,7 +193,7 @@ test("RunCompleted event finishes the run", async () => {
 
     mock.addEvent("RunCompleted");
 
-    await new Promise(resolve => settimeout(resolve, 1100));
+    await new Promise(resolve => setTimeout(resolve, 1100));
     await vm.refreshEvents();
 
     assert.equal(vm.getState().runPhase, "finished");
