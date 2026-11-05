@@ -74,15 +74,12 @@
         <div class="control-bar">
             <label>
                 Wafer
-                <input id="waferId" value="W1" readonly>
+                <input id="waferId" type="text" value="W1" maxlength="32" required autocomplete="off">
             </label>
 
             <label>
-                Recipe ID
-                <input id="recipeId"
-                       type="number"
-                       min="1"
-                       value="1">
+                Recipe
+                <select id="recipeSelect" disabled><option value="">Loading recipes...</option></select>
             </label>
 
             <button id="submitJob" disabled>
@@ -112,6 +109,20 @@
                 <tbody id="jobRows"></tbody>
             </table>
         </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Equipment Event Log</h2>
+            <span id="eventCount" class="event-count">0 events</span>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>#</th><th>Time</th><th>Event</th><th>Severity</th><th>Message</th></tr></thead>
+                <tbody id="eventRows"></tbody>
+            </table>
+        </div>
+        <p id="eventError" role="alert"></p>
     </section>
 
     <p id="message" role="status">Connecting...</p>
