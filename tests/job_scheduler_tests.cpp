@@ -19,10 +19,10 @@ TEST(JobSchedulerTests, EnqueueAndDequeuePreserverFIFOOrder)
 	std::optional<Job> job2 = scheduler.dequeue();
 
 	ASSERT_TRUE(job1.has_value());
-	EXPECT_EQ(job1.value(), (Job{"W1", id1, 2}));
+	EXPECT_EQ(job1.value(), (Job{id1, "W1", 2, 1}));
 
 	ASSERT_TRUE(job2.has_value());
-	EXPECT_EQ(job2.value(), (Job{"W2", id2, 3}));
+	EXPECT_EQ(job2.value(), (Job{id2, "W2", 3, 2}));
 
 	std::optional<Job> emptyJob = scheduler.dequeue();
 
@@ -51,10 +51,10 @@ TEST(JobSchedulerTests, CancelQueuedRemovesMiddleJob)
 	std::optional<Job> job3 = scheduler.dequeue();
 
 	ASSERT_TRUE(job1.has_value());
-	EXPECT_EQ(job1.value(), (Job{"W1", id1, 10}));
+	EXPECT_EQ(job1.value(), (Job{id1, "W1", 10, 1}));
 
 	ASSERT_TRUE(job3.has_value());
-	EXPECT_EQ(job3.value(), (Job{"W3", id3, 30}));
+	EXPECT_EQ(job3.value(), (Job{id3, "W3", 30, 3}));
 }
 
 TEST(JobSchedulerTests, DispatchAcceptedMovesJobToActive)
@@ -81,7 +81,7 @@ TEST(JobSchedulerTests, DispatchAcceptedMovesJobToActive)
     const std::optional<Job> activeJob = scheduler.activeJob();
 
     ASSERT_TRUE(activeJob.has_value());
-    EXPECT_EQ(activeJob.value(), (Job{"W1", jobId, 10}));
+    EXPECT_EQ(activeJob.value(), (Job{jobId, "W1", 10, 1}));
 }
 
 
@@ -115,7 +115,7 @@ TEST(JobSchedulerTests, DispatchRejectedKeepsJobQueued)
     const std::optional<Job> queuedJob = scheduler.dequeue();
 
     ASSERT_TRUE(queuedJob.has_value());
-    EXPECT_EQ(queuedJob.value(), (Job{jobId, 20}));
+    EXPECT_EQ(queuedJob.value(), (Job{jobId, "W1",  20, 1}));
 }
 
 TEST(JobSchedulerTests, CompleteActiveJobAllowsNextDispatch)
