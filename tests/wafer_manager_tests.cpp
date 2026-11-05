@@ -124,7 +124,7 @@ TEST_F(WaferManagerTest, RejectsOccupiedLocation)
     EXPECT_FALSE(manager.addWafer({"W2", {Station::LoadPort, 3}}));
 }
 
-TEST(WaferManagerTest, GetWafersReturnsIndependentSnapshot)
+TEST_F(WaferManagerTest, GetWafersReturnsIndependentSnapshot)
 {
     WaferManager manager;
 
