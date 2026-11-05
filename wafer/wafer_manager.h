@@ -15,6 +15,10 @@ private:
 	std::unordered_map<std::string, std::unique_ptr<Wafer>> wafers_;
 	mutable std::mutex mutex_;
 
+	bool isLocationOccupied(const std::string& waferId, const Location& location) const;
+	bool isWaferIdEmpty(const std::string& waferId) const;
+	bool isSlotNegativeOrZero(const int slot) const;
+
 public:
 	bool addWafer(const Wafer& wafer) override;
 	LocationUpdateResult updateLocation(const std::string& waferId, Location location) override;

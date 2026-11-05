@@ -113,4 +113,17 @@ namespace MiniFab::Tests
 
 	    ASSERT_EQ(location, std::nullopt);
 	}
+
+TEST_F(WaferManagerTest, RejectsOccupiedLocation)
+{
+    WaferManager manager;
+
+    EXPECT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 3}}));
+    EXPECT_FALSE(manager.addWafer({"W2", {Station::LoadPort, 3}}));
 }
+
+
+
+}
+
+

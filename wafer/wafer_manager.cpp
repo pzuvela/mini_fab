@@ -5,15 +5,46 @@
 #include "domain/wafer.h"
 #include "wafer_manager.h"
 
+bool WaferManager::isLocationOccupied(const std::string& waferId, const Location& location) const
+{
+	for (const auto& [existingWaferId, existingWafer] : wafers_)
+        {
+		if (waferId == existingWaferId) continue;
+                if (location == existingWafer->location) return true;
+        }
+
+	return false;
+}
+
+bool WaferManager::isWaferIdEmpty(const std::string& waferId) const
+{
+	return waferId.empty();
+}
+
+bool WaferManager::isSlotNegativeOrZero(const int slot) const
+{
+	return slot < 1;
+}
+
 
     bool WaferManager::addWafer(const Wafer& wafer)
     {
 	std::lock_guard<std::mutex> lock(mutex_);
 
+	if (isWaferIdEmpty(wafer.id)) return false;
+
+	if (isSlotNegativeOrZero(wafer.location.slot)) return false;
+
+	if (wafers_.contains(wafer.id)) return false;
+
+	if (wafer.location.station != Station::LoadPort) return false;
+
+	if (isLocationOccupied(wafer.id, wafer.location)) return false;
+
         std::pair<
             std::unordered_map<std::string, std::unique_ptr<Wafer>>::iterator,
             bool
-        > result= wafers_.emplace(  // can also use auto [iterator, succeeded]
+        > result = wafers_.emplace(  // can also use auto [iterator, succeeded]
             wafer.id,
             std::make_unique<Wafer>(wafer)
         );
