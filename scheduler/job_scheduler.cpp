@@ -2,10 +2,19 @@
 
 #include "job_scheduler.h"
 
-std::uint64_t JobScheduler::enqueue(int recipeId)
+std::uint64_t JobScheduler::enqueue(
+	const std::string& waferId,
+	int recipeId,
+	int processModuleId
+)
 {
 	const std::uint64_t jobId = nextJobId_++;
-	Job job{jobId, recipeId};
+	Job job{
+		.id = jobId,
+		.waferId = waferId,
+		.recipeId = recipeId,
+		.processModuleId = processModuleId
+	};
 	queue_.push_back(job);
 	return jobId;
 }
