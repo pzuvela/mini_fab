@@ -26,6 +26,9 @@ export const jobsApi = {
         return request("/api/jobs");
     },
 
+    getRecipes() { return request("/api/recipes"); },
+    getEvents() { return request("/api/events"); },
+
     getScheduler() {
         return request("/api/scheduler/status");
     },
