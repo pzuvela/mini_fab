@@ -10,9 +10,9 @@
 
 struct EquipmentEvent {
 	std::uint64_t sequenceId;
-	std::uint64_t runId = 0;
 	std::chrono::system_clock::time_point timestamp;
 	EventType type;
 	EventSeverity severity;
 	std::string message;
+	std::uint64_t runId = 0;
 };
