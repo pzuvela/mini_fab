@@ -34,12 +34,13 @@ export function createRunViewModel(api = miniFabApi) {
 			processModule: snapshot?.processModuleWaferId ?? "Empty",
 			message: statusError ?? eventError ?? (runMessage || message),
 			runPhase,
-			events: events,
+			events: events.map(event => ({ ...event })),
 			recipes: [...recipes],
 			selectedRecipeId,
 			recipeError,
 			canRun: snapshot?.equipmentState === "Idle"
     				&& !runningCommand
+    				&& !controlCommandPending
     				&& selectedRecipeId !== null
     				&& !recipesLoading
     				&& recipeError === null,
@@ -109,26 +110,27 @@ async function refreshEvents() {
     if (now - lastEventRefresh < 1000) return;
 
     eventsRefreshing = true;
-    lastEventRefresh = now;
-
     try {
         const result = await api.getEvents();
         eventError = null;
 
-        const latestId =
-            result.events.at(-1)?.sequenceId ?? 0;
+        const orderedEvents = [...result.events].sort(
+            (a, b) => a.sequenceId - b.sequenceId
+        );
+        const latestId = orderedEvents.at(-1)?.sequenceId ?? 0;
 
         if (latestId < lastEventSequenceId) {
             events = [];
             lastEventSequenceId = 0;
         }
 
-        const newEvents = result.events.filter(
+        const newEvents = orderedEvents.filter(
             event => event.sequenceId > lastEventSequenceId
         );
 
         events = [...events, ...newEvents];
         lastEventSequenceId = latestId;
+        lastEventRefresh = Date.now();
 
 	for (const event of newEvents) {
 
@@ -170,9 +172,9 @@ async function refreshEvents() {
 
 async function run() {
 
-    currentRunId = null;
-
     if (!getState().canRun) return;
+
+    currentRunId = null;
 
     const recipeId = selectedRecipeId;
 
