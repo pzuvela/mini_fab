@@ -90,7 +90,7 @@ TEST(MiniFabControllerTest, CompletedJobAllowsNextJobToDispatch)
     EXPECT_FALSE(controller.waitForActiveJobCompletion());
 }
 
-TEST(MiniFabControllerTest, RejectedJobRemainsQueued)
+TEST(MiniFabControllerTest, InvalidJobIsRejectedAndRemovedFromQueue)
 {
     SqliteRecipeRepository repository(":memory:");
     RecipeManager manager(repository);
@@ -99,21 +99,27 @@ TEST(MiniFabControllerTest, RejectedJobRemainsQueued)
     ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
 
     // PM2 is not supported yet.
-    controller.enqueueJob("W1", 1, 2);
+    const auto jobId = controller.enqueueJob("W1", 1, 2);
 
-    ASSERT_EQ(controller.pendingJobCount(), 1);
+    EXPECT_EQ(controller.jobStatus(jobId), JobStatus::Queued);
+    EXPECT_EQ(controller.pendingJobCount(), 1);
 
+    // Invalid job cannot be dispatched.
     EXPECT_FALSE(controller.dispatchNextJob());
 
-    // Rejected dispatch must not remove the job.
-    EXPECT_EQ(controller.pendingJobCount(), 1);
+    // Job is rejected and removed from the queue.
+    EXPECT_EQ(controller.jobStatus(jobId), JobStatus::Rejected);
+    EXPECT_EQ(controller.pendingJobCount(), 0);
+
+    // No job should be running.
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
-
-    // Retrying still leaves the job queued.
-    EXPECT_FALSE(controller.dispatchNextJob());
-    EXPECT_EQ(controller.pendingJobCount(), 1);
-
     EXPECT_FALSE(controller.waitForActiveJobCompletion());
+
+    // No jobs remain to dispatch.
+    EXPECT_FALSE(controller.dispatchNextJob());
+
+    // Rejection status persists.
+    EXPECT_EQ(controller.jobStatus(jobId), JobStatus::Rejected);
 }
 
 TEST(MiniFabControllerTest, SchedulerCanBeStoppedTwice)
@@ -248,4 +254,50 @@ TEST(MiniFabControllerTest, StoppedSchedulerDoesNotDispatchJobs)
     EXPECT_EQ(controller.pendingJobCount(), 1);
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
 }
+
+TEST(MiniFabControllerTest, InvalidJobDoesNotBlockValidJob)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
+
+    const auto invalidJob = controller.enqueueJob("W1", 1, 2);
+    const auto validJob = controller.enqueueJob("W1", 1, 1);
+
+    controller.startScheduler();
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(validJob) == JobStatus::Completed;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.jobStatus(invalidJob), JobStatus::Rejected);
+    EXPECT_EQ(controller.jobStatus(validJob), JobStatus::Completed);
+    EXPECT_EQ(controller.pendingJobCount(), 0);
+}
+
+TEST(MiniFabControllerTest, InvalidRecipeIsRejected)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    const auto jobId = controller.enqueueJob("W1", 999, 1);
+
+    controller.startScheduler();
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(jobId) == JobStatus::Rejected;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.pendingJobCount(), 0);
+}
+
 

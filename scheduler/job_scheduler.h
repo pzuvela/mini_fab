@@ -28,4 +28,6 @@ public:
 	bool completeActiveJob(std::uint64_t jobId);
 	std::optional<JobStatus> jobStatus(std::uint64_t jobId) const;
 	bool finishActiveJob(std::uint64_t jobId, OperationResult result);
+	bool rejectNextJob();
+	std::optional<Job> nextQueuedJob() const;
 };

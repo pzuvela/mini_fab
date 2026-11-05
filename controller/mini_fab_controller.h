@@ -86,4 +86,6 @@ public:
 	void stopScheduler();
 
 	std::optional<JobStatus> jobStatus(std::uint64_t jobId) const;
+
+	bool isValidJob(const Job& job) const;
 };

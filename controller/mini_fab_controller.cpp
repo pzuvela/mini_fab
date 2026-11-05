@@ -180,6 +180,16 @@ bool MiniFabController::dispatchNextJob()
 {
 	std::lock_guard<std::mutex> lock(schedulerMutex_);
 
+	const auto nextJob = scheduler_.nextQueuedJob();
+
+	if (!nextJob) return false;
+
+	if (!isValidJob(*nextJob))
+	{
+		scheduler_.rejectNextJob();
+		return false;
+	}
+
 	return scheduler_.dispatchNext(
 		[this](const Job& job)
 		{
@@ -255,8 +265,11 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 			if (!hasWork || stopToken.stop_requested()) break;
 		}
 
+		const auto pendingBefore = pendingJobCount();
+
 		if (!dispatchNextJob())
 		{
+			if (pendingJobCount() < pendingBefore) continue;
 			break;
 		}
 
@@ -268,4 +281,15 @@ std::optional<JobStatus> MiniFabController::jobStatus(std::uint64_t jobId) const
 {
 	std::lock_guard<std::mutex> lock(schedulerMutex_);
 	return scheduler_.jobStatus(jobId);
+}
+
+bool MiniFabController::isValidJob(const Job& job) const
+{
+	if (!recipeManager) return false;
+
+	if (job.processModuleId != 1) return false;
+
+	if (!manager_.getLocation(job.waferId).has_value()) return false;
+
+	return recipeManager_->getById(job.recipeId).has_value();
 }

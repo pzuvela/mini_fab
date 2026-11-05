@@ -6,6 +6,7 @@ enum class JobStatus
 	Running,
 	Completed,
 	Failed,
-	Cancelled
+	Cancelled,
+	Rejected
 };
 

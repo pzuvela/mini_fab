@@ -122,3 +122,23 @@ bool JobScheduler::finishActiveJob(std::uint64_t jobId, OperationResult result)
 
 	return true;
 }
+
+bool JobScheduler::rejectNextJob()
+{
+	if (queue_.empty()) return false;
+
+	const auto jobId = queue_.front().id;
+
+	jobStatuses[jobId] = JobStatus::Rejected;
+
+	queue_.pop_front();
+
+	return true;
+}
+
+std::optional<Job> JobScheduler::nextQueuedJob() const
+{
+	if (queue_.empty()) return std::nullopt;
+
+	return queue_.front();
+}
