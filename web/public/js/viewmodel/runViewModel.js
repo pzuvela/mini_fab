@@ -37,8 +37,6 @@ export function createRunViewModel(api = miniFabApi) {
 			recipeError,
 			canRun: snapshot?.equipmentState === "Idle"
     				&& !runningCommand
-				&& runPhase !== "accepted"
-				&& runPhase !== "running"
     				&& selectedRecipeId !== null
     				&& !recipesLoading
     				&& recipeError === null,
@@ -64,11 +62,15 @@ async function refresh() {
         snapshot = latest;
         statusError = null;
 
-        if (runPhase === "accepted") {
-            if (latest.equipmentState !== "Idle") {
-                runPhase = "running";
-                runMessage = "Wafer processing in progress...";
-            }
+if (runPhase === "accepted") {
+    if (latest.equipmentState === "Faulted") {
+        runPhase = "finished";
+        runMessage = "Wafer run faulted. Check equipment events.";
+    } else if (latest.equipmentState !== "Idle") {
+        runPhase = "running";
+        runMessage = "Wafer processing in progress...";
+    }
+}
         } else if (runPhase === "running") {
             if (latest.equipmentState === "Faulted") {
                 runPhase = "finished";
