@@ -352,4 +352,41 @@ TEST(MiniFabControllerTest, DispatchReturnsExplicitResults)
     );
 }
 
+TEST(MiniFabControllerTest, SchedulerResumesAfterBusyJobCompletes)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
+
+    const auto job1 = controller.enqueueJob("W1", 1, 1);
+    const auto job2 = controller.enqueueJob("W1", 1, 1);
+
+    ASSERT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Started
+    );
+
+    controller.startScheduler();
+
+    // The scheduler sees an active job and must wait.
+    EXPECT_EQ(controller.jobStatus(job1), JobStatus::Running);
+    EXPECT_EQ(controller.jobStatus(job2), JobStatus::Queued);
+
+    // Only this test thread consumes job1's future.
+    ASSERT_TRUE(controller.waitForActiveJobCompletion());
+
+    // Completion notifies the autonomous scheduler.
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(job2) == JobStatus::Completed;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.jobStatus(job1), JobStatus::Completed);
+    EXPECT_EQ(controller.jobStatus(job2), JobStatus::Completed);
+}
+
 

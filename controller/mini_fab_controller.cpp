@@ -136,7 +136,19 @@ StateTransition MiniFabController::cancelRun()
 
 RecoveryResult MiniFabController::resetEquipment()
 {
-    return engine_.reset();
+	const auto result = engine_.reset();
+
+	if (result == RecoveryResult::Recovered)
+	{
+		{
+			std::lock_guard<std::mutex> lock(schedulerMutex_);
+			++schedulerRevision_;
+		}
+
+		schedulerCv_.notify_all();
+	}
+
+	return result;
 }
 
 std::uint64_t MiniFabController::enqueueJob(const std::string& waferId, int recipeId, int processModuleId)
@@ -213,14 +225,20 @@ bool MiniFabController::waitForActiveJobCompletion()
 
 	if (!activeJob) return false;
 
-	OperationResult result = engine_.waitForCompletion();
+	bool released = false;
+
+	const OperationResult result = engine_.waitForCompletion();
 
 	{
 		std::lock_guard<std::mutex> lock(schedulerMutex_);
-		const bool released = scheduler_.finishActiveJob(activeJob->id, result);
+		released = scheduler_.finishActiveJob(activeJob->id, result);
 
-		return released && result == OperationResult::Completed;
+		if (released) ++schedulerRevision_;
 	}
+
+	if (releaseD) schedulerCv_.notify_all();
+
+	return released && result == OperationResult::Completed;
 }
 
 std::size_t MiniFabController::pendingJobCount() const
@@ -254,6 +272,8 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 {
 	while (!stopToken.stop_requested())
 	{
+		std::uint64_t observedRevision;
+
 		{
 			std::unique_lock<std::mutex> lock(schedulerMutex_);
 
@@ -267,6 +287,8 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 			);
 
 			if (!hasWork || stopToken.stop_requested()) break;
+
+			observedRevision = schedulerRevision_;
 		}
 
 		switch (dispatchNextJob())
@@ -279,7 +301,20 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 				continue;
 
 			case DispatchResult::Busy:
-				return;
+			{
+				std::unique_lock<std::mutex> lock(schedulerMutex_);
+
+				schedulerCv_.wait(
+					lock,
+					stopToken,
+					[this, observedRevision]()
+					{
+						return schedulerRevision_ != observedRevision;
+					}
+				);
+
+				break;
+			}
 
 			case DispatchResult::Empty:
 				break;

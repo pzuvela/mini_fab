@@ -5,6 +5,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <cstdint>
 
 #include "equipment_snapshot.h"
 #include "wafer/wafer_manager.h"
@@ -39,6 +40,7 @@ private:
 	mutable std::mutex schedulerMutex_;
 	std::condition_variable_any schedulerCv_;
 	std::jthread schedulerWorker_;
+	std::uint64_t schedulerRevision_ = 0;
 
 	void schedulerLoop(std::stop_token stopToken);
 
