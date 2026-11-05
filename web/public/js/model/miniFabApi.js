@@ -83,7 +83,29 @@ async deleteRecipe(id) {
             result.error ?? `HTTP ${response.status}`
         );
     }
-}
+},
+
+async cancelRun() {
+    const response = await fetch("/api/cancel", {
+        method: "POST"
+    });
+
+    return {
+        httpStatus: response.status,
+        ...await response.json()
+    };
+},
+
+async resetEquipment() {
+    const response = await fetch("/api/reset", {
+        method: "POST"
+    });
+
+    return {
+        httpStatus: response.status,
+        ...await response.json()
+    };
+},
 
 };
 

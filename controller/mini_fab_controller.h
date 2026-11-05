@@ -15,6 +15,8 @@
 #include "recipes/recipe_upsert_result.h"
 #include "engine/start_result.h"
 #include "persistence/ievent_repository.h"
+#include "engine/state_transition.h"
+#include "equipment/recovery_result.h"
 
 
 class MiniFabController
@@ -49,4 +51,7 @@ public:
 	EquipmentSnapshot status() const;
 
 	std::vector<EquipmentEvent> events() const;
+
+	StateTransition cancelRun();
+	RecoveryResult resetEquipment();
 };

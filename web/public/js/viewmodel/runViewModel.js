@@ -19,6 +19,7 @@ export function createRunViewModel(api = miniFabApi) {
 	let recipeError = null;
 	let eventsRefreshing = false;
 	let currentRunId = null;
+	let controlCommandPending = false;
 
 	const subscribers = new Set();
 
@@ -41,6 +42,10 @@ export function createRunViewModel(api = miniFabApi) {
     				&& selectedRecipeId !== null
     				&& !recipesLoading
     				&& recipeError === null,
+			canCancel: ["Moving", "Processing"].includes(
+				snapshot?.equipmentState
+			) && !controlCommandPending,
+			canReset: snapshot?.equipmentstate === "Faulted" && !controlCommandPending,
 		};
 	}
 
@@ -243,6 +248,48 @@ async function run() {
     }
 }
 
+async function cancelRun() {
+    if (!getState().canCancel) return;
+
+    controlCommandPending = true;
+    notify();
+
+    try {
+        const result = await api.cancelRun();
+
+        runMessage = result.accepted
+            ? "Cancellation requested. Awaiting run outcome..."
+            : `Cancel rejected: ${result.error ?? "Unknown error"}`;
+    } catch (error) {
+        runMessage = `Cancel error: ${error.message}`;
+    } finally {
+        controlCommandPending = false;
+        notify();
+        await refresh();
+    }
+}
+
+async function resetEquipment() {
+    if (!getState().canReset) return;
+
+    controlCommandPending = true;
+    notify();
+
+    try {
+        const result = await api.resetEquipment();
+
+        runMessage = result.recovered
+            ? "Equipment recovered successfully."
+            : `Reset failed: ${result.error ?? "Unknown error"}`;
+    } catch (error) {
+        runMessage = `Reset error: ${error.message}`;
+    } finally {
+        controlCommandPending = false;
+        notify();
+        await refresh();
+    }
+}
+
 function selectRecipe(id) {
     const recipe = recipes.find(r => r.id === id);
 
@@ -259,7 +306,9 @@ function selectRecipe(id) {
 		selectRecipe,
 		run,
 		start,
-		stop
+		stop,
+		cancelRun,
+		resetEquipment
 	};
 
 }

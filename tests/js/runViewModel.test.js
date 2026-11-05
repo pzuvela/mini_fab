@@ -291,3 +291,119 @@ test("Old RunCompleted event must not finish a newer run", async () => {
     assert.equal(vm.getState().runPhase, "running");
 });
 
+test("Cancel enabled only while equipment is moving or processing", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    assert.equal(vm.getState().canCancel, false);
+
+    mock.setEquipmentState("Moving");
+    await vm.refresh();
+    assert.equal(vm.getState().canCancel, true);
+
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+    assert.equal(vm.getState().canCancel, true);
+
+    mock.setEquipmentState("Stopping");
+    await vm.refresh();
+    assert.equal(vm.getState().canCancel, false);
+
+    mock.setEquipmentState("Idle");
+    await vm.refresh();
+    assert.equal(vm.getState().canCancel, false);
+});
+
+test("Cancel requests cancellation without finishing the run", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    await vm.run();
+
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+
+    await vm.cancelRun();
+
+    assert.equal(mock.cancelRequests.length, 1);
+    assert.equal(vm.getState().runPhase, "running");
+    assert.match(vm.getState().message, /cancel/i);
+});
+
+test("Cancel rejects when equipment is idle", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    await vm.cancelRun();
+
+    assert.equal(mock.cancelRequests.length, 0);
+});
+
+test("Rejected cancellation displays error", async () => {
+    const mock = createMockApi();
+
+    mock.api.cancelRun = async () => ({
+        httpStatus: 409,
+        accepted: false,
+        error: "Cancellation rejected"
+    });
+
+    const vm = await prepareViewModel(mock);
+
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+
+    await vm.cancelRun();
+
+    assert.match(vm.getState().message, /rejected/i);
+});
+
+test("Reset enabled only when equipment is faulted", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    assert.equal(vm.getState().canReset, false);
+
+    mock.setEquipmentState("Faulted");
+    await vm.refresh();
+    assert.equal(vm.getState().canReset, true);
+
+    mock.setEquipmentState("Processing");
+    await vm.refresh();
+    assert.equal(vm.getState().canReset, false);
+});
+
+test("Reset invokes equipment recovery", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    mock.setEquipmentState("Faulted");
+    await vm.refresh();
+
+    await vm.resetEquipment();
+
+    assert.equal(mock.resetRequests.length, 1);
+    assert.match(vm.getState().message, /recover|reset/i);
+});
+
+test("Failed recovery displays error", async () => {
+    const mock = createMockApi();
+
+    mock.api.resetEquipment = async () => ({
+        httpStatus: 409,
+        recovered: false,
+        error: "Equipment recovery failed"
+    });
+
+    const vm = await prepareViewModel(mock);
+
+    mock.setEquipmentState("Faulted");
+    await vm.refresh();
+
+    await vm.resetEquipment();
+
+    assert.match(vm.getState().message, /failed/i);
+});
+
+
+

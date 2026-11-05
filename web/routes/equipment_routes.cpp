@@ -128,5 +128,65 @@ server.Post("/api/run",
     }
 );
 
+server.Post("/api/cancel",
+    [&controller](const httplib::Request&,
+                  httplib::Response& response)
+    {
+        const auto result = controller.cancelWafer();
+
+        if (result.isCancelled)
+        {
+            response.status = 202;
+            response.set_content(
+                R"({"accepted":true})",
+                "application/json"
+            );
+        }
+        else
+        {
+            response.status = 409;
+            response.set_content(
+                R"({"accepted":false,"error":"No active run to cancel"})",
+                "application/json"
+            );
+        }
+    }
+);
+
+server.Post("/api/reset",
+    [&controller](const httplib::Request&,
+                  httplib::Response& response)
+    {
+        const auto result = controller.resetEquipment();
+
+        switch (result)
+        {
+            case RecoveryResult::Recovered:
+                response.status = 200;
+                response.set_content(
+                    R"({"recovered":true})",
+                    "application/json"
+                );
+                break;
+
+            case RecoveryResult::NotRequired:
+                response.status = 409;
+                response.set_content(
+                    R"({"recovered":false,"error":"Equipment is not faulted"})",
+                    "application/json"
+                );
+                break;
+
+            case RecoveryResult::Failed:
+                response.status = 409;
+                response.set_content(
+                    R"({"recovered":false,"error":"Equipment recovery failed"})",
+                    "application/json"
+                );
+                break;
+        }
+    }
+);
+
     }
 }

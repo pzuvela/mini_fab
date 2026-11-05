@@ -124,4 +124,13 @@ RecipeUpsertResult MiniFabController::upsertRecipe(
     return recipeManager_->upsert(recipe);
 }
 
+StateTransition MiniFabController::cancelWafer()
+{
+    return engine_.cancel();
+}
+
+RecoveryResult MiniFabController::resetEquipment()
+{
+    return engine_.reset();
+}
 
