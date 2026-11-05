@@ -10,6 +10,7 @@
 #include "web/routes/equipment_routes.h"
 #include "web/routes/recipe_routes.h"
 #include "web/routes/job_routes.h"
+#include "web/routes/scheduler_routes.h:
 
 
 int main()
@@ -33,6 +34,7 @@ int main()
     MiniFab::Web::registerEquipmentRoutes(server, controller);
     MiniFab::Web::registerRecipeRoutes(server, controller);
     MiniFab::Web::registerJobRoutes(server, controller);
+    MiniFab::Web::registerSchedulerRoutes(server, controller);
 
     std::cout << "MiniFab server on port 8080\n";
 
