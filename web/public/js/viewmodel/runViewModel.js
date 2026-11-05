@@ -37,7 +37,7 @@ export function createRunViewModel(api = miniFabApi) {
 			recipeError,
 			canRun: snapshot?.equipmentState === "Idle"
     				&& !runningCommand
-				&& runPhase !== "accepted
+				&& runPhase !== "accepted"
 				&& runPhase !== "running"
     				&& selectedRecipeId !== null
     				&& !recipesLoading
