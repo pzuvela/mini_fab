@@ -300,14 +300,21 @@ OperationResult ProcessEngine::executeProcessWafer(
         	stopToken
 	);
 
-	if (movementResult != OperationResult::Completed) return movementResult;
+	OperationResult result = movementResult;
 
-	return processWaferAtModule(
-		wafer,
-		recipe,
-		originalLocation,
-		stopToken
-	);
+	if (movementResult == OperationResult::Completed)
+	{
+		result = processWaferAtModule(
+			wafer,
+			recipe,
+			originalLocation,
+			stopToken
+		);
+	}
+
+	recordRunOutcome(wafer.id, result);
+
+	return result;
 }
 
 OperationResult ProcessEngine::processWafer(
@@ -521,3 +528,34 @@ bool ProcessEngine::tryTransition(EquipmentState expectedState, EquipmentState n
 	state_ = newState;
 	return true;
 }
+
+void ProcessEngine::recordRunOutcome(
+    const std::string& waferId,
+    OperationResult result
+)
+{
+    switch (result)
+    {
+        case OperationResult::Completed:
+            eventLog_.record(
+                EventType::RunCompleted,
+                "Run completed for wafer " + waferId
+            );
+            break;
+
+        case OperationResult::Cancelled:
+            eventLog_.record(
+                EventType::RunCancelled,
+                "Run cancelled for wafer " + waferId
+            );
+            break;
+
+        case OperationResult::Failed:
+            eventLog_.record(
+                EventType::RunFailed,
+                "Run failed for wafer " + waferId
+            );
+            break;
+    }
+}
+

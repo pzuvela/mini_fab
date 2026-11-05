@@ -1071,4 +1071,43 @@ TEST_F(ProcessEngineTest,
     EXPECT_EQ(engine.state(), EquipmentState::Faulted);
 }
 
+TEST_F(ProcessEngineTest, SuccessfulRunGeneratesRunCompletedEvent)
+{
+    MockRobot robot{true};
+    MockProcessModule processModule{true};
+
+    ProcessEngine engine(
+        mgr_, robot, processModule, eventLog_
+    );
+
+    ASSERT_EQ(
+        engine.processWafer(
+            wafer_.id,
+            destination_,
+            recipe_
+        ),
+        OperationResult::Completed
+    );
+
+    const auto events = eventLog_.getEvents();
+
+    const auto count = std::ranges::count_if(
+        events,
+        [](const EquipmentEvent& event)
+        {
+            return event.type == EventType::RunCompleted;
+        }
+    );
+
+    EXPECT_EQ(count, 1);
+
+    ASSERT_FALSE(events.empty());
+    EXPECT_EQ(
+        events.back().type,
+        EventType::RunCompleted
+    );
+
+    EXPECT_EQ(engine.state(), EquipmentState::Idle);
+}
+
 }

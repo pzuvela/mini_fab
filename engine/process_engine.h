@@ -90,6 +90,8 @@ private:
 
     Wafer* acceptWaferForProcessing(const std::string& waferId);
 
+    void recordRunOutcome(const std::string& waferId, OperationResult result);
+
 public:
     ProcessEngine(
         IWaferManager& waferManager,
