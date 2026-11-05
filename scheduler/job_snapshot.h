@@ -7,5 +7,5 @@
 struct JobSnapshot
 {
 	Job job;
-	Jobstatus status;
+	JobStatus status;
 };
