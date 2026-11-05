@@ -21,6 +21,7 @@
 #include "engine/state_transition.h"
 #include "equipment/recovery_result.h"
 #include "scheduler/job_scheduler.h"
+#include "scheduler/dispatch_result.h"
 
 
 class MiniFabController
@@ -76,7 +77,7 @@ public:
 
 	std::uint64_t enqueueJob(const std::string& wfaerId, int recipeId, int processModuleId);
 
-	bool dispatchNextJob();
+	DispatchResult dispatchNextJob();
 
 	bool waitForActiveJobCompletion();
 

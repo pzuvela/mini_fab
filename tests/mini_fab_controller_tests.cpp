@@ -5,6 +5,7 @@
 
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
+#include "scheduler/dispatch_result.h"
 
 using namespace std::chrono_literals;
 
@@ -68,25 +69,25 @@ TEST(MiniFabControllerTest, CompletedJobAllowsNextJobToDispatch)
     EXPECT_EQ(controller.pendingJobCount(), 2);
 
     // First job starts.
-    ASSERT_TRUE(controller.dispatchNextJob());
+    ASSERT_EQ(controller.dispatchNextJob(), DispatchResult::Started);
     EXPECT_EQ(controller.pendingJobCount(), 1);
 
     // Scheduler must not dispatch another active job.
-    EXPECT_FALSE(controller.dispatchNextJob());
+    EXPECT_EQ(controller.dispatchNextJob(), DispatchResult::Busy);
 
     // First job finishes and releases scheduler.
     ASSERT_TRUE(controller.waitForActiveJobCompletion());
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
 
     // Second job can now run.
-    ASSERT_TRUE(controller.dispatchNextJob());
+    ASSERT_EQ(controller.dispatchNextJob(), DispatchResult::Started);
     EXPECT_EQ(controller.pendingJobCount(), 0);
 
     ASSERT_TRUE(controller.waitForActiveJobCompletion());
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
 
     // No more jobs.
-    EXPECT_FALSE(controller.dispatchNextJob());
+    EXPECT_EQ(controller.dispatchNextJob(), DispatchResult::Empty);
     EXPECT_FALSE(controller.waitForActiveJobCompletion());
 }
 
@@ -105,7 +106,7 @@ TEST(MiniFabControllerTest, InvalidJobIsRejectedAndRemovedFromQueue)
     EXPECT_EQ(controller.pendingJobCount(), 1);
 
     // Invalid job cannot be dispatched.
-    EXPECT_FALSE(controller.dispatchNextJob());
+    EXPECT_EQ(controller.dispatchNextJob(), DispatchResult::Rejected);
 
     // Job is rejected and removed from the queue.
     EXPECT_EQ(controller.jobStatus(jobId), JobStatus::Rejected);
@@ -116,7 +117,7 @@ TEST(MiniFabControllerTest, InvalidJobIsRejectedAndRemovedFromQueue)
     EXPECT_FALSE(controller.waitForActiveJobCompletion());
 
     // No jobs remain to dispatch.
-    EXPECT_FALSE(controller.dispatchNextJob());
+    EXPECT_EQ(controller.dispatchNextJob(), DispatchResult::Empty);
 
     // Rejection status persists.
     EXPECT_EQ(controller.jobStatus(jobId), JobStatus::Rejected);
@@ -298,6 +299,57 @@ TEST(MiniFabControllerTest, InvalidRecipeIsRejected)
     controller.stopScheduler();
 
     EXPECT_EQ(controller.pendingJobCount(), 0);
+}
+
+
+TEST(MiniFabControllerTest, DispatchReturnsExplicitResults)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
+
+    EXPECT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Empty
+    );
+
+    const auto invalidJob = controller.enqueueJob("W1", 1, 2);
+
+    EXPECT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Rejected
+    );
+
+    EXPECT_EQ(
+        controller.jobStatus(invalidJob),
+        JobStatus::Rejected
+    );
+
+    const auto validJob = controller.enqueueJob("W1", 1, 1);
+
+    EXPECT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Started
+    );
+
+    EXPECT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Busy
+    );
+
+    EXPECT_TRUE(controller.waitForActiveJobCompletion());
+
+    EXPECT_EQ(
+        controller.jobStatus(validJob),
+        JobStatus::Completed
+    );
+
+    EXPECT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Empty
+    );
 }
 
 

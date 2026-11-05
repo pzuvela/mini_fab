@@ -176,26 +176,30 @@ StartResult MiniFabController::runWafer(
 	return engine_.startProcessWafer(waferId, Location{ Station::ProcessModule, processModuleId }, recipe.value(), acceptedRunId);
 }
 
-bool MiniFabController::dispatchNextJob()
+DispatchResult MiniFabController::dispatchNextJob()
 {
 	std::lock_guard<std::mutex> lock(schedulerMutex_);
 
+	if (scheduler_.activeJob().has_value()) return DispatchResult::Busy;
+
 	const auto nextJob = scheduler_.nextQueuedJob();
 
-	if (!nextJob) return false;
+	if (!nextJob) return DispatchResult::Empty;
 
 	if (!isValidJob(*nextJob))
 	{
 		scheduler_.rejectNextJob();
-		return false;
+		return DispatchResult::Rejected;
 	}
 
-	return scheduler_.dispatchNext(
+	bool started = scheduler_.dispatchNext(
 		[this](const Job& job)
 		{
 			return runWafer(job.waferId, job.recipeId, job.processModuleId) == StartResult::Accepted;
 		}
 	);
+
+	return started ? DispatchResult::Started : DispatchResult::Busy;
 }
 
 bool MiniFabController::waitForActiveJobCompletion()
@@ -253,7 +257,7 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 		{
 			std::unique_lock<std::mutex> lock(schedulerMutex_);
 
-			bool hasWork = schedulerCv_.wait(
+			const bool hasWork = schedulerCv_.wait(
 				lock,
 				stopToken,
 				[this]()
@@ -265,15 +269,21 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 			if (!hasWork || stopToken.stop_requested()) break;
 		}
 
-		const auto pendingBefore = pendingJobCount();
-
-		if (!dispatchNextJob())
+		switch (dispatchNextJob())
 		{
-			if (pendingJobCount() < pendingBefore) continue;
-			break;
-		}
+			case DispatchResult::Started:
+				waitForActiveJobCompletion();
+				break;
 
-		waitForActiveJobCompletion();
+			case DispatchResult::Rejected:
+				continue;
+
+			case DispatchResult::Busy:
+				return;
+
+			case DispatchResult::Empty:
+				break;
+		}
 	}
 }
 
