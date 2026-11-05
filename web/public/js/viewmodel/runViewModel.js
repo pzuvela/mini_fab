@@ -64,7 +64,6 @@ async function refresh() {
 
 	if (runPhase === "accepted") {
     		if (latest.equipmentState === "Faulted") {
-        		runPhase = "finished";
         		runMessage = "Wafer run faulted. Check equipment events.";
     		} else if (latest.equipmentState !== "Idle") {
         		runPhase = "running";
