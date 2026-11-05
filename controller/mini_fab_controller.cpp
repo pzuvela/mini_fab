@@ -255,7 +255,7 @@ bool MiniFabController::waitForActiveJobCompletionImpl(CompletionOwner caller)
 
 	try
 	{
-		result = engine_.waitForCompletion();
+		result = awaitEngineCompletion();
 	}
 	catch (const std::exception& ex)
 	{
@@ -429,4 +429,9 @@ bool MiniFabController::resetSchedulerFault()
 
     schedulerCv_.notify_all();
     return true;
+}
+
+OperationResult MiniFabController::awaitEngineCompletion()
+{
+	return engine_.waitForCompletion();
 }

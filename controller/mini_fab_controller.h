@@ -53,13 +53,16 @@ private:
 	DispatchResult dispatchNextJobImpl(CompletionOwner owner);
 	bool waitForActiveJobCompletionImpl(CompletionOwner caller);
 
+protected:
+	virtual OperationResult awaitEngineCompletion();
+
 public:
 	explicit MiniFabController(IEventRepository* eventRepository = nullptr);
 	explicit MiniFabController(RecipeManager& recipeManager);
 
 	MiniFabController(RecipeManager& recipeManager, IEventRepository& eventReposutory);
 
-	~MiniFabController();
+	virtual ~MiniFabController();
 
 	StartResult runWafer(const Recipe& recipe, std::uint64_t* acceptedRunId = nullptr);
 	StartResult runWafer(int RecipeId, std::uint64_t* acceptedRunId = nullptr);

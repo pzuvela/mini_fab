@@ -6,6 +6,7 @@
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
 #include "scheduler/dispatch_result.h"
+#include "mocks/fault_injecting_controller.h"
 
 using namespace std::chrono_literals;
 
@@ -467,6 +468,105 @@ TEST(MiniFabControllerTest, SchedulerInitiallyHasNoFault)
     EXPECT_TRUE(controller.schedulerError().empty());
 
     EXPECT_FALSE(controller.resetSchedulerFault());
+}
+
+
+TEST(MiniFabControllerTest, CompletionExceptionFaultsScheduler)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+
+    FaultInjectingController controller(manager);
+
+    ASSERT_TRUE(
+        controller.addRecipe({1, "Fast Etch", 0.01})
+    );
+
+    const auto job1 = controller.enqueueJob("W1", 1, 1);
+    const auto job2 = controller.enqueueJob("W1", 1, 1);
+
+    controller.startScheduler();
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.schedulerState()
+            == SchedulerState::Faulted;
+    }));
+
+    EXPECT_EQ(
+        controller.jobStatus(job1),
+        JobStatus::Failed
+    );
+
+    EXPECT_EQ(
+        controller.jobStatus(job2),
+        JobStatus::Queued
+    );
+
+    EXPECT_EQ(controller.pendingJobCount(), 1);
+
+    EXPECT_EQ(
+        controller.schedulerError(),
+        "Injected completion failure"
+    );
+
+    controller.stopScheduler();
+}
+
+TEST(MiniFabControllerTest, SchedulerRecoversAfterCompletionException)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+
+    FaultInjectingController controller(manager);
+
+    ASSERT_TRUE(
+        controller.addRecipe({1, "Fast Etch", 0.01})
+    );
+
+    const auto job1 = controller.enqueueJob("W1", 1, 1);
+    const auto job2 = controller.enqueueJob("W1", 1, 1);
+
+    controller.startScheduler();
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.schedulerState()
+            == SchedulerState::Faulted;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.jobStatus(job1), JobStatus::Failed);
+    EXPECT_EQ(controller.jobStatus(job2), JobStatus::Queued);
+
+    // The equipment finished successfully before the
+    // completion-boundary exception was injected.
+    ASSERT_EQ(controller.status().state, EquipmentState::Idle);
+
+    ASSERT_TRUE(controller.resetSchedulerFault());
+
+    EXPECT_EQ(
+        controller.schedulerState(),
+        SchedulerState::Stopped
+    );
+
+    EXPECT_TRUE(controller.schedulerError().empty());
+
+    // The fault injector fires only once.
+    controller.startScheduler();
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.jobStatus(job2)
+            == JobStatus::Completed;
+    }));
+
+    controller.stopScheduler();
+
+    EXPECT_EQ(controller.jobStatus(job1), JobStatus::Failed);
+    EXPECT_EQ(controller.jobStatus(job2), JobStatus::Completed);
+    EXPECT_EQ(controller.pendingJobCount(), 0);
 }
 
 
