@@ -129,7 +129,7 @@ bool JobScheduler::rejectNextJob()
 
 	const auto jobId = queue_.front().id;
 
-	jobStatuses[jobId] = JobStatus::Rejected;
+	jobStatuses_[jobId] = JobStatus::Rejected;
 
 	queue_.pop_front();
 
