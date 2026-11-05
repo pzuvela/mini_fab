@@ -1,4 +1,4 @@
-#pragma onoce
+#pragma once
 
 #include "httplib.h"
 

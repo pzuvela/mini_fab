@@ -27,7 +27,7 @@ namespace
 
         if (ec != std::errc{} ||
             ptr != text.data() + text.size() ||
-            value == 0)
+            value <= 0)
         {
             return std::nullopt;
         }
