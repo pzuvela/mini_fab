@@ -240,15 +240,25 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 
 	while (!stopToken.stop_requested())
 	{
-		bool hasWork = schedulerCv_.wait(
-			lock,
-			stopToken,
-			[this]()
-			{
-				return scheduler_.pendingCount() > 0;
-			}
-		);
+		{
 
-		if (!hasWork || stopToken.stop_requested()) break;
+			bool hasWork = schedulerCv_.wait(
+				lock,
+				stopToken,
+				[this]()
+				{
+					return scheduler_.pendingCount() > 0;
+				}
+			);
+
+			if (!hasWork || stopToken.stop_requested()) break;
+		}
+
+		if (!dispatchNextJob())
+		{
+			break;
+		}
+
+		waitForActiveJobCompletion();
 	}
 }

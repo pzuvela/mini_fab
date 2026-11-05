@@ -18,6 +18,8 @@ int main()
     RecipeManager recipeManager(repository);
     MiniFabController controller(recipeManager, eventRepository);
 
+    controller.startScheduler();
+
     httplib::Server server;
 
     if (!server.set_mount_point("/", MINIFAB_PUBLIC_DIR))
