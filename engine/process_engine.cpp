@@ -365,6 +365,7 @@ StartResult ProcessEngine::startProcessWafer(
 				catch (...)
 				{
 					setFaulted(FaultSource::ProcessModule);
+					recordRunOutcome(wafer->id, OperationResult::Failed);
 					promise.set_exception(std::current_exception());
 				}
 			}

@@ -1110,4 +1110,131 @@ TEST_F(ProcessEngineTest, SuccessfulRunGeneratesRunCompletedEvent)
     EXPECT_EQ(engine.state(), EquipmentState::Idle);
 }
 
+TEST_F(ProcessEngineTest, FailedRunGeneratesRunFailedEvent)
+{
+    MockRobot robot{true};
+    MockProcessModule processModule{false};
+
+    ProcessEngine engine(mgr_, robot, processModule, eventLog_);
+
+    ASSERT_EQ(
+        engine.processWafer(wafer_.id, destination_, recipe_),
+        OperationResult::Failed
+    );
+
+    const auto events = eventLog_.getEvents();
+
+    EXPECT_EQ(
+        std::ranges::count_if(events, [](const EquipmentEvent& event) {
+            return event.type == EventType::RunFailed;
+        }),
+        1
+    );
+
+    EXPECT_EQ(events.back().type, EventType::RunFailed);
+    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+}
+
+TEST_F(ProcessEngineTest, CancelledRunGeneratesRunCancelledEvent)
+{
+    MockRobot robot{true};
+    BlockingMockProcessModule processModule;
+
+    WaferManager mgr;
+    mgr.addWafer(wafer_);
+
+    ProcessEngine engine(mgr, robot, processModule, eventLog_);
+
+    ASSERT_EQ(
+        engine.startProcessWafer(wafer_.id, destination_, longRecipe_),
+        StartResult::Accepted
+    );
+
+    processModule.waitUntilProcessingStarts();
+
+    EXPECT_TRUE(engine.cancel().isCancelled);
+
+    EXPECT_EQ(
+        engine.waitForCompletion(),
+        OperationResult::Cancelled
+    );
+
+    const auto events = eventLog_.getEvents();
+
+    EXPECT_EQ(
+        std::ranges::count_if(events, [](const EquipmentEvent& event) {
+            return event.type == EventType::RunCancelled;
+        }),
+        1
+    );
+
+    EXPECT_EQ(events.back().type, EventType::RunCancelled);
+    EXPECT_EQ(engine.state(), EquipmentState::Idle);
+}
+
+TEST_F(ProcessEngineTest, ExceptionGeneratesRunFailedEvent)
+{
+    MockRobot robot{true};
+    ThrowingMockProcessModule processModule;
+
+    WaferManager mgr;
+    mgr.addWafer(wafer_);
+
+    ProcessEngine engine(mgr, robot, processModule, eventLog_);
+
+    ASSERT_EQ(
+        engine.startProcessWafer(wafer_.id, destination_, recipe_),
+        StartResult::Accepted
+    );
+
+    EXPECT_THROW(
+        engine.waitForCompletion(),
+        std::runtime_error
+    );
+
+    const auto events = eventLog_.getEvents();
+
+    EXPECT_EQ(
+        std::ranges::count_if(events, [](const EquipmentEvent& event) {
+            return event.type == EventType::RunFailed;
+        }),
+        1
+    );
+
+    EXPECT_EQ(events.back().type, EventType::RunFailed);
+    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+}
+
+TEST_F(ProcessEngineTest, AsyncRunGeneratesRunCompletedEvent)
+{
+    MockRobot robot{true};
+    MockProcessModule processModule{true};
+
+    WaferManager mgr;
+    mgr.addWafer(wafer_);
+
+    ProcessEngine engine(mgr, robot, processModule, eventLog_);
+
+    ASSERT_EQ(
+        engine.startProcessWafer(wafer_.id, destination_, recipe_),
+        StartResult::Accepted
+    );
+
+    ASSERT_EQ(
+        engine.waitForCompletion(),
+        OperationResult::Completed
+    );
+
+    const auto events = eventLog_.getEvents();
+
+    EXPECT_EQ(
+        std::ranges::count_if(events, [](const EquipmentEvent& event) {
+            return event.type == EventType::RunCompleted;
+        }),
+        1
+    );
+
+    EXPECT_EQ(events.back().type, EventType::RunCompleted);
+}
+
 }
