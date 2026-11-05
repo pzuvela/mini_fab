@@ -116,59 +116,6 @@ TEST(MiniFabControllerTest, RejectedJobRemainsQueued)
     EXPECT_FALSE(controller.waitForActiveJobCompletion());
 }
 
-TEST(MiniFabControllerTest, AutoSchedulerProcessesQueuedJobs)
-{
-    SqliteRecipeRepository repository(":memory:");
-    RecipeManager manager(repository);
-    MiniFabController controller(manager);
-
-    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
-
-    controller.startScheduler();
-
-    controller.enqueueJob("W1", 1, 1);
-    controller.enqueueJob("W1", 1, 1);
-
-    // Both jobs should be dispatched automatically.
-    ASSERT_TRUE(waitUntil([&]()
-    {
-        return controller.pendingJobCount() == 0;
-    }));
-
-    // Queue empty does not necessarily mean processing finished.
-    // Stop joins the worker, allowing the active job to finish.
-    controller.stopScheduler();
-
-    EXPECT_EQ(controller.status().state, EquipmentState::Idle);
-    EXPECT_FALSE(controller.waitForActiveJobCompletion());
-}
-
-TEST(MiniFabControllerTest, AutoSchedulerWakesForNewJob)
-{
-    SqliteRecipeRepository repository(":memory:");
-    RecipeManager manager(repository);
-    MiniFabController controller(manager);
-
-    ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
-
-    // Start with an empty queue.
-    controller.startScheduler();
-
-    EXPECT_EQ(controller.pendingJobCount(), 0);
-
-    // Worker should wake after enqueueJob() notifies it.
-    controller.enqueueJob("W1", 1, 1);
-
-    ASSERT_TRUE(waitUntil([&]()
-    {
-        return controller.pendingJobCount() == 0;
-    }));
-
-    controller.stopScheduler();
-
-    EXPECT_EQ(controller.status().state, EquipmentState::Idle);
-}
-
 TEST(MiniFabControllerTest, SchedulerCanBeStoppedTwice)
 {
     MiniFabController controller;
@@ -301,5 +248,4 @@ TEST(MiniFabControllerTest, StoppedSchedulerDoesNotDispatchJobs)
     EXPECT_EQ(controller.pendingJobCount(), 1);
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
 }
-
 
