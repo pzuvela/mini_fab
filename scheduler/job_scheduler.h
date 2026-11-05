@@ -4,7 +4,10 @@
 #include <deque>
 #include <optional>
 #include <functional>
+#include <unordered_map>
+#include "job_status.h"
 #include "job.h"
+#include "equipment/operation_result.h"
 
 
 class JobScheduler
@@ -13,6 +16,7 @@ private:
 	std::deque<Job> queue_;
 	std::uint64_t nextJobId_ = 1;
 	std::optional<Job> activeJob_;
+	std::unordered_map<std::uint64_t, JobStatus> jobStatuses_;
 
 public:
 	std::uint64_t enqueue(const std::string& waferId, int recipeId, int processModuleId);
@@ -22,4 +26,6 @@ public:
 	bool dispatchNext(const std::function<bool(const Job&)>& tryStart);
 	std::optional<Job> activeJob() const;
 	bool completeActiveJob(std::uint64_t jobId);
+	std::optional<JobStatus> jobStatus(std::uint64_t jobId) const;
+	bool finishActiveJob(std::uint64_t jobId, OperationResult result);
 };

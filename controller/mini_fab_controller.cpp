@@ -199,11 +199,22 @@ bool MiniFabController::waitForActiveJobCompletion()
 
 	if (!activeJob) return false;
 
-	engine_.waitForCompletion();
+	OperationResult result =  OperationResult::Failed;
+
+	try
+	{
+		result = engine_.waitForCompletion();
+	}
+	catch (...)
+	{
+	}
+
 
 	{
 		std::lock_guard<std::mutex> lock(schedulerMutex_);
-		return scheduler_.completeActiveJob(activeJob->id);
+		const bool released = scheduler_.finishActiveJob(activeJob->id, result);
+
+		return releasesd && result == OperationResult::Completed;
 	}
 }
 
@@ -260,4 +271,10 @@ void MiniFabController::schedulerLoop(std::stop_token stopToken)
 
 		waitForActiveJobCompletion();
 	}
+}
+
+std::optional<JobStatus> MiniFabController::jobStatus(std::uint64_t jobId) const
+{
+	std::lock_guard<std::mutex> lock(schedulerMutex_);
+	return scheduler_.jobStatus(jobId);
 }

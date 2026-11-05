@@ -84,4 +84,6 @@ public:
 
 	void startScheduler();
 	void stopScheduler();
+
+	std::optional<JobStatus> jobStatus(std::uint64_t jobId) const;
 };

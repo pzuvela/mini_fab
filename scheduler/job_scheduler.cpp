@@ -16,6 +16,7 @@ std::uint64_t JobScheduler::enqueue(
 		.processModuleId = processModuleId
 	};
 	queue_.push_back(job);
+	jobStatuses_[jobId] = JobStatus::Queued;
 	return jobId;
 }
 
@@ -49,6 +50,8 @@ bool JobScheduler::cancelQueued(std::uint64_t jobId)
 
 	queue_.erase(it);
 
+	jobStatuses_[jobId] = JobStatus::Cancelled;
+
 	return true;
 }
 
@@ -61,6 +64,8 @@ bool JobScheduler::dispatchNext(const std::function<bool(const Job&)>& tryStart)
 
 	activeJob_ = queue_.front();
 	queue_.pop_front();
+
+	jobStatuses_[activeJob_->id] = JobStatus::Running;
 
 	return true;
 }
@@ -76,6 +81,43 @@ bool JobScheduler::completeActiveJob(std::uint64_t jobId)
 
 	if (activeJob_->id != jobId) return false;
 
+	activeJob_.reset();
+
+	return true;
+}
+
+std::optional<JobStatus> JobScheduler::jobStatus(std::uint64_t jobId) const
+{
+	auto it = jobStatuses_.find(jobId);
+
+	if (it == jobStatuses_.end()) return std::nullopt;
+
+	return it->second;
+}
+
+bool JobScheduler::finishActiveJob(std::uint64_t jobId, OperationResult result)
+{
+	if (!activeJob_ || activeJob_->id != jobId) return false;
+
+	JobStatus status = JobStatus::Failed;
+
+	switch (result)
+	{
+		case OperationResult::Completed:
+			status = JobStatus::Completed;
+			break;
+
+		case OperationResult::Cancelled:
+			status = JobStatus::Cancelled;
+			break;
+
+		case OperationResult::Failed:
+			status = JobStatus::Failed;
+			break;
+
+	}
+
+	jobStatuses_[jobId] = status;
 	activeJob_.reset();
 
 	return true;

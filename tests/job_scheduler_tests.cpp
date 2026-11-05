@@ -176,4 +176,60 @@ TEST(JobSchedulerTests, CompleteActiveJobRejectsWrongOrDuplicateId)
     EXPECT_EQ(scheduler.pendingCount(), 1);
 }
 
+TEST(JobSchedulerTest, TracksJobLifecycle)
+{
+    JobScheduler scheduler;
+
+    const auto id = scheduler.enqueue("W1", 1, 1);
+
+    ASSERT_EQ(scheduler.jobStatus(id), JobStatus::Queued);
+
+    ASSERT_TRUE(scheduler.dispatchNext(
+        [](const Job&) { return true; }
+    ));
+
+    EXPECT_EQ(scheduler.jobStatus(id), JobStatus::Running);
+
+    ASSERT_TRUE(scheduler.finishActiveJob(
+        id, OperationResult::Completed
+    ));
+
+    EXPECT_EQ(scheduler.jobStatus(id), JobStatus::Completed);
+}
+
+TEST(JobSchedulerTest, TracksFailedJob)
+{
+    JobScheduler scheduler;
+
+    const auto id = scheduler.enqueue("W1", 1, 1);
+
+    ASSERT_TRUE(scheduler.dispatchNext(
+        [](const Job&) { return true; }
+    ));
+
+    ASSERT_TRUE(scheduler.finishActiveJob(
+        id, OperationResult::Failed
+    ));
+
+    EXPECT_EQ(scheduler.jobStatus(id), JobStatus::Failed);
+}
+
+TEST(JobSchedulerTest, TracksCancelledQueuedJob)
+{
+    JobScheduler scheduler;
+
+    const auto id = scheduler.enqueue("W1", 1, 1);
+
+    ASSERT_TRUE(scheduler.cancelQueued(id));
+
+    EXPECT_EQ(scheduler.jobStatus(id), JobStatus::Cancelled);
+    EXPECT_EQ(scheduler.pendingCount(), 0);
+}
+
+TEST(JobSchedulerTest, UnknownJobHasNoStatus)
+{
+    JobScheduler scheduler;
+
+    EXPECT_EQ(scheduler.jobStatus(999), std::nullopt);
+}
 
