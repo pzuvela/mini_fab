@@ -39,3 +39,10 @@ Thumbs.db
 *.tmp
 *.log
 *~
+
+#DB
+minifab.db
+minifab.db-shm
+minifab.db-wal
+minifab.db-journal
+
