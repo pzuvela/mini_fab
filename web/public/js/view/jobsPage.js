@@ -1,5 +1,5 @@
 import { createJobsViewModel } from
-    "./viewmodel/jobsViewModel.js";
+    "../viewmodel/jobsViewModel.js";
 
 const vm = createJobsViewModel();
 
