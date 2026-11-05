@@ -1,4 +1,4 @@
-#include "recipes/sqlite_recipe_repository.h"
+#include "sqlite_recipe_repository.h"
 
 #include <cmath>
 #include <stdexcept>

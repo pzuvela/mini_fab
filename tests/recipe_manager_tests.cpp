@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "recipes/recipe_manager.h"
-#include "recipes/sqlite_recipe_repository.h"
+#include "persistence/sqlite_recipe_repository.h"
 
 TEST(RecipeManagerTests, LoadsRecipesFromRepository)
 {

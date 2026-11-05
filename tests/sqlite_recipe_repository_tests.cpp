@@ -3,7 +3,8 @@
 #include <filesystem>
 #include <stdexcept>
 
-#include "recipes/sqlite_recipe_repository.h"
+#include "persistence/sqlite_recipe_repository.h"
+
 
 TEST(SqliteRecipeRepositoryTests, InsertAndRetrieve)
 {

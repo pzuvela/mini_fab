@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "controller/mini_fab_controller.h"
-#include "recipes/sqlite_recipe_repository.h"
+#include "persistence/sqlite_recipe_repository.h"
 #include "engine/start_result.h"
 
 

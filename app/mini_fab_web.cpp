@@ -3,7 +3,7 @@
 #include "httplib.h"
 
 #include "controller/mini_fab_controller.h"
-#include "recipes/sqlite_recipe_repository.h"
+#include "persistence/sqlite_recipe_repository.h"
 #include "recipes/recipe_manager.h"
 
 #include "web/routes/equipment_routes.h"

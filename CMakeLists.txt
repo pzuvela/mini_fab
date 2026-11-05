@@ -33,7 +33,7 @@ foreach(target IN ITEMS
 endforeach()
 
 add_library(mini_fab_recipes STATIC
-    recipes/sqlite_recipe_repository.cpp
+   	persistence/sqlite_recipe_repository.cpp
 	recipes/recipe_manager.cpp
 )
 
@@ -93,6 +93,18 @@ set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(SQLiteCpp)
 
 target_link_libraries(mini_fab_recipes PUBLIC
+    SQLiteCpp
+)
+
+add_library(mini_fab_events STATIC
+    persistence/sqlite_event_repository.cpp
+)
+
+target_include_directories(mini_fab_events PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(mini_fab_events PUBLIC
     SQLiteCpp
 )
 
