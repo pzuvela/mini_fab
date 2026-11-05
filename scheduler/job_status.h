@@ -13,7 +13,7 @@ enum class JobStatus
 
 namespace MiniFab::Web
 {
-    const char* toString(JobStatus status)
+    inline const char* toString(JobStatus status)
     {
         switch (status)
         {
