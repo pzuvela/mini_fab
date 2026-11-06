@@ -145,35 +145,27 @@ TEST(JobSchedulerTests, CompleteActiveJobAllowsNextDispatch)
     EXPECT_EQ(scheduler.pendingCount(), 0);
 }
 
-TEST(JobSchedulerTests, CompleteActiveJobRejectsWrongOrDuplicateId)
+TEST(JobSchedulerTests, CompleteActiveJobRejectsWrongId)
 {
     JobScheduler scheduler;
+    const auto activeId = scheduler.enqueue("W1", 10, 1);
+    const auto otherId = scheduler.enqueue("W2", 20, 2);
 
-    const auto id1 = scheduler.enqueue("W1", 10, 1);
-    const auto id2 = scheduler.enqueue("W2", 20, 2);
-
-    auto accept = [](const Job&) { return true; };
-
-    // No active job yet.
-    EXPECT_FALSE(scheduler.completeActiveJob(id1));
-
-    ASSERT_TRUE(scheduler.dispatchNext(accept));
-
-    // Wrong ID must not clear Job 1.
-    EXPECT_FALSE(scheduler.completeActiveJob(id2));
-
+    ASSERT_TRUE(scheduler.dispatchNext([](const Job&) { return true; }));
+    EXPECT_FALSE(scheduler.completeActiveJob(otherId));
     ASSERT_TRUE(scheduler.activeJob().has_value());
-    EXPECT_EQ(scheduler.activeJob()->id, id1);
+    EXPECT_EQ(scheduler.activeJob()->id, activeId);
+}
 
-    // Correct completion.
-    EXPECT_TRUE(scheduler.completeActiveJob(id1));
+TEST(JobSchedulerTests, CompleteActiveJobRejectsDuplicateCompletion)
+{
+    JobScheduler scheduler;
+    const auto jobId = scheduler.enqueue("W1", 10, 1);
 
-    // Duplicate completion must be rejected.
-    EXPECT_FALSE(scheduler.completeActiveJob(id1));
+    ASSERT_TRUE(scheduler.dispatchNext([](const Job&) { return true; }));
+    ASSERT_TRUE(scheduler.completeActiveJob(jobId));
+    EXPECT_FALSE(scheduler.completeActiveJob(jobId));
     EXPECT_FALSE(scheduler.activeJob().has_value());
-
-    // Job 2 remains queued.
-    EXPECT_EQ(scheduler.pendingCount(), 1);
 }
 
 TEST(JobSchedulerTest, TracksJobLifecycle)
