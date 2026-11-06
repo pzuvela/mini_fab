@@ -51,6 +51,16 @@ MiniFabController::~MiniFabController()
 	stopScheduler();
 }
 
+std::vector<Wafer> MiniFabController::wafersSnapshot() const
+{
+    return manager_.getWafers();
+}
+
+bool MiniFabController::registerWafer(const Wafer& wafer)
+{
+    return manager_.addWafer(wafer);
+}
+
 EquipmentSnapshot MiniFabController::status() const
 {
 	return EquipmentSnapshot{
