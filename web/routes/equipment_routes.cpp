@@ -6,7 +6,11 @@
 #include "web/parsing/recipe_parser.h"
 #include "engine/start_result.h"
 
+#include <algorithm>
+#include <charconv>
+#include <sstream>
 #include <cmath>
+#include "web/serialization/json_utils.h"
 #include <stdexcept>
 #include <string>
 
@@ -24,6 +28,63 @@ namespace MiniFab::Web
                     R"({"status":"ok","system":"MiniFab"})",
                     "application/json"
                 );
+            }
+        );
+
+        server.Get("/api/wafers",
+            [&controller](const httplib::Request&, httplib::Response& response)
+            {
+                auto wafers = controller.wafersSnapshot();
+                std::sort(wafers.begin(), wafers.end(),
+                    [](const Wafer& a, const Wafer& b) { return a.id < b.id; });
+                std::ostringstream out;
+                out << "[";
+                for (std::size_t i = 0; i < wafers.size(); ++i)
+                {
+                    if (i) out << ",";
+                    out << "{\"id\":";
+                    writeJsonString(out, wafers[i].id);
+                    out << ",\"station\":";
+                    writeJsonString(out, toString(wafers[i].location.station));
+                    out << ",\"slot\":" << wafers[i].location.slot << "}";
+                }
+                out << "]";
+                response.set_content(out.str(), "application/json");
+            }
+        );
+
+        server.Post("/api/wafers",
+            [&controller](const httplib::Request& request, httplib::Response& response)
+            {
+                if (!request.has_param("id") || !request.has_param("slot"))
+                {
+                    response.status = 400;
+                    response.set_content(R"({"error":"Missing wafer parameters"})", "application/json");
+                    return;
+                }
+
+                const auto id = request.get_param_value("id");
+                const auto slotText = request.get_param_value("slot");
+                int slot = 0;
+                const auto [end, error] = std::from_chars(
+                    slotText.data(), slotText.data() + slotText.size(), slot);
+                if (id.empty() || error != std::errc{} ||
+                    end != slotText.data() + slotText.size() || slot <= 0)
+                {
+                    response.status = 400;
+                    response.set_content(R"({"error":"Invalid wafer parameters"})", "application/json");
+                    return;
+                }
+
+                if (!controller.registerWafer(Wafer{id, Location{Station::LoadPort, slot}}))
+                {
+                    response.status = 409;
+                    response.set_content(R"({"error":"Wafer ID or location already occupied"})", "application/json");
+                    return;
+                }
+
+                response.status = 201;
+                response.set_content(R"({"registered":true})", "application/json");
             }
         );
 
