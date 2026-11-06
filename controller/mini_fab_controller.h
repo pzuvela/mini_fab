@@ -114,4 +114,7 @@ public:
 	SchedulerSnapshot schedulerSnapshot() const;
 
 	std::vector<JobSnapshot> jobsSnapshot() const;
+
+	std::vector<Wafer> waferSnapshot() const;
+	bool registerWafer(const Wafer& wafer);
 };

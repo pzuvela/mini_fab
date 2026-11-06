@@ -2,6 +2,7 @@
 #include <chrono>
 #include <thread>
 #include <functional>
+#include <algorithm>
 
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
@@ -568,5 +569,85 @@ TEST(MiniFabControllerTest, SchedulerRecoversAfterCompletionException)
     EXPECT_EQ(controller.jobStatus(job2), JobStatus::Completed);
     EXPECT_EQ(controller.pendingJobCount(), 0);
 }
+
+
+TEST(MiniFabControllerTest, InitialWaferInventory)
+{
+    MiniFabController controller;
+
+    const auto wafers = controller.wafersSnapshot();
+
+    ASSERT_EQ(wafers.size(), 1);
+
+    EXPECT_EQ(wafers.front().id, "W1");
+    EXPECT_EQ(
+        wafers.front().location,
+        (Location{Station::LoadPort, 3})
+    );
+}
+
+TEST(MiniFabControllerTest, RegistersAdditionalWafer)
+{
+    MiniFabController controller;
+
+    const Wafer newWafer{
+        .id = "W2",
+        .location = Location{Station::LoadPort, 4}
+    };
+
+    ASSERT_TRUE(controller.registerWafer(newWafer));
+
+    const auto wafers = controller.wafersSnapshot();
+
+    ASSERT_EQ(wafers.size(), 2);
+
+    const auto findWafer = [&wafers](const std::string& id)
+    {
+        return std::find_if(
+            wafers.begin(),
+            wafers.end(),
+            [&id](const Wafer& wafer)
+            {
+                return wafer.id == id;
+            }
+        );
+    };
+
+    const auto w1 = findWafer("W1");
+    const auto w2 = findWafer("W2");
+
+    ASSERT_NE(w1, wafers.end());
+    ASSERT_NE(w2, wafers.end());
+
+    EXPECT_EQ(w1->location, (Location{Station::LoadPort, 3}));
+    EXPECT_EQ(w2->location, (Location{Station::LoadPort, 4}));
+}
+
+TEST(MiniFabControllerTest, RejectsDuplicateWaferId)
+{
+    MiniFabController controller;
+
+    const Wafer duplicate{
+        .id = "W1",
+        .location = Location{Station::LoadPort, 4}
+    };
+
+    EXPECT_FALSE(controller.registerWafer(duplicate));
+    EXPECT_EQ(controller.wafersSnapshot().size(), 1);
+}
+
+TEST(MiniFabControllerTest, RejectsOccupiedLoadPortSlot)
+{
+    MiniFabController controller;
+
+    const Wafer conflicting{
+        .id = "W2",
+        .location = Location{Station::LoadPort, 3}
+    };
+
+    EXPECT_FALSE(controller.registerWafer(conflicting));
+    EXPECT_EQ(controller.wafersSnapshot().size(), 1);
+}
+
 
 

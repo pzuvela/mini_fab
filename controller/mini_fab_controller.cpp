@@ -478,3 +478,12 @@ std::vector<JobSnapshot> MiniFabController::jobsSnapshot() const
     return scheduler_.jobsSnapshot();
 }
 
+std::vector<Wafer> MiniFabController::wafersSnapshot() const
+{
+	return manager_.getWafers();
+}
+
+bool MiniFabController::registerWafer(const Wafer& wafer)
+{
+	return manager_.addWafer(wafer);
+}
