@@ -33,7 +33,11 @@ jobs:
       - name: Generate coverage reports
         run: |
           mkdir -p coverage
-          .venv/bin/gcovr --root . --filter '/(controller|domain|engine|equipment|persistence|recipes|scheduler|wafer|web)/' --exclude-directories 'build-coverage/_deps' --gcov-ignore-errors=no_working_dir_found --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
+          echo "Instrumented coverage files:"
+          find build-coverage -name '*.gcda' | head -40
+          g++ --version | head -1
+          gcov --version | head -1
+          .venv/bin/gcovr --verbose --root . --filter '.' --exclude 'build-coverage/' --exclude 'tests/' --exclude 'app/' --exclude-directories 'build-coverage/_deps' --gcov-ignore-errors=no_working_dir_found --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
 
       - name: Validate C++ coverage includes production sources
         run: |
