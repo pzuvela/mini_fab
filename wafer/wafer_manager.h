@@ -9,6 +9,8 @@
 
 #include "domain/wafer.h"
 #include "iwafer_manager.h"
+#include "wafer_registration_result.h"
+
 
 class WaferManager : public IWaferManager
 {
@@ -21,7 +23,7 @@ private:
 	bool isSlotNegativeOrZero(const int slot) const;
 
 public:
-	bool addWafer(const Wafer& wafer) override;
+	WaferRegistrationResult addWafer(const Wafer& wafer) override;
 	LocationUpdateResult updateLocation(const std::string& waferId, Location location) override;
 	Wafer* findWafer(const std::string& waferId) override;
 	std::optional<Location> getLocation(

@@ -27,29 +27,26 @@ bool WaferManager::isSlotNegativeOrZero(const int slot) const
 }
 
 
-    bool WaferManager::addWafer(const Wafer& wafer)
+    WaferRegistrationResult WaferManager::addWafer(const Wafer& wafer)
     {
 	std::lock_guard<std::mutex> lock(mutex_);
 
-	if (isWaferIdEmpty(wafer.id)) return false;
+	if (isWaferIdEmpty(wafer.id)) return WaferRegistrationResult::InvalidId;
 
-	if (isSlotNegativeOrZero(wafer.location.slot)) return false;
+	if (isSlotNegativeOrZero(wafer.location.slot)) return WaferRegistrationResult::InvalidLocation;
 
-	if (wafers_.contains(wafer.id)) return false;
+	if (wafers_.contains(wafer.id)) return WaferRegistrationResult::DuplicateId;
 
-	if (wafer.location.station != Station::LoadPort) return false;
+	if (wafer.location.station != Station::LoadPort) return WaferRegistrationResult::InvalidLocation;
 
-	if (isLocationOccupied(wafer.id, wafer.location)) return false;
+	if (isLocationOccupied(wafer.id, wafer.location)) return WaferRegistrationResult::SlotOccupied;
 
-        std::pair<
-            std::unordered_map<std::string, std::unique_ptr<Wafer>>::iterator,
-            bool
-        > result = wafers_.emplace(  // can also use auto [iterator, succeeded]
+        wafers_.emplace(  // can also use auto [iterator, succeeded]
             wafer.id,
             std::make_unique<Wafer>(wafer)
         );
 
-        return result.second;
+        return WaferRegistrationResult::Registered;;
     }
 
     Wafer* WaferManager::findWafer(const std::string& waferId)

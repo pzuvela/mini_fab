@@ -1,11 +1,12 @@
 #pragma once
 #include "wafer/location_update_result.h"
+#include "wafer/wafer_registration_result.h"
 #include "domain/wafer.h"
 
 class IWaferManager
 {
 public:
-    virtual bool addWafer(const Wafer& wafer) = 0;
+    virtual WaferRegistrationResult addWafer(const Wafer& wafer) = 0;
 
     virtual Wafer* findWafer(const std::string& waferId) = 0;
 

@@ -29,6 +29,7 @@
 #include "scheduler/scheduler_state.h"
 #include "scheduler/scheduler_snapshot.h"
 #include "scheduler/job_snapshot.h"
+#include "wafer/wafer_registration_result.h"
 
 
 class MiniFabController
@@ -116,5 +117,5 @@ public:
 	std::vector<JobSnapshot> jobsSnapshot() const;
 
 	std::vector<Wafer> wafersSnapshot() const;
-	bool registerWafer(const Wafer& wafer);
+	WaferRegistrationResult registerWafer(const Wafer& wafer);
 };
