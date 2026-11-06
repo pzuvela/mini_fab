@@ -55,21 +55,27 @@ TEST(MiniFabRecipeControllerTests, RejectsMissingRecipeRun)
     );
 }
 
-TEST(MiniFabRecipeControllerTests, UpdatesAndDeletesRecipe)
+TEST(MiniFabRecipeControllerTests, UpdatesRecipe)
 {
     SqliteRecipeRepository repository(":memory:");
     RecipeManager manager(repository);
-
     MiniFabController controller(manager);
 
-    EXPECT_TRUE(controller.addRecipe({1, "Etch", 5.0}));
-    EXPECT_TRUE(controller.updateRecipe({1, "Fast Etch", 2.0}));
+    ASSERT_TRUE(controller.addRecipe({1, "Etch", 5.0}));
+    ASSERT_TRUE(controller.updateRecipe({1, "Fast Etch", 2.0}));
 
     auto recipe = controller.getRecipe(1);
-
     ASSERT_TRUE(recipe.has_value());
     EXPECT_EQ(recipe->name, "Fast Etch");
+}
 
+TEST(MiniFabRecipeControllerTests, DeletesRecipe)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({1, "Etch", 5.0}));
     EXPECT_TRUE(controller.removeRecipe(1));
     EXPECT_FALSE(controller.getRecipe(1).has_value());
 }
