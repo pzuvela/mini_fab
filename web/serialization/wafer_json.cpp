@@ -1,3 +1,4 @@
+#include <sstream>
 
 #include "web/serialization/wafer_json.h"
 
@@ -6,20 +7,22 @@
 
 namespace MiniFab::Web
 {
-    std::string waferToJson(const Wafer& wafer)
-    {
-        std::string json;
+	std::string waferToJson(const Wafer& wafer)
+	{
+    		std::ostringstream out;
 
-        json += "{\"id\":\"";
-        json += escapeJson(wafer.id);
-        json += "\",\"location\":{\"station\":\"";
-        json += toString(wafer.location.station);
-        json += "\",\"slot\":";
-        json += std::to_string(wafer.location.slot);
-        json += "}}";
+    		out << "{\"id\":";
+    		writeJsonString(out, wafer.id);
 
-        return json;
-    }
+    		out << ",\"location\":{\"station\":";
+    		writeJsonString(out, toString(wafer.location.station));
+
+    		out << ",\"slot\":" << wafer.location.slot;
+    		out << "}}";
+
+    		return out.str();
+	}
+
 
     std::string wafersToJson(const std::vector<Wafer>& wafers)
     {

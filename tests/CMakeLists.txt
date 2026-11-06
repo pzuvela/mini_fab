@@ -16,6 +16,7 @@ add_executable(mini_fab_tests
     job_routes_tests.cpp
     scheduler_routes_tests.cpp
     scheduler_lifecycle_tests.cpp
+    wafer_json_tests.cpp
 
     mocks/mock_robot.cpp
     mocks/blocking_mock_robot.cpp
