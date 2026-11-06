@@ -145,6 +145,15 @@ TEST(JobSchedulerTests, CompleteActiveJobAllowsNextDispatch)
     EXPECT_EQ(scheduler.pendingCount(), 0);
 }
 
+TEST(JobSchedulerTests, CompleteActiveJobRejectsWhenNoJobIsActive)
+{
+    JobScheduler scheduler;
+    const auto jobId = scheduler.enqueue("W1", 10, 1);
+
+    EXPECT_FALSE(scheduler.completeActiveJob(jobId));
+    EXPECT_EQ(scheduler.pendingCount(), 1);
+}
+
 TEST(JobSchedulerTests, CompleteActiveJobRejectsWrongId)
 {
     JobScheduler scheduler;
@@ -155,6 +164,7 @@ TEST(JobSchedulerTests, CompleteActiveJobRejectsWrongId)
     EXPECT_FALSE(scheduler.completeActiveJob(otherId));
     ASSERT_TRUE(scheduler.activeJob().has_value());
     EXPECT_EQ(scheduler.activeJob()->id, activeId);
+    EXPECT_EQ(scheduler.pendingCount(), 1);
 }
 
 TEST(JobSchedulerTests, CompleteActiveJobRejectsDuplicateCompletion)
