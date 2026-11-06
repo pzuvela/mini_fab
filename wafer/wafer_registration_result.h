@@ -4,7 +4,7 @@ enum class WaferRegistrationResult
 {
 	Registered,
 	InvalidId,
-	DuplicatedId,
+	DuplicateId,
 	SlotOccupied,
 	InvalidLocation
 };
