@@ -12,7 +12,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install gcovr
-        run: python3 -m pip install --user gcovr
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install gcovr
 
       - name: Configure instrumented C++ build
         run: >
@@ -30,7 +32,7 @@ jobs:
       - name: Generate coverage reports
         run: |
           mkdir -p coverage
-          python3 -m gcovr --root . --filter . --exclude 'build-coverage/' --exclude 'tests/' --exclude 'app/' --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
+          .venv/bin/gcovr --root . --filter . --exclude 'build-coverage/' --exclude 'tests/' --exclude 'app/' --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
 
       - name: Upload coverage report
         if: always()
