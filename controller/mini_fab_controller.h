@@ -115,6 +115,6 @@ public:
 
 	std::vector<JobSnapshot> jobsSnapshot() const;
 
-	std::vector<Wafer> waferSnapshot() const;
+	std::vector<Wafer> wafersSnapshot() const;
 	bool registerWafer(const Wafer& wafer);
 };
