@@ -1,0 +1,41 @@
+name: C++ Coverage
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install gcovr
+        run: python3 -m pip install --user gcovr
+
+      - name: Configure instrumented C++ build
+        run: >
+          cmake -S . -B build-coverage
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="--coverage -O0"
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+
+      - name: Build
+        run: cmake --build build-coverage --parallel
+
+      - name: Run C++ tests
+        run: ctest --test-dir build-coverage --output-on-failure
+
+      - name: Generate coverage reports
+        run: |
+          mkdir -p coverage
+          python3 -m gcovr --root . --filter . --exclude 'build-coverage/' --exclude 'tests/' --exclude 'app/' --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-coverage
+          path: coverage/
+          if-no-files-found: warn
