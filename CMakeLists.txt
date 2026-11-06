@@ -134,6 +134,7 @@ add_library(mini_fab_serialization STATIC
     web/serialization/json_utils.cpp
     web/serialization/recipe_json.cpp
     web/serialization/job_json.cpp
+    web/serialization/wafer_json.cpp
 )
 
 target_link_libraries(mini_fab_serialization PUBLIC
