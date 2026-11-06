@@ -37,7 +37,7 @@ jobs:
           find build-coverage -name '*.gcda' | head -40
           g++ --version | head -1
           gcov --version | head -1
-          .venv/bin/gcovr --verbose --root . --filter '.' --exclude '.*/tests/' --exclude '.*/app/' --exclude '.*/build-coverage/' --exclude-directories 'build-coverage/_deps' --gcov-ignore-errors=no_working_dir_found --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
+          .venv/bin/gcovr --root "$PWD" --filter "$PWD/controller/" --filter "$PWD/engine/" --filter "$PWD/equipment/" --filter "$PWD/persistence/" --filter "$PWD/recipes/" --filter "$PWD/scheduler/" --filter "$PWD/wafer/" --filter "$PWD/web/" --gcov-ignore-errors=no_working_dir_found --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
 
       - name: Validate C++ coverage includes production sources
         run: |
