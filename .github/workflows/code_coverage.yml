@@ -35,6 +35,28 @@ jobs:
           mkdir -p coverage
           .venv/bin/gcovr --root . --filter . --exclude 'build-coverage/' --exclude 'tests/' --exclude 'app/' --exclude-directories 'build-coverage/_deps' --gcov-ignore-errors=no_working_dir_found --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
 
+      - name: Publish C++ coverage summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          report = Path("coverage/coverage.xml")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("## C++ coverage\n\n")
+              if report.exists():
+                  root = ET.parse(report).getroot()
+                  line = float(root.attrib.get("line-rate", 0)) * 100
+                  branch = float(root.attrib.get("branch-rate", 0)) * 100
+                  summary.write("| Metric | Coverage |\n|---|---:|\n")
+                  summary.write(f"| Lines | {line:.1f}% |\n| Branches | {branch:.1f}% |\n")
+                  summary.write("\nDownload **cpp-coverage** for the browsable HTML report.\n")
+              else:
+                  summary.write("Report unavailable; check the C++ coverage job logs.\n")
+          PY
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -58,6 +80,37 @@ jobs:
         run: |
           mkdir -p coverage-js
           node --test --experimental-test-coverage --test-coverage-include='web/public/**/*.js' --test-coverage-exclude='tests/**' --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage-js/lcov.info tests/js/*.test.js
+
+      - name: Generate JavaScript HTML report
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lcov
+          genhtml coverage-js/lcov.info --output-directory coverage-js/html --quiet
+
+      - name: Publish JavaScript coverage summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          report = Path("coverage-js/lcov.info")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("## JavaScript coverage\n\n")
+              if not report.exists():
+                  summary.write("Report unavailable; check the JavaScript coverage job logs.\n")
+              else:
+                  totals = {"LF": 0, "LH": 0, "BRF": 0, "BRH": 0, "FNF": 0, "FNH": 0}
+                  for line in report.read_text().splitlines():
+                      key, sep, value = line.partition(":")
+                      if sep and key in totals:
+                          totals[key] += int(value)
+                  summary.write("| Metric | Coverage |\n|---|---:|\n")
+                  for name, found, hit in (("Lines", "LF", "LH"), ("Branches", "BRF", "BRH"), ("Functions", "FNF", "FNH")):
+                      if totals[found]:
+                          summary.write(f"| {name} | {100 * totals[hit] / totals[found]:.1f}% |\n")
+                  summary.write("\nDownload **javascript-coverage** for the browsable HTML report.\n")
+          PY
 
       - name: Upload JavaScript coverage report
         if: always()
