@@ -402,3 +402,51 @@ TEST_F(JobRoutesTest, RejectsEmptyWaferIdFromEditableField)
     EXPECT_EQ(response->status, 400);
     EXPECT_EQ(controller_.pendingJobCount(), 0);
 }
+
+TEST_F(JobRoutesTest, ListsRegisteredWafers)
+{
+    auto cli = client();
+    auto response = cli.Get("/api/wafers");
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 200);
+    EXPECT_EQ(response->body, R"([{"id":"W1","station":"LoadPort","slot":3}])");
+}
+
+TEST_F(JobRoutesTest, RegistersSecondWafer)
+{
+    auto cli = client();
+    auto created = cli.Post("/api/wafers", "id=W2&slot=4",
+                            "application/x-www-form-urlencoded");
+    ASSERT_TRUE(created);
+    ASSERT_EQ(created->status, 201);
+    auto response = cli.Get("/api/wafers");
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->body,
+              R"([{"id":"W1","station":"LoadPort","slot":3},{"id":"W2","station":"LoadPort","slot":4}])");
+}
+
+TEST_F(JobRoutesTest, RejectsDuplicateWaferAndOccupiedSlot)
+{
+    auto cli = client();
+    auto duplicate = cli.Post("/api/wafers", "id=W1&slot=5",
+                              "application/x-www-form-urlencoded");
+    auto occupied = cli.Post("/api/wafers", "id=W2&slot=3",
+                             "application/x-www-form-urlencoded");
+    ASSERT_TRUE(duplicate);
+    ASSERT_TRUE(occupied);
+    EXPECT_EQ(duplicate->status, 409);
+    EXPECT_EQ(occupied->status, 409);
+}
+
+TEST_F(JobRoutesTest, RejectsInvalidWaferRegistration)
+{
+    auto cli = client();
+    for (const auto& body : {"id=W2", "id=&slot=4", "id=W2&slot=0",
+                             "id=W2&slot=abc", "id=W2&slot=4junk"})
+    {
+        auto response = cli.Post("/api/wafers", body,
+                                 "application/x-www-form-urlencoded");
+        ASSERT_TRUE(response);
+        EXPECT_EQ(response->status, 400);
+    }
+}
