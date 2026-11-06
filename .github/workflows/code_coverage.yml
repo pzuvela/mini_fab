@@ -1,0 +1,68 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install gcovr
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install gcovr
+
+      - name: Configure instrumented C++ build
+        run: >
+          cmake -S . -B build-coverage
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="--coverage -O0"
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+
+      - name: Build
+        run: cmake --build build-coverage --parallel
+
+      - name: Run C++ tests
+        run: ctest --test-dir build-coverage --output-on-failure
+
+      - name: Generate coverage reports
+        run: |
+          mkdir -p coverage
+          .venv/bin/gcovr --root . --filter . --exclude 'build-coverage/' --exclude 'tests/' --exclude 'app/' --exclude-directories 'build-coverage/_deps' --gcov-ignore-errors=no_working_dir_found --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-coverage
+          path: coverage/
+          if-no-files-found: warn
+
+  javascript-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run JavaScript tests with coverage
+        run: |
+          mkdir -p coverage-js
+          node --test --experimental-test-coverage --test-coverage-include='web/public/**/*.js' --test-coverage-exclude='tests/**' --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage-js/lcov.info tests/js/*.test.js
+
+      - name: Upload JavaScript coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: javascript-coverage
+          path: coverage-js/
+          if-no-files-found: warn
