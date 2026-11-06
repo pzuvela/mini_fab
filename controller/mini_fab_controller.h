@@ -87,6 +87,8 @@ public:
 	RecipeUpsertResult upsertRecipe(const Recipe& recipe);
 
 	EquipmentSnapshot status() const;
+	std::vector<Wafer> wafersSnapshot() const;
+	bool registerWafer(const Wafer& wafer);
 
 	std::vector<EquipmentEvent> events() const;
 
