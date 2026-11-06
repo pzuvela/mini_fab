@@ -33,7 +33,24 @@ jobs:
       - name: Generate coverage reports
         run: |
           mkdir -p coverage
-          .venv/bin/gcovr --root . --filter . --exclude 'build-coverage/' --exclude 'tests/' --exclude 'app/' --exclude-directories 'build-coverage/_deps' --gcov-ignore-errors=no_working_dir_found --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
+          .venv/bin/gcovr --root . --filter '^(controller|domain|engine|equipment|persistence|recipes|scheduler|wafer|web)/' --exclude-directories 'build-coverage/_deps' --gcov-ignore-errors=no_working_dir_found --print-summary --html-details coverage/index.html --xml coverage/coverage.xml build-coverage
+
+      - name: Validate C++ coverage includes production sources
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          report = Path("coverage/coverage.xml")
+          if not report.is_file():
+              raise SystemExit("C++ coverage XML missing")
+          root = ET.parse(report).getroot()
+          files = [item.attrib.get("filename", "") for item in root.iter("class")]
+          production = [p for p in files if p.startswith(("controller/", "engine/", "equipment/", "persistence/", "recipes/", "scheduler/", "wafer/", "web/"))]
+          print(f"Coverage source files: {len(production)}; executable lines: {root.attrib.get('lines-valid', 'unknown')}")
+          if len(production) < 5 or int(root.attrib.get("lines-valid", 0)) < 100:
+              raise SystemExit("Incomplete C++ coverage: production sources missing from gcovr report")
+          PY
 
       - name: Publish C++ coverage summary
         if: always()
