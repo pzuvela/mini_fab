@@ -171,6 +171,7 @@ add_library(mini_fab_web_routes STATIC
     web/routes/recipe_routes.cpp
     web/routes/job_routes.cpp
     web/routes/scheduler_routes.cpp
+    web/routes/wafer_routes.cpp
 )
 
 target_include_directories(mini_fab_web_routes PUBLIC
