@@ -120,52 +120,37 @@ TEST_F(WaferManagerTest, RejectsOccupiedLocation)
 {
     WaferManager manager;
 
-    EXPECT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 3}}));
+    ASSERT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 3}}));
     EXPECT_FALSE(manager.addWafer({"W2", {Station::LoadPort, 3}}));
 }
 
-TEST_F(WaferManagerTest, GetWafersReturnsIndependentSnapshot)
+TEST_F(WaferManagerTest, GetWafersReturnsAllRegisteredWafers)
 {
     WaferManager manager;
-
     ASSERT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 1}}));
     ASSERT_TRUE(manager.addWafer({"W2", {Station::LoadPort, 2}}));
 
-    auto wafers = manager.getWafers();
+    const auto wafers = manager.getWafers();
 
     ASSERT_EQ(wafers.size(), 2);
+    EXPECT_TRUE(std::ranges::any_of(wafers, [](const Wafer& wafer) {
+        return wafer == Wafer{"W1", {Station::LoadPort, 1}};
+    }));
+    EXPECT_TRUE(std::ranges::any_of(wafers, [](const Wafer& wafer) {
+        return wafer == Wafer{"W2", {Station::LoadPort, 2}};
+    }));
+}
 
-    // Unordered map: don't assume iteration order!
-    auto findWafer = [&](const std::string& id) {
-        return std::find_if(
-            wafers.begin(),
-            wafers.end(),
-            [&](const Wafer& wafer) {
-                return wafer.id == id;
-            }
-        );
-    };
+TEST_F(WaferManagerTest, ModifyingSnapshotDoesNotModifyInventory)
+{
+    WaferManager manager;
+    ASSERT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 1}}));
 
-    auto w1 = findWafer("W1");
-    auto w2 = findWafer("W2");
+    auto wafers = manager.getWafers();
+    ASSERT_EQ(wafers.size(), 1);
+    wafers.front().location = {Station::LoadPort, 10};
 
-    ASSERT_NE(w1, wafers.end());
-    ASSERT_NE(w2, wafers.end());
-
-    EXPECT_EQ(w1->location, (Location{Station::LoadPort, 1}));
-    EXPECT_EQ(w2->location, (Location{Station::LoadPort, 2}));
-
-    // Modify the snapshot
-    w1->location = {Station::LoadPort, 10};
-
-    // Original inventory must remain unchanged
-    auto originalLocation = manager.getLocation("W1");
-
-    ASSERT_TRUE(originalLocation.has_value());
-    EXPECT_EQ(
-        originalLocation.value(),
-        (Location{Station::LoadPort, 1})
-    );
+    EXPECT_EQ(manager.getLocation("W1"), (Location{Station::LoadPort, 1}));
 }
 
 
