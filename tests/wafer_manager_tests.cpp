@@ -8,6 +8,8 @@
 #include "domain/location.h"
 #include "mocks/mock_robot.h"
 #include "mocks/mock_wafer_manager.h"
+#include "wafer/wafer_registration_result.h"
+
 
 namespace MiniFab::Tests
 {
@@ -32,16 +34,16 @@ namespace MiniFab::Tests
 	TEST_F(WaferManagerTest, AddsWaferWhenIdDoesNotExist)
 	{
 		WaferManager mgr;
-                bool isWaferAdded = mgr.addWafer(wafer_);
-		EXPECT_TRUE(isWaferAdded);
+                WaferRegistrationResult result isWaferAdded = mgr.addWafer(wafer_);
+		EXPECT_TRUE(result, WaferRegistrationResult::Registered);
 	}
 
 	TEST_F(WaferManagerTest, DoesNotAddWaferWhenIdAlreadyExists)
 	{
 		WaferManager mgr;
 		mgr.addWafer(wafer_);
-		bool isWaferAdded = mgr.addWafer(wafer_);
-		EXPECT_FALSE(isWaferAdded);
+		WaferRegistrationResult result = mgr.addWafer(wafer_);
+		EXPECT_FALSE(result, WaferRegistrationResult::DuplicateId);
 	}
 
 	TEST_F(WaferManagerTest, FindsWaferById)
@@ -127,8 +129,8 @@ TEST_F(WaferManagerTest, RejectsOccupiedLocation)
 TEST_F(WaferManagerTest, GetWafersReturnsAllRegisteredWafers)
 {
     WaferManager manager;
-    ASSERT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 1}}));
-    ASSERT_TRUE(manager.addWafer({"W2", {Station::LoadPort, 2}}));
+    ASSERT_EQ(manager.addWafer({"W1", {Station::LoadPort, 1}}), WaferRegistrationResult::Registered);
+    ASSERT_EQ(manager.addWafer({"W2", {Station::LoadPort, 2}}), WaferRegistrationResult::Registered);
 
     const auto wafers = manager.getWafers();
 
@@ -144,7 +146,7 @@ TEST_F(WaferManagerTest, GetWafersReturnsAllRegisteredWafers)
 TEST_F(WaferManagerTest, ModifyingSnapshotDoesNotModifyInventory)
 {
     WaferManager manager;
-    ASSERT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 1}}));
+    ASSERT_EQ(manager.addWafer({"W1", {Station::LoadPort, 1}}), WaferRegistrationResult::Registered);
 
     auto wafers = manager.getWafers();
     ASSERT_EQ(wafers.size(), 1);
@@ -152,8 +154,6 @@ TEST_F(WaferManagerTest, ModifyingSnapshotDoesNotModifyInventory)
 
     EXPECT_EQ(manager.getLocation("W1"), (Location{Station::LoadPort, 1}));
 }
-
-
 
 }
 
