@@ -8,10 +8,10 @@ MockWaferManager::MockWaferManager(std::unique_ptr<Wafer> waferToReturn, bool lo
 {
 }
 
-bool MockWaferManager::addWafer(const Wafer& wafer)
+WaferRegistrationResult MockWaferManager::addWafer(const Wafer& wafer)
 {
 	waferToReturn_ = std::make_unique<Wafer>(wafer);
-	return true;
+	return WaferRegistrationResult::Registered;
 }
 
 Wafer* MockWaferManager::findWafer(const std::string& waferId)

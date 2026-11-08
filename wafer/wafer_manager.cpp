@@ -46,7 +46,7 @@ bool WaferManager::isSlotNegativeOrZero(const int slot) const
             std::make_unique<Wafer>(wafer)
         );
 
-        return WaferRegistrationResult::Registered;;
+        return WaferRegistrationResult::Registered;
     }
 
     Wafer* WaferManager::findWafer(const std::string& waferId)

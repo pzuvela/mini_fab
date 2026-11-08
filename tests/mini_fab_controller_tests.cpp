@@ -595,7 +595,7 @@ TEST(MiniFabControllerTest, RegistersAdditionalWafer)
         .location = Location{Station::LoadPort, 4}
     };
 
-    ASSERT_TRUE(controller.registerWafer(newWafer));
+    ASSERT_EQ(controller.registerWafer(newWafer), WaferRegistrationResult::Registered);
 
     const auto wafers = controller.wafersSnapshot();
 
@@ -632,7 +632,7 @@ TEST(MiniFabControllerTest, RejectsDuplicateWaferId)
         .location = Location{Station::LoadPort, 4}
     };
 
-    EXPECT_FALSE(controller.registerWafer(duplicate));
+    EXPECT_EQ(controller.registerWafer(duplicate), WaferRegistrationResult::DuplicateId);
     EXPECT_EQ(controller.wafersSnapshot().size(), 1);
 }
 
@@ -645,7 +645,7 @@ TEST(MiniFabControllerTest, RejectsOccupiedLoadPortSlot)
         .location = Location{Station::LoadPort, 3}
     };
 
-    EXPECT_FALSE(controller.registerWafer(conflicting));
+    EXPECT_EQ(controller.registerWafer(conflicting), WaferRegistrationResult::SlotOccupied);
     EXPECT_EQ(controller.wafersSnapshot().size(), 1);
 }
 

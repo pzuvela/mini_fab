@@ -483,7 +483,7 @@ std::vector<Wafer> MiniFabController::wafersSnapshot() const
 	return manager_.getWafers();
 }
 
-bool MiniFabController::registerWafer(const Wafer& wafer)
+WaferRegistrationResult MiniFabController::registerWafer(const Wafer& wafer)
 {
 	return manager_.addWafer(wafer);
 }
