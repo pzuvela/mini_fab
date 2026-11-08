@@ -34,8 +34,8 @@ namespace MiniFab::Tests
 	TEST_F(WaferManagerTest, AddsWaferWhenIdDoesNotExist)
 	{
 		WaferManager mgr;
-                WaferRegistrationResult result isWaferAdded = mgr.addWafer(wafer_);
-		EXPECT_TRUE(result, WaferRegistrationResult::Registered);
+                WaferRegistrationResult result= mgr.addWafer(wafer_);
+		EXPECT_EQ(result, WaferRegistrationResult::Registered);
 	}
 
 	TEST_F(WaferManagerTest, DoesNotAddWaferWhenIdAlreadyExists)
@@ -43,7 +43,7 @@ namespace MiniFab::Tests
 		WaferManager mgr;
 		mgr.addWafer(wafer_);
 		WaferRegistrationResult result = mgr.addWafer(wafer_);
-		EXPECT_FALSE(result, WaferRegistrationResult::DuplicateId);
+		EXPECT_EQ(result, WaferRegistrationResult::DuplicateId);
 	}
 
 	TEST_F(WaferManagerTest, FindsWaferById)
@@ -122,8 +122,8 @@ TEST_F(WaferManagerTest, RejectsOccupiedLocation)
 {
     WaferManager manager;
 
-    ASSERT_TRUE(manager.addWafer({"W1", {Station::LoadPort, 3}}));
-    EXPECT_FALSE(manager.addWafer({"W2", {Station::LoadPort, 3}}));
+    ASSERT_EQ(manager.addWafer({"W1", {Station::LoadPort, 3}}), WaferRegistrationResult::Registered);
+    EXPECT_EQ(manager.addWafer({"W2", {Station::LoadPort, 3}}), WaferRegistrationResult::SlotOccupied);
 }
 
 TEST_F(WaferManagerTest, GetWafersReturnsAllRegisteredWafers)

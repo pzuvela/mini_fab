@@ -96,7 +96,7 @@ TEST_F(WaferRoutesTest, ReturnsRegisteredWafers)
         {Station::LoadPort, 4}
     };
 
-    ASSERT_TRUE(controller_.registerWafer(wafer));
+    ASSERT_EQ(controller_.registerWafer(wafer), WaferRegistrationResult::Registered);
 
     auto cli = client();
     auto response = cli.Get("/api/wafers");
@@ -125,7 +125,7 @@ TEST_F(WaferRoutesTest, EscapesSpecialCharacters)
         {Station::LoadPort, 4}
     };
 
-    ASSERT_TRUE(controller_.registerWafer(wafer));
+    ASSERT_EQ(controller_.registerWafer(wafer), WaferRegistrationResult::Registered);
 
     auto cli = client();
     auto response = cli.Get("/api/wafers");
@@ -151,9 +151,7 @@ TEST_F(WaferRoutesTest, ReflectsInventoryChanges)
         R"({"wafers":[{"id":"W1","location":{"station":"LoadPort","slot":3}}]})"
     );
 
-    ASSERT_TRUE(controller_.registerWafer(
-        Wafer{"W2", {Station::LoadPort, 4}}
-    ));
+    ASSERT_EQ(controller_.registerWafer(Wafer{"W2", {Station::LoadPort, 4}}), WaferRegistrationResult::Registered);
 
     auto after = cli.Get("/api/wafers");
 
