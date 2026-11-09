@@ -110,7 +110,7 @@ LocationUpdateResult WaferManager::updateLocation(const std::string& waferId, Lo
 
 	if (isLocationOccupied(waferId, location)) return LocationUpdateResult::SlotOccupied;
 
-	if (it->second->location == location) return LocationUpdateResult::Updated;
+	if (iterator->second->location == location) return LocationUpdateResult::Updated;
 
 	if (repository_ && !repository_->updateLocation(waferId, location)) throw std::runtime_error("Failed to persist wafer location");
 
