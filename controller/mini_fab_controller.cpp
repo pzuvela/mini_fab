@@ -485,5 +485,17 @@ std::vector<Wafer> MiniFabController::wafersSnapshot() const
 
 WaferRegistrationResult MiniFabController::registerWafer(const Wafer& wafer)
 {
-	return manager_.addWafer(wafer);
+	const WaferRegistrationResult result = manager_.addWafer(wafer);
+
+	if (result == WaferRegistrationResult == WaferRegistrationResult::Registered)
+	{
+		eventLog_.record(
+			EventType::WaferRegistered,
+			"Wafer " + wafer.id +
+			" registered at LoadPort / Slot " +
+			std::to_string(wafer.location.slot)
+		);
+	}
+
+	return result;
 }

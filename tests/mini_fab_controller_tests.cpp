@@ -650,4 +650,39 @@ TEST(MiniFabControllerTest, RejectsOccupiedLoadPortSlot)
 }
 
 
+TEST(MiniFabControllerTest, RegistrationGeneratesEvent)
+{
+    MiniFabController controller;
+
+    const auto before = controller.eventsSnapshot().size();
+
+    const auto result = controller.registerWafer(
+        Wafer{"W2", {Station::LoadPort, 4}}
+    );
+
+    ASSERT_EQ(result, WaferRegistrationResult::Registered);
+
+    const auto events = controller.eventsSnapshot();
+
+    ASSERT_EQ(events.size(), before + 1);
+    EXPECT_EQ(events.back().type, EventType::WaferRegistered);
+}
+
+TEST(MiniFabControllerTest, RejectedRegistrationDoesNotGenerateEvent)
+{
+    MiniFabController controller;
+
+    const auto before = controller.eventsSnapshot().size();
+
+    const auto result = controller.registerWafer(
+        Wafer{"W1", {Station::LoadPort, 4}}
+    );
+
+    ASSERT_EQ(result, WaferRegistrationResult::DuplicateId);
+
+    const auto events = controller.eventsSnapshot();
+
+    EXPECT_EQ(events.size(), before);
+}
+
 
