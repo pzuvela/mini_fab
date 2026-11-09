@@ -23,7 +23,7 @@ private:
 	bool isWaferIdEmpty(const std::string& waferId) const;
 	bool isSlotNegativeOrZero(const int slot) const;
 	WaferRegistrationResult validateWafer(const Wafer& wafer);
-	WaferRegistrationResult insertWaferToMemory(const Wafer& wafer);
+	void insertWaferToMemory(const Wafer& wafer);
 
 public:
 	WaferManager() = default;

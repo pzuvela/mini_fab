@@ -38,8 +38,7 @@ WaferRegistrationResult WaferManager::validateWafer(const Wafer& wafer) const
     return WaferRegistrationResult::Registered;
 }
 
-void WaferManager::insertWaferToMemory(
-    const Wafer& wafer)
+void WaferManager::insertWaferToMemory(const Wafer& wafer)
 {
     wafers_.emplace(
         wafer.id,
