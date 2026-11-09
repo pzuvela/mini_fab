@@ -100,6 +100,8 @@
         import { createRunViewModel } from
             "/js/viewmodel/runViewModel.js";
 
+	import { renderEventLog } from "/js/view/eventLogView.js";
+
         const vm = createRunViewModel();
 
         const elements = {
@@ -136,30 +138,7 @@
 	    elements.state.className = "state-badge state-" + state.equipmentState.toLowerCase();
 	    elements.eventCount.textContent = `${state.events.length} events`;
 	    elements.eventRows.replaceChildren();
-	    for (const event of state.events) {
-		    const row = document.createElement("tr");
-
-		    const values = [
-		        event.sequenceId,
-		        new Date(event.timestamp).toLocaleTimeString(),
-        		event.type,
-        		event.severity,
-        		event.message
-		    ];
-
-		    values.forEach((value, index) => {
-        		const cell = document.createElement("td");
-        		cell.textContent = value;
-
-        		if (index === 3) {
-            			cell.className = "severity severity-" + event.severity.toLowerCase();
-        		}
-
-        		row.appendChild(cell);
-    			});
-
-    			elements.eventRows.appendChild(row);
-		}
+	    renderEventLog(state.events, elements);
 
 const select = elements.recipeSelect;
 

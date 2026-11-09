@@ -1,5 +1,5 @@
-import { createJobsViewModel } from
-    "../viewmodel/jobsViewModel.js";
+import { createJobsViewModel } from "../viewmodel/jobsViewModel.js";
+import { renderEventLog } from "./eventLogView.js";
 
 const vm = createJobsViewModel();
 
@@ -120,20 +120,8 @@ vm.subscribe(state => {
     select.disabled = expected.length === 0;
 
     elements.eventError.textContent = state.eventError ?? "";
-    elements.eventCount.textContent = `${state.events.length} events`;
-    const fragment = document.createDocumentFragment();
-    for (const event of state.events) {
-        const row = document.createElement("tr");
-        [event.sequenceId, new Date(event.timestamp).toLocaleTimeString(),
-         event.type, event.severity, event.message].forEach((value, index) => {
-            const cell = document.createElement("td");
-            cell.textContent = value ?? "";
-            if (index === 3) cell.className = `severity severity-${String(value).toLowerCase()}`;
-            row.appendChild(cell);
-        });
-        fragment.appendChild(row);
-    }
-    elements.eventRows.replaceChildren(fragment);
+
+    renderEventLog(state.events, elements);
 
     renderJobs(state.jobs);
 });
