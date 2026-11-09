@@ -65,6 +65,11 @@ export const jobsApi = {
             },
             body
         });
-    }
+    },
+
+    getWafers()
+    {
+	return request("/api/wafers");
+    },
 };
 

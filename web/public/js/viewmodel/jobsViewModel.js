@@ -13,7 +13,10 @@ export function createJobsViewModel() {
         loading: true,
         busy: false,
         error: null,
-        message: "Connecting..."
+        message: "Connecting...",
+	wafers: [],
+	selectedWaferId: null,
+	waferError: null,
     };
 
     const listeners = new Set();
@@ -28,6 +31,7 @@ export function createJobsViewModel() {
             jobs: [...state.jobs],
             events: [...state.events],
             recipes: [...state.recipes],
+	    wafers: [...state.wafers],
             scheduler: state.scheduler
                 ? { ...state.scheduler }
                 : null
@@ -45,6 +49,7 @@ export function createJobsViewModel() {
             jobs: [...state.jobs],
             events: [...state.events],
             recipes: [...state.recipes],
+	    wafers: [...state.wafers],
             scheduler: state.scheduler
                 ? { ...state.scheduler }
                 : null
@@ -164,6 +169,44 @@ export function createJobsViewModel() {
         timer = null;
     }
 
+async function loadWafers() {
+    try {
+        const data = await jobsApi.getWafers();
+
+        if (!active) return;
+
+        state.wafers = data.wafers.filter(
+            wafer => wafer.location.station === "LoadPort"
+        );
+
+        state.waferError = null;
+
+        if (!state.wafers.some(
+            wafer => wafer.id === state.selectedWaferId
+        )) {
+            state.selectedWaferId =
+                state.wafers[0]?.id ?? null;
+        }
+    } catch (error) {
+        if (!active) return;
+
+        state.waferError = error.message;
+        state.wafers = [];
+        state.selectedWaferId = null;
+    } finally {
+        if (active) notify();
+    }
+}
+
+function selectWafer(id) {
+    state.selectedWaferId =
+        state.wafers.some(wafer => wafer.id === id)
+            ? id
+            : null;
+
+    notify();
+}
+
     return {
         subscribe,
         start,
@@ -190,12 +233,18 @@ export function createJobsViewModel() {
                 "Scheduler fault reset"
             ),
 
-        submitJob: waferId => {
-            if (state.selectedRecipeId === null) return;
-            return command(
-                () => jobsApi.submitJob(waferId, state.selectedRecipeId),
-                "Job submitted"
-            );
-        }
+submitJob: () => {
+    if (state.selectedRecipeId === null ||
+        state.selectedWaferId === null) return;
+
+    return command(
+        () => jobsApi.submitJob(
+            state.selectedWaferId,
+            state.selectedRecipeId
+        ),
+        "Job submitted"
+    );
+}
+
     };
 }
