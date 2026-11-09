@@ -1,10 +1,11 @@
-
 #include <gtest/gtest.h>
 #include <httplib.h>
 
 #include <chrono>
 #include <string>
 #include <thread>
+#include <algorithm>
+#include <vector>
 
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
@@ -164,5 +165,119 @@ TEST_F(WaferRoutesTest, ReflectsInventoryChanges)
     );
 
     EXPECT_NE(before->body, after->body);
+}
+
+
+
+TEST_F(WaferRoutesTests, PostRegistersNewWafer)
+{
+    const auto response = client_.Post(
+        "/api/wafers",
+        R"({"id":"W2","station":"LoadPort","slot":4})",
+        "application/json"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 201);
+
+    const auto wafers = controller_.wafersSnapshot();
+
+    const auto found = std::find_if(
+        wafers.begin(),
+        wafers.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.id == "W2";
+        }
+    );
+
+    ASSERT_NE(found, wafers.end());
+    EXPECT_EQ(found->location.station, Station::LoadPort);
+    EXPECT_EQ(found->location.slot, 4);
+}
+
+
+
+TEST_F(WaferRoutesTests, PostRejectsDuplicateWaferId)
+{
+    const auto response = client_.Post(
+        "/api/wafers",
+        R"({"id":"W1","station":"LoadPort","slot":4})",
+        "application/json"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 409);
+    EXPECT_NE(
+        response->body.find("Wafer ID already exists"),
+        std::string::npos
+    );
+}
+
+
+
+TEST_F(WaferRoutesTests, PostRejectsOccupiedSlot)
+{
+    const auto response = client_.Post(
+        "/api/wafers",
+        R"({"id":"W2","station":"LoadPort","slot":3})",
+        "application/json"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 409);
+    EXPECT_NE(
+        response->body.find("Slot already occupied"),
+        std::string::npos
+    );
+}
+
+
+TEST_F(WaferRoutesTests, PostRejectsInvalidRequests)
+{
+    const std::vector<std::string> invalidRequests = {
+        R"({"id":"W2","station":"LoadPort"})",
+        R"({"id":"W2","station":"LoadPort","slot":"4"})",
+        R"({"id":"W2","station":"LoadPort","slot":4,})",
+        R"({"id":"W2","station":"LoadPort","slot":4.5})",
+        R"({"id":"","station":"LoadPort","slot":4})",
+        R"({"id":"W2","station":"LoadPort","slot":0})",
+        R"({"id":"W2","station":"LoadPort","slot":-1})",
+        R"({"id":"W2","station":"LoadPort","slot":4,"extra":true})",
+        "not json"
+    };
+
+    for (const auto& json : invalidRequests)
+    {
+        SCOPED_TRACE(json);
+
+        const auto response = client_.Post(
+            "/api/wafers",
+            json,
+            "application/json"
+        );
+
+        ASSERT_TRUE(response);
+        EXPECT_EQ(response->status, 400);
+    }
+}
+
+
+TEST_F(WaferRoutesTests, RejectedRegistrationDoesNotModifyInventory)
+{
+    const auto before = controller_.wafersSnapshot();
+
+    const auto response = client_.Post(
+        "/api/wafers",
+        R"({"id":"W2","station":"LoadPort","slot":3})",
+        "application/json"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 409);
+
+    const auto after = controller_.wafersSnapshot();
+
+    EXPECT_EQ(after.size(), before.size());
 }
 
