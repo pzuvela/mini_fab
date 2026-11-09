@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.20)
 
-project(MiniFab LANGUAGES CXX)
+project(MiniFab VERSION 0.9.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -222,6 +222,12 @@ if(MINIFAB_BUILD_WEB)
 
 	target_compile_definitions(mini_fab_web PRIVATE
     		MINIFAB_PUBLIC_DIR="$<TARGET_FILE_DIR:mini_fab_web>/public"
+	)
+
+	configure_file(
+   		 ${CMAKE_CURRENT_SOURCE_DIR}/mini_fab_web/public/version.js.in
+    		${CMAKE_CURRENT_SOURCE_DIR}/mini_fab_web/public/version.js
+    		@ONLY
 	)
 endif()
 

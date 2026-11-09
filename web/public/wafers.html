@@ -16,7 +16,7 @@
             <p class="eyebrow">EQUIPMENT CONTROL SYSTEM</p>
             <h1>MiniFab <span>Wafer Inventory</span></h1>
         </div>
-        <span class="version" data-app-version></span>
+        <span class="version" data-app-version id="appVersion"></span>
     </header>
 
     <nav class="main-nav">
@@ -197,5 +197,12 @@ window.addEventListener("pagehide", () => {
 </script>
 
 <script src="/js/appConfig.js"></script>
+
+<script src="/version.js"></script>
+<script>
+    document.querySelector("#appVersion").textContent =
+        window.MINIFAB_VERSION;
+</script>
+
 </body>
 </html>
