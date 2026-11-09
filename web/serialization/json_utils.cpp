@@ -57,7 +57,7 @@ namespace MiniFab::Web
 		{
 			char c = input[pos];
 
-			if (c != ' ' && c != "\t' && c != '\n' && c !=  '\r') break;
+			if (c != ' ' && c != '\t' && c != '\n' && c !=  '\r') break;
 
 			++pos;
 		}
