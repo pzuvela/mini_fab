@@ -171,7 +171,9 @@ TEST_F(WaferRoutesTests, ReflectsInventoryChanges)
 
 TEST_F(WaferRoutesTests, PostRegistersNewWafer)
 {
-    const auto response = client_.Post(
+    auto cli = client();
+
+    const auto response = cli.Post(
         "/api/wafers",
         R"({"id":"W2","station":"LoadPort","slot":4})",
         "application/json"
@@ -200,7 +202,9 @@ TEST_F(WaferRoutesTests, PostRegistersNewWafer)
 
 TEST_F(WaferRoutesTests, PostRejectsDuplicateWaferId)
 {
-    const auto response = client_.Post(
+    auto cli = client();
+
+    const auto response = cli.Post(
         "/api/wafers",
         R"({"id":"W1","station":"LoadPort","slot":4})",
         "application/json"
@@ -218,7 +222,9 @@ TEST_F(WaferRoutesTests, PostRejectsDuplicateWaferId)
 
 TEST_F(WaferRoutesTests, PostRejectsOccupiedSlot)
 {
-    const auto response = client_.Post(
+    auto cli = client();
+
+    const auto response = cli.Post(
         "/api/wafers",
         R"({"id":"W2","station":"LoadPort","slot":3})",
         "application/json"
@@ -247,11 +253,13 @@ TEST_F(WaferRoutesTests, PostRejectsInvalidRequests)
         "not json"
     };
 
+    auto cli = client();
+
     for (const auto& json : invalidRequests)
     {
         SCOPED_TRACE(json);
 
-        const auto response = client_.Post(
+        const auto response = cli.Post(
             "/api/wafers",
             json,
             "application/json"
@@ -266,8 +274,8 @@ TEST_F(WaferRoutesTests, PostRejectsInvalidRequests)
 TEST_F(WaferRoutesTests, RejectedRegistrationDoesNotModifyInventory)
 {
     const auto before = controller_.wafersSnapshot();
-
-    const auto response = client_.Post(
+    auto cli = client();
+    const auto response = cli.Post(
         "/api/wafers",
         R"({"id":"W2","station":"LoadPort","slot":3})",
         "application/json"
