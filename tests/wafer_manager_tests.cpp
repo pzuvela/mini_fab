@@ -157,9 +157,6 @@ TEST_F(WaferManagerTest, ModifyingSnapshotDoesNotModifyInventory)
     EXPECT_EQ(manager.getLocation("W1"), (Location{Station::LoadPort, 1}));
 }
 
-}
-
-
 
 TEST_F(WaferManagerTest, RejectsInvalidDestinationSlot)
 {
@@ -338,3 +335,4 @@ TEST_F(WaferManagerTest, RejectedMovementDoesNotModifyDatabase)
     );
 }
 
+}
