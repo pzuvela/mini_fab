@@ -83,6 +83,7 @@ The server currently listens on `127.0.0.1:8080`. Open:
 
 - `http://127.0.0.1:8080/run.html` — equipment operation and event display
 - `http://127.0.0.1:8080/recipes.html` — recipe management
+- `http://127.0.0.1:8080/wafers.html` — wafer inventory and registration
 
 CMake copies `web/public/` to the web executable's `public/` directory **on every build**, including when only frontend files changed. The executable mounts that build-output directory, rather than relying on a source-tree-relative working directory.
 
@@ -98,8 +99,84 @@ Current routes include:
 - `GET /api/status` — read equipment status
 - `GET /api/events` — read persisted events
 - Recipe endpoints under `/api/recipes`
+- `GET /api/wafers` — list registered wafers
+- `POST /api/wafers` — register a wafer
 
 Commands are subject to equipment-state and controller validation. The UI should reflect server-confirmed outcomes, not assume a command succeeded because it was clicked.
+
+## Wafer registration API
+
+### List wafers
+
+`GET /api/wafers` returns HTTP `200` with a JSON object containing a `wafers` array. For example:
+
+```json
+{
+  "wafers": [
+    {
+      "id": "W1",
+      "location": {
+        "station": "LoadPort",
+        "slot": 3
+      }
+    }
+  ]
+}
+```
+
+When the inventory is empty, the response is `{"wafers":[]}`.
+
+### Register a wafer
+
+`POST /api/wafers` requires the `Content-Type: application/json` header and a JSON object with these fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | Nonempty wafer identifier, unique within the inventory |
+| `station` | string | Must be `"LoadPort"` for initial registration |
+| `slot` | integer | Positive LoadPort slot number; the slot must be unoccupied |
+
+Example request:
+
+```http
+POST /api/wafers
+Content-Type: application/json
+
+{"id":"W2","station":"LoadPort","slot":4}
+```
+
+Successful registration returns HTTP `201 Created` with `Content-Type: application/json` and the registered wafer:
+
+```json
+{
+  "id": "W2",
+  "location": {
+    "station": "LoadPort",
+    "slot": 4
+  }
+}
+```
+
+A subsequent `GET /api/wafers` includes the newly registered wafer.
+
+### Error responses
+
+Errors are JSON objects with an `error` string. For example:
+
+```json
+{"error":"Wafer ID already exists"}
+```
+
+| HTTP status | When returned |
+| --- | --- |
+| `400 Bad Request` | Malformed JSON, missing fields, wrong field types, unknown or duplicate fields, integer overflow, or trailing content |
+| `409 Conflict` | Duplicate wafer ID or occupied LoadPort slot |
+| `415 Unsupported Media Type` | Request does not use an accepted `application/json` Content-Type |
+| `422 Unprocessable Content` | Semantically invalid registration, such as an empty wafer ID, nonpositive slot, or station other than `LoadPort` |
+
+Conflicting registrations must leave the existing inventory unchanged. If concurrent requests attempt to register the same wafer ID or occupy the same slot, at most one may succeed.
+
+The browser registration interface is available at `/wafers.html`.
 
 ## Data and persistence
 
