@@ -39,7 +39,7 @@ server.Post("/api/wafers",
         {
             response.status = 400;
 	    response.set_content(
-    		"{\"error\":\"" + escapeJson(parsed.error) + "\"}",
+    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
     		"application/json"
 	    );
             return;
@@ -54,7 +54,7 @@ server.Post("/api/wafers",
             case WaferRegistrationResult::Registered:
                 response.status = 201;
 	    response.set_content(
-    		"{\"error\":\"" + escapeJson(parsed.error) + "\"}",
+    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
     		"application/json"
 	    );
                 break;
@@ -63,7 +63,7 @@ server.Post("/api/wafers",
             case WaferRegistrationResult::InvalidLocation:
                 response.status = 400;
 	    response.set_content(
-    		"{\"error\":\"" + escapeJson(parsed.error) + "\"}",
+    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
     		"application/json"
 	    );
                 break;
@@ -72,7 +72,7 @@ server.Post("/api/wafers",
                 response.status = 409;
 
 	    response.set_content(
-    		"{\"error\":\"" + escapeJson(parsed.error) + "\"}",
+    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
     		"application/json"
 	    );
                 break;
@@ -80,7 +80,7 @@ server.Post("/api/wafers",
             case WaferRegistrationResult::SlotOccupied:
                 response.status = 409;
 	    response.set_content(
-    		"{\"error\":\"" + escapeJson(parsed.error) + "\"}",
+    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
     		"application/json"
 	    );
                 break;
