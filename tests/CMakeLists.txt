@@ -24,6 +24,7 @@ add_executable(mini_fab_tests
     wafer_json_tests.cpp
     wafer_routes_tests.cpp
     wafer_json_parser_tests.cpp
+    sqlite_wafer_repository_tests.cpp
 
     mocks/mock_robot.cpp
     mocks/blocking_mock_robot.cpp

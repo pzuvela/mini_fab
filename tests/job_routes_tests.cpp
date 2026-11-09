@@ -402,3 +402,30 @@ TEST_F(JobRoutesTest, RejectsEmptyWaferIdFromEditableField)
     EXPECT_EQ(response->status, 400);
     EXPECT_EQ(controller_.pendingJobCount(), 0);
 }
+
+TEST_F(JobRoutesTest, AcceptsRegisteredSecondWafer)
+{
+    const Wafer wafer{
+        "W2",
+        {Station::LoadPort, 4}
+    };
+
+    ASSERT_EQ(
+        controller_.registerWafer(wafer),
+        WaferRegistrationResult::Registered
+    );
+
+    // Use an existing valid recipe ID in your fixture.
+    auto cli = client();
+
+    const auto response = cli.Post(
+        "/api/jobs",
+        "waferId=W2&recipeId=1&processModuleId=1",
+        "application/x-www-form-urlencoded"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 201);
+}
+
+

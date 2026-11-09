@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(mini_fab_tracking STATIC
 	wafer/wafer_manager.cpp
+	persistence/sqlite_wafer_repository.cpp
 )
 
 add_library(mini_fab_equipment STATIC
@@ -123,6 +124,10 @@ set(SQLITECPP_RUN_CPPLINT OFF CACHE BOOL "" FORCE)
 set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(SQLiteCpp)
+
+target_link_libraries(mini_fab_tracking PUBLIC
+    SQLiteCpp
+)
 
 target_link_libraries(mini_fab_recipes PUBLIC
     SQLiteCpp

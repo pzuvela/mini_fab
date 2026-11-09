@@ -66,8 +66,7 @@ void registerJobRoutes(
                 return;
             }
 
-            const std::string waferId =
-                request.get_param_value("waferId");
+            const std::string waferId = request.get_param_value("waferId");
 
             const auto recipeId = parsePositiveInteger<int>(
                 request.get_param_value("recipeId")
@@ -85,11 +84,34 @@ void registerJobRoutes(
 
             // Validate before accepting the job.
             // Currently MiniFab supports PM1 and wafer W1.
-            if (waferId != "W1" || *pmId != 1)
-            {
-                sendError(response, 422, "Unsupported equipment target");
-                return;
-            }
+if (*pmId != 1)
+{
+    sendError(response, 422, "Unsupported process module");
+    return;
+}
+
+const auto location = controller.wafersSnapshot();
+
+const auto waferIt = std::find_if(
+    location.begin(),
+    location.end(),
+    [&waferId](const Wafer& wafer)
+    {
+        return wafer.id == waferId;
+    }
+);
+
+if (waferIt == location.end())
+{
+    sendError(response, 404, "Wafer not found");
+    return;
+}
+
+if (waferIt->location.station != Station::LoadPort)
+{
+    sendError(response, 409, "Wafer is not available");
+    return;
+}
 
             if (!controller.getRecipe(*recipeId))
             {
