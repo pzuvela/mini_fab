@@ -58,3 +58,43 @@ TEST(JsonUtilsTest, HandlesEmptyString)
 
     EXPECT_EQ(out.str(), R"("")");
 }
+
+TEST(JsonUtilsTests, ParseSimpleString)
+{
+    std::string_view input = R"("W2")";
+    std::size_t pos = 0;
+
+    auto result = parseJsonString(input, pos);
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(*result, "W2");
+    EXPECT_EQ(pos, input.size());
+}
+
+TEST(JsonUtilsTests, ParseEscapedString)
+{
+    std::string_view input = R"("Hello\nWorld")";
+    std::size_t pos = 0;
+
+    auto result = parseJsonString(input, pos);
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(*result, "Hello\nWorld");
+}
+
+TEST(JsonUtilsTests, RejectUnterminatedString)
+{
+    std::string_view input = "\"W2";
+    std::size_t pos = 0;
+
+    EXPECT_FALSE(parseJsonString(input, pos).has_value());
+}
+
+TEST(JsonUtilsTests, RejectInvalidEscape)
+{
+    std::string_view input = R"("W\q2")";
+    std::size_t pos = 0;
+
+    EXPECT_FALSE(parseJsonString(input, pos).has_value());
+}
+
