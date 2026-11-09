@@ -338,3 +338,71 @@ test("ignores stale inventory responses", async () => {
     }
 });
 
+
+test("loaded becomes true after successful inventory fetch", async () => {
+    global.fetch = async () => ({
+        ok: true,
+        json: async () => ({ wafers: [] })
+    });
+
+    const vm = createWaferViewModel();
+
+    let latestState;
+    vm.subscribe(state => {
+        latestState = { ...state };
+    });
+
+    assert.equal(latestState.loaded, false);
+
+    await vm.load();
+
+    assert.equal(latestState.loaded, true);
+    assert.deepEqual(latestState.wafers, []);
+});
+
+test("loaded remains false when inventory fetch fails", async () => {
+    global.fetch = async () => ({
+        ok: false,
+        status: 500
+    });
+
+    const vm = createWaferViewModel();
+
+    let latestState;
+    vm.subscribe(state => {
+        latestState = { ...state };
+    });
+
+    assert.equal(latestState.loaded, false);
+
+    await vm.load();
+
+    assert.equal(latestState.loaded, false);
+    assert.deepEqual(latestState.wafers, []);
+    assert.equal(
+        latestState.message,
+        "Failed to load wafers: HTTP 500"
+    );
+});
+
+test("loaded remains false on network failure", async () => {
+    global.fetch = async () => {
+        throw new Error("Network unavailable");
+    };
+
+    const vm = createWaferViewModel();
+
+    let latestState;
+    vm.subscribe(state => {
+        latestState = { ...state };
+    });
+
+    await vm.load();
+
+    assert.equal(latestState.loaded, false);
+    assert.match(
+        latestState.message,
+        /Network unavailable/
+    );
+});
+

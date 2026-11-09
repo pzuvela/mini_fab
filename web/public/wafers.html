@@ -66,6 +66,9 @@
             </span>
         </div>
 
+	<p id="emptyInventory" hidden>
+		No wafers registered yet.
+	</p>
         <div class="table-container">
             <table>
                 <thead>
@@ -89,6 +92,7 @@
     const vm = createWaferViewModel();
 
     const form = document.querySelector("#waferForm");
+    const emptyInventory = document.querySelector("emptyInventory");
     const idInput = document.querySelector("#waferId");
     const slotInput = document.querySelector("#waferSlot");
     const registerButton =
@@ -107,6 +111,8 @@
         registerButton.disabled = state.busy;
         idInput.disabled = state.busy;
         slotInput.disabled = state.busy;
+
+	emptyInventory.hidden = !state.loaded || state.wafers.length !== 0;
 
         rows.replaceChildren();
 

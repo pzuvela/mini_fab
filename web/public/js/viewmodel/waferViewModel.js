@@ -4,6 +4,7 @@ export function createWaferViewModel() {
 
     const state = {
         wafers: [],
+	loaded: false,
         busy: false,
         message: "Loading wafers..."
     };
@@ -38,6 +39,7 @@ export function createWaferViewModel() {
 	    if (version != loadVersion) return;
 
             state.wafers = data.wafers;
+	    state.loaded = true;
             state.message = "";
         } catch (error) {
 	    if (version != loadVersion) return;
