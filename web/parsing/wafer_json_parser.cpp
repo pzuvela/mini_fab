@@ -177,5 +177,3 @@ std::optional<int> parseJsonInteger(
         return {wafer, ""};
     }
 }
-
-}
