@@ -1,6 +1,6 @@
-import { jobsApi } from "../model/jobsApi.js";
+import { jobsApi } from "../model/api.js";
 
-export function createJobsViewModel() {
+export function createJobsViewModel(api = jobsApi) {
     const state = {
         jobs: [],
         events: [],
@@ -65,8 +65,8 @@ export function createJobsViewModel() {
 
         try {
             const [jobs, scheduler] = await Promise.all([
-                jobsApi.getJobs(),
-                jobsApi.getScheduler()
+                api.getJobs(),
+                api.getScheduler()
             ]);
 
             if (!active) return;
@@ -92,7 +92,7 @@ export function createJobsViewModel() {
 
     async function refreshEvents() {
         try {
-            const data = await jobsApi.getEvents();
+            const data = await api.getEvents();
             if (!active) return;
             state.events = data.events ?? [];
             state.eventError = null;
@@ -105,7 +105,7 @@ export function createJobsViewModel() {
 
     async function loadRecipes() {
         try {
-            const recipes = await jobsApi.getRecipes();
+            const recipes = await api.getRecipes();
             if (!active) return;
             state.recipes = recipes;
             state.recipeError = null;
@@ -153,7 +153,8 @@ export function createJobsViewModel() {
         if (active) return;
 
         active = true;
-        void loadRecipes();
+        void loadWafers();
+	void loadRecipes();
         void refresh();
         void refreshEvents();
 
@@ -171,7 +172,7 @@ export function createJobsViewModel() {
 
 async function loadWafers() {
     try {
-        const data = await jobsApi.getWafers();
+        const data = await api.getWafers();
 
         if (!active) return;
 
@@ -214,22 +215,24 @@ function selectWafer(id) {
         refresh,
         selectRecipe,
         loadRecipes,
+	loadWafers,
+	selectWafer,
 
         startScheduler: () =>
             command(
-                () => jobsApi.startScheduler(),
+                () => api.startScheduler(),
                 "Scheduler start requested"
             ),
 
         stopScheduler: () =>
             command(
-                () => jobsApi.stopScheduler(),
+                () => api.stopScheduler(),
                 "Scheduler stopped"
             ),
 
         resetScheduler: () =>
             command(
-                () => jobsApi.resetScheduler(),
+                () => api.resetScheduler(),
                 "Scheduler fault reset"
             ),
 
@@ -238,7 +241,7 @@ submitJob: () => {
         state.selectedWaferId === null) return;
 
     return command(
-        () => jobsApi.submitJob(
+        () => api.submitJob(
             state.selectedWaferId,
             state.selectedRecipeId
         ),
