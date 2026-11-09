@@ -31,7 +31,7 @@ server.Post("/api/wafers",
     [&controller](const httplib::Request& request,
                   httplib::Response& response)
     {
-        const auto parsed = MiniFab::Web::parseWaferJson(
+        const auto parsed = MiniFab::Web::escapeJson(
             request.body
         );
 
@@ -39,7 +39,7 @@ server.Post("/api/wafers",
         {
             response.status = 400;
 	    response.set_content(
-    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
+    		"{\"error\":\"" + MiniFab::Web::writeJsonString(parsed.error) + "\"}",
     		"application/json"
 	    );
             return;
@@ -49,40 +49,38 @@ server.Post("/api/wafers",
             *parsed.wafer
         );
 
+	std::ostringstream out;
+	out << R"({"error":)";
+
         switch (result)
         {
             case WaferRegistrationResult::Registered:
                 response.status = 201;
-	    response.set_content(
-    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
-    		"application/json"
-	    );
+		MiniFab::Web:writeJsonstring(out, parsed.error);
+		out << "}";
+	    	response.set_content(out.str(), "application/json");
                 break;
 
             case WaferRegistrationResult::InvalidId:
             case WaferRegistrationResult::InvalidLocation:
                 response.status = 400;
-	    response.set_content(
-    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
-    		"application/json"
-	    );
+		MiniFab::Web:writeJsonstring(out, parsed.error);
+		out << "}";
+	    	response.set_content(out.str(), "application/json");
                 break;
 
             case WaferRegistrationResult::DuplicateId:
                 response.status = 409;
-
-	    response.set_content(
-    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
-    		"application/json"
-	    );
+		MiniFab::Web:writeJsonstring(out, parsed.error);
+	    	out << "}";
+		response.set_content(out.str(), "application/json");
                 break;
 
             case WaferRegistrationResult::SlotOccupied:
                 response.status = 409;
-	    response.set_content(
-    		"{\"error\":\"" + MiniFab::Web::escapeJson(parsed.error) + "\"}",
-    		"application/json"
-	    );
+		MiniFab::Web:writeJsonstring(out, parsed.error);
+		out << "}";
+	    	response.set_content(out.str(), "application/json");
                 break;
         }
     });
