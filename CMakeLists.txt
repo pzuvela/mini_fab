@@ -225,8 +225,8 @@ if(MINIFAB_BUILD_WEB)
 	)
 
 	configure_file(
-   		 ${CMAKE_CURRENT_SOURCE_DIR}/mini_fab_web/public/version.js.in
-    		${CMAKE_CURRENT_SOURCE_DIR}/mini_fab_web/public/version.js
+   		${CMAKE_CURRENT_SOURCE_DIR}/web/public/version.js.in
+    		${CMAKE_CURRENT_SOURCE_DIR}/web/public/version.js
     		@ONLY
 	)
 endif()
