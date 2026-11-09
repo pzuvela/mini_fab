@@ -77,7 +77,7 @@ server.Post("/api/wafers",
         switch (result)
         {
             case WaferRegistrationResult::Registered:
-		response.status = 201'
+		response.status = 201;
 		response.set_content(
 			waferToJson(*parsed.wafer),
 			"application/json"
