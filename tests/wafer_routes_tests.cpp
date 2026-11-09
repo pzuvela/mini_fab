@@ -6,6 +6,7 @@
 #include <thread>
 #include <algorithm>
 #include <vector>
+#include <atomic>
 
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
@@ -387,4 +388,119 @@ TEST_F(WaferRoutesTests, SuccessReturnsRegisteredWafer)
         std::string::npos
     );
 }
+
+
+TEST_F(WaferRoutesTests, ConcurrentRegistrationSameId)
+{
+    std::atomic<bool> start{false};
+    int statuses[2] = {0, 0};
+
+    const std::string bodies[2] = {
+        R"({"id":"W2","station":"LoadPort","slot":4})",
+        R"({"id":"W2","station":"LoadPort","slot":5})"
+    };
+
+    auto registerWafer = [&](int index)
+    {
+        auto cli = client();
+
+        while (!start.load(std::memory_order_acquire))
+            std::this_thread::yield();
+
+        const auto response = cli.Post(
+            "/api/wafers",
+            bodies[index],
+            "application/json"
+        );
+
+        statuses[index] = response ? response->status : 0;
+    };
+
+    std::thread first(registerWafer, 0);
+    std::thread second(registerWafer, 1);
+
+    start.store(true, std::memory_order_release);
+
+    first.join();
+    second.join();
+
+    std::sort(std::begin(statuses), std::end(statuses));
+
+    EXPECT_EQ(statuses[0], 201);
+    EXPECT_EQ(statuses[1], 409);
+
+    const auto wafers = controller_.wafersSnapshot();
+
+    ASSERT_EQ(wafers.size(), 2);
+
+    const auto count = std::count_if(
+        wafers.begin(),
+        wafers.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.id == "W2";
+        }
+    );
+
+    EXPECT_EQ(count, 1);
+}
+
+
+
+TEST_F(WaferRoutesTests, ConcurrentRegistrationSameSlot)
+{
+    std::atomic<bool> start{false};
+    int statuses[2] = {0, 0};
+
+    const std::string bodies[2] = {
+        R"({"id":"W2","station":"LoadPort","slot":4})",
+        R"({"id":"W3","station":"LoadPort","slot":4})"
+    };
+
+    auto registerWafer = [&](int index)
+    {
+        auto cli = client();
+
+        while (!start.load(std::memory_order_acquire))
+            std::this_thread::yield();
+
+        const auto response = cli.Post(
+            "/api/wafers",
+            bodies[index],
+            "application/json"
+        );
+
+        statuses[index] = response ? response->status : 0;
+    };
+
+    std::thread first(registerWafer, 0);
+    std::thread second(registerWafer, 1);
+
+    start.store(true, std::memory_order_release);
+
+    first.join();
+    second.join();
+
+    std::sort(std::begin(statuses), std::end(statuses));
+
+    EXPECT_EQ(statuses[0], 201);
+    EXPECT_EQ(statuses[1], 409);
+
+    const auto wafers = controller_.wafersSnapshot();
+
+    ASSERT_EQ(wafers.size(), 2);
+
+    const auto count = std::count_if(
+        wafers.begin(),
+        wafers.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.location.station == Station::LoadPort
+                && wafer.location.slot == 4;
+        }
+    );
+
+    EXPECT_EQ(count, 1);
+}
+
 
