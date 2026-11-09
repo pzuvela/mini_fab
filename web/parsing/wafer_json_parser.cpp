@@ -9,6 +9,68 @@
 
 namespace MiniFab::Web
 {
+
+
+std::optional<int> parseJsonInteger(
+    std::string_view input,
+    std::size_t& pos)
+{
+    skipWhitespace(input, pos);
+
+    const auto start = pos;
+
+    if (pos < input.size() && input[pos] == '-')
+        ++pos;
+
+    if (pos >= input.size())
+        return std::nullopt;
+
+    // JSON numbers cannot have leading zeros.
+    if (input[pos] == '0')
+    {
+        ++pos;
+    }
+    else if (input[pos] >= '1' && input[pos] <= '9')
+    {
+        while (pos < input.size() &&
+               input[pos] >= '0' && input[pos] <= '9')
+        {
+            ++pos;
+        }
+    }
+    else
+    {
+        return std::nullopt;
+    }
+
+    // Reject decimals, exponents and leading-zero integers.
+    if (pos < input.size() &&
+        (input[pos] == '.' ||
+         input[pos] == 'e' ||
+         input[pos] == 'E' ||
+         (input[pos] >= '0' && input[pos] <= '9')))
+    {
+        return std::nullopt;
+    }
+
+    int value = 0;
+
+    const auto [ptr, ec] = std::from_chars(
+        input.data() + start,
+        input.data() + pos,
+        value
+    );
+
+    if (ec != std::errc{} ||
+        ptr != input.data() + pos)
+    {
+        return std::nullopt;
+    }
+
+    return value;
+}
+
+
     WaferParseResult parseWaferJson(const std::string& json)
     {
         std::string_view input = json;
@@ -114,67 +176,6 @@ namespace MiniFab::Web
 
         return {wafer, ""};
     }
-}
-
-
-
-std::optional<int> parseJsonInteger(
-    std::string_view input,
-    std::size_t& pos)
-{
-    skipWhitespace(input, pos);
-
-    const auto start = pos;
-
-    if (pos < input.size() && input[pos] == '-')
-        ++pos;
-
-    if (pos >= input.size())
-        return std::nullopt;
-
-    // JSON numbers cannot have leading zeros.
-    if (input[pos] == '0')
-    {
-        ++pos;
-    }
-    else if (input[pos] >= '1' && input[pos] <= '9')
-    {
-        while (pos < input.size() &&
-               input[pos] >= '0' && input[pos] <= '9')
-        {
-            ++pos;
-        }
-    }
-    else
-    {
-        return std::nullopt;
-    }
-
-    // Reject decimals, exponents and leading-zero integers.
-    if (pos < input.size() &&
-        (input[pos] == '.' ||
-         input[pos] == 'e' ||
-         input[pos] == 'E' ||
-         (input[pos] >= '0' && input[pos] <= '9')))
-    {
-        return std::nullopt;
-    }
-
-    int value = 0;
-
-    const auto [ptr, ec] = std::from_chars(
-        input.data() + start,
-        input.data() + pos,
-        value
-    );
-
-    if (ec != std::errc{} ||
-        ptr != input.data() + pos)
-    {
-        return std::nullopt;
-    }
-
-    return value;
 }
 
 }
