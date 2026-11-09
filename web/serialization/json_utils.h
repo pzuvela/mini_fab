@@ -17,7 +17,7 @@ namespace MiniFab::Web
 		std::size_t& pos
 	);
 
-	void skipWhiteSpace(
+	void skipWhitespace(
 		std::string_view input,
 		std::size_t& pos
 	);
