@@ -1,5 +1,7 @@
 
 export function createWaferViewModel() {
+    let loadVersion = 0;
+
     const state = {
         wafers: [],
         busy: false,
@@ -22,6 +24,8 @@ export function createWaferViewModel() {
     }
 
     async function load() {
+	const version = ++loadVersion;
+
         try {
             const response = await fetch("/api/wafers");
 
@@ -31,9 +35,12 @@ export function createWaferViewModel() {
 
             const data = await response.json();
 
+	    if (version != loadVersion) return;
+
             state.wafers = data.wafers;
             state.message = "";
         } catch (error) {
+	    if (version != loadVersion) return;
             state.message = `Failed to load wafers: ${error.message}`;
         }
 
@@ -41,6 +48,7 @@ export function createWaferViewModel() {
     }
 
     async function register(id, slot) {
+	if (state.busy) reutrn;
         state.busy = true;
         state.message = "Registering wafer...";
         notify();
