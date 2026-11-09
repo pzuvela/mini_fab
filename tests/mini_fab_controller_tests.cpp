@@ -654,7 +654,7 @@ TEST(MiniFabControllerTest, RegistrationGeneratesEvent)
 {
     MiniFabController controller;
 
-    const auto before = controller.eventsSnapshot().size();
+    const auto before = controller.events().size();
 
     const auto result = controller.registerWafer(
         Wafer{"W2", {Station::LoadPort, 4}}
@@ -662,7 +662,7 @@ TEST(MiniFabControllerTest, RegistrationGeneratesEvent)
 
     ASSERT_EQ(result, WaferRegistrationResult::Registered);
 
-    const auto events = controller.eventsSnapshot();
+    const auto events = controller.events();
 
     ASSERT_EQ(events.size(), before + 1);
     EXPECT_EQ(events.back().type, EventType::WaferRegistered);
@@ -672,7 +672,7 @@ TEST(MiniFabControllerTest, RejectedRegistrationDoesNotGenerateEvent)
 {
     MiniFabController controller;
 
-    const auto before = controller.eventsSnapshot().size();
+    const auto before = controller.events().size();
 
     const auto result = controller.registerWafer(
         Wafer{"W1", {Station::LoadPort, 4}}
@@ -680,7 +680,7 @@ TEST(MiniFabControllerTest, RejectedRegistrationDoesNotGenerateEvent)
 
     ASSERT_EQ(result, WaferRegistrationResult::DuplicateId);
 
-    const auto events = controller.eventsSnapshot();
+    const auto events = controller.events();
 
     EXPECT_EQ(events.size(), before);
 }
