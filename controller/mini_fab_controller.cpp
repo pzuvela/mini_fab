@@ -487,7 +487,7 @@ WaferRegistrationResult MiniFabController::registerWafer(const Wafer& wafer)
 {
 	const WaferRegistrationResult result = manager_.addWafer(wafer);
 
-	if (result == WaferRegistrationResult == WaferRegistrationResult::Registered)
+	if (result == WaferRegistrationResult::Registered)
 	{
 		eventLog_.record(
 			EventType::WaferRegistered,
