@@ -22,7 +22,7 @@ private:
 	bool isLocationOccupied(const std::string& waferId, const Location& location) const;
 	bool isWaferIdEmpty(const std::string& waferId) const;
 	bool isSlotNegativeOrZero(const int slot) const;
-	WaferRegistrationResult validateWafer(const Wafer& wafer);
+	WaferRegistrationResult validateWafer(const Wafer& wafer) const;
 	void insertWaferToMemory(const Wafer& wafer);
 
 public:
