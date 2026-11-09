@@ -15,7 +15,7 @@ std::optional<int> parseJsonInteger(
     std::string_view input,
     std::size_t& pos)
 {
-    MiniFab::Web::skipWhiteSpace(input, pos);
+    skipWhiteSpace(input, pos);
 
     const auto start = pos;
 
@@ -149,7 +149,7 @@ std::optional<int> parseJsonInteger(
             }
         }
 
-        MiniFab::Web::skipWhiteSpace(input, pos);
+        skipWhiteSpace(input, pos);
 
         if (pos != input.size())
             return {
