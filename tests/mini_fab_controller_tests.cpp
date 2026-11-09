@@ -3,11 +3,15 @@
 #include <thread>
 #include <functional>
 #include <algorithm>
+#include <filesystem>
 
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
 #include "scheduler/dispatch_result.h"
 #include "mocks/fault_injecting_controller.h"
+#include "persistence/sqlite_wafer_repository.h"
+#include "persistence/sqlite_event_repository.h"
+
 
 using namespace std::chrono_literals;
 
@@ -685,4 +689,116 @@ TEST(MiniFabControllerTest, RejectedRegistrationDoesNotGenerateEvent)
     EXPECT_EQ(events.size(), before);
 }
 
+
+TEST(MiniFabControllerTest, RestoresPersistedWaferInventory)
+{
+    namespace fs = std::filesystem;
+
+    const auto path = fs::temp_directory_path() /
+        "minifab_controller_restart_test.sqlite";
+
+    fs::remove(path);
+
+    // Cleanup even when an ASSERT aborts the test.
+    struct Cleanup
+    {
+        fs::path path;
+
+        ~Cleanup()
+        {
+            std::error_code ec;
+            fs::remove(path, ec);
+        }
+    } cleanup{path};
+
+    // First application instance.
+    {
+        SqliteRecipeRepository recipeRepo(path.string());
+        SqliteEventRepository eventRepo(path.string());
+        SqliteWaferRepository waferRepo(path.string());
+
+        RecipeManager recipeManager(recipeRepo);
+
+        MiniFabController controller(
+            recipeManager,
+            eventRepo,
+            waferRepo
+        );
+
+        const auto result = controller.registerWafer({
+            "W2", {Station::LoadPort, 4}
+        });
+
+        ASSERT_EQ(
+            result,
+            WaferRegistrationResult::Registered
+        );
+
+        EXPECT_EQ(controller.wafersSnapshot().size(), 2);
+    }
+
+    // Simulate application restart.
+    {
+        SqliteRecipeRepository recipeRepo(path.string());
+        SqliteEventRepository eventRepo(path.string());
+        SqliteWaferRepository waferRepo(path.string());
+
+        RecipeManager recipeManager(recipeRepo);
+
+        MiniFabController controller(
+            recipeManager,
+            eventRepo,
+            waferRepo
+        );
+
+        const auto wafers = controller.wafersSnapshot();
+
+        ASSERT_EQ(wafers.size(), 2);
+
+        const auto findWafer = [&](const std::string& id)
+        {
+            return std::find_if(
+                wafers.begin(),
+                wafers.end(),
+                [&](const Wafer& wafer)
+                {
+                    return wafer.id == id;
+                }
+            );
+        };
+
+        const auto w1 = findWafer("W1");
+        const auto w2 = findWafer("W2");
+
+        ASSERT_NE(w1, wafers.end());
+        ASSERT_NE(w2, wafers.end());
+
+        EXPECT_EQ(
+            w1->location,
+            (Location{Station::LoadPort, 3})
+        );
+
+        EXPECT_EQ(
+            w2->location,
+            (Location{Station::LoadPort, 4})
+        );
+
+        // Restoration must not generate another
+        // registration event for W2.
+        const auto events = controller.events();
+
+        const auto registrations = std::count_if(
+            events.begin(),
+            events.end(),
+            [](const EquipmentEvent& event)
+            {
+                return event.type == EventType::WaferRegistered
+                    && event.message.find("W2")
+                        != std::string::npos;
+            }
+        );
+
+        EXPECT_EQ(registrations, 1);
+    }
+}
 

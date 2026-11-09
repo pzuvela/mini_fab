@@ -46,6 +46,38 @@ MiniFabController::MiniFabController(
     recipeManager_ = &recipeManager;
 }
 
+MiniFabController::MiniFabController(
+    RecipeManager& recipeManager,
+    IEventRepository& eventRepository,
+    IWaferRepository& waferRepository
+)
+    : manager_(waferRepository),
+      robot_(std::chrono::milliseconds{300}),
+      eventLog_({}, &eventRepository),
+      engine_(manager_, robot_, processModule_, eventLog_),
+      recipeManager_(&recipeManager)
+{
+    if (manager_.getWafers().empty())
+    {
+        manager_.addWafer(
+            Wafer{
+                .id = "W1",
+                .location = Location{Station::LoadPort, 3}
+            }
+        );
+
+        eventLog_.record(
+            EventType::WaferRegistered,
+            "Wafer W1 registered at LoadPort / Slot 3"
+        );
+    }
+
+    eventLog_.record(
+        EventType::EquipmentStarted,
+        "MiniFab equipment initialized"
+    );
+}
+
 MiniFabController::~MiniFabController()
 {
 	stopScheduler();

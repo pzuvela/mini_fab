@@ -12,15 +12,17 @@
 #include "web/routes/job_routes.h"
 #include "web/routes/scheduler_routes.h"
 #include "web/routes/wafer_routes.h"
+#include "persistence/sqlite_wafer_repository.h"
 
 
 int main()
 {
     SqliteRecipeRepository repository("minifab.db");
     SqliteEventRepository eventRepository("minifab.db");
+    SqliteWaferRepository waferRepository("minifab.db");
 
     RecipeManager recipeManager(repository);
-    MiniFabController controller(recipeManager, eventRepository);
+    MiniFabController controller(recipeManager, eventRepository, waferRepository);
 
     controller.startScheduler();
 

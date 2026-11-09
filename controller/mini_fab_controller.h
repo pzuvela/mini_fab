@@ -30,6 +30,7 @@
 #include "scheduler/scheduler_snapshot.h"
 #include "scheduler/job_snapshot.h"
 #include "wafer/wafer_registration_result.h"
+#include "wafer/iwafer_repository.h"
 
 
 class MiniFabController
@@ -65,7 +66,9 @@ public:
 	explicit MiniFabController(IEventRepository* eventRepository = nullptr);
 	explicit MiniFabController(RecipeManager& recipeManager);
 
-	MiniFabController(RecipeManager& recipeManager, IEventRepository& eventReposutory);
+	MiniFabController(RecipeManager& recipeManager, IEventRepository& eventRepository);
+
+	MiniFabController(RecipeManager& recipeManager, IEventRepository& eventRepository, IWaferRepository& waferRepository);
 
 	virtual ~MiniFabController();
 
