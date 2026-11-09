@@ -1,8 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createJobsViewModel } from
-    "../../web/public/js/viewmodel/jobsViewModel.js";
+import { createJobsViewModel } from  "../../web/public/js/viewmodel/jobsViewModel.js";
 
 function createMockApi(wafers = []) {
     const submissions = [];

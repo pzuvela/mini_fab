@@ -1,4 +1,4 @@
-import { jobsApi } from "../model/api.js";
+import { jobsApi } from "../model/jobsApi.js";
 
 export function createJobsViewModel(api = jobsApi) {
     const state = {
