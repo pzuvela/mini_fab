@@ -64,7 +64,7 @@ TEST(JsonUtilsTests, ParseSimpleString)
     std::string_view input = R"("W2")";
     std::size_t pos = 0;
 
-    auto result = parseJsonString(input, pos);
+    auto result = MiniFab::Web::parseJsonString(input, pos);
 
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(*result, "W2");
@@ -76,7 +76,7 @@ TEST(JsonUtilsTests, ParseEscapedString)
     std::string_view input = R"("Hello\nWorld")";
     std::size_t pos = 0;
 
-    auto result = parseJsonString(input, pos);
+    auto result = MiniFab::Web::parseJsonString(input, pos);
 
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(*result, "Hello\nWorld");
@@ -87,7 +87,7 @@ TEST(JsonUtilsTests, RejectUnterminatedString)
     std::string_view input = "\"W2";
     std::size_t pos = 0;
 
-    EXPECT_FALSE(parseJsonString(input, pos).has_value());
+    EXPECT_FALSE(MiniFab::Web::parseJsonString(input, pos).has_value());
 }
 
 TEST(JsonUtilsTests, RejectInvalidEscape)
@@ -95,6 +95,6 @@ TEST(JsonUtilsTests, RejectInvalidEscape)
     std::string_view input = R"("W\q2")";
     std::size_t pos = 0;
 
-    EXPECT_FALSE(parseJsonString(input, pos).has_value());
+    EXPECT_FALSE(MiniFab::Web::parseJsonString(input, pos).has_value());
 }
 
