@@ -16,6 +16,7 @@ namespace MiniFab::Web
 
 	WaferParseResult parseWaferJson(const std::string& json);
 
+	std::optional<int> parseJsonInteger(std::string_view input, std::size_t& pos);
 }
 
 
