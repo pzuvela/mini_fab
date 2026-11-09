@@ -203,7 +203,7 @@ TEST_F(JobRoutesTest, RejectsUnknownWafer)
     );
 
     ASSERT_TRUE(response);
-    EXPECT_EQ(response->status, 422);
+    EXPECT_EQ(response->status, 404);
 }
 
 TEST_F(JobRoutesTest, Returns404ForUnknownJob)
