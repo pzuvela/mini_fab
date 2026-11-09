@@ -63,7 +63,7 @@ namespace MiniFab::Web
 
 	bool consume(
 		std::string_view input,
-		std::size_t pos,
+		std::size_t& pos,
 		char expected
 	)
 	{
