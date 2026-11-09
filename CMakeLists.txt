@@ -156,6 +156,7 @@ target_include_directories(mini_fab_serialization PUBLIC
 
 add_library(mini_fab_web_parsing STATIC
     web/parsing/recipe_parser.cpp
+    web/parsing/wafer_json_parser.cpp
 )
 
 target_include_directories(mini_fab_web_parsing PUBLIC
