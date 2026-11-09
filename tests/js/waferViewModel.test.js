@@ -1,9 +1,7 @@
-
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createWaferViewModel } from "../../web/public/js/viewmodel/waferViewModel.js";
 
-import { createWaferViewModel } from
-    "../../web/public/js/viewmodel/waferViewModel.js";
 
 function mockFetch(handler) {
     const original = globalThis.fetch;
@@ -167,13 +165,6 @@ test("Handles inventory loading failure", async () => {
         restore();
     }
 });
-
-
-import test from "node:test";
-import assert from "node:assert/strict";
-
-import { createWaferViewModel } from
-    "../../web/public/js/viewmodel/waferViewModel.js";
 
 function response(status, body) {
     return {
