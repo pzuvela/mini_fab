@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <stdexcept>
 
 #include "wafer/wafer_manager.h"
 #include "wafer/location_update_result.h"
@@ -9,6 +10,7 @@
 #include "mocks/mock_robot.h"
 #include "mocks/mock_wafer_manager.h"
 #include "wafer/wafer_registration_result.h"
+#include "persistence/sqlite_wafer_repository.h"
 
 
 namespace MiniFab::Tests
@@ -157,4 +159,182 @@ TEST_F(WaferManagerTest, ModifyingSnapshotDoesNotModifyInventory)
 
 }
 
+
+
+TEST_F(WaferManagerTest, RejectsInvalidDestinationSlot)
+{
+    WaferManager manager;
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    EXPECT_EQ(
+        manager.updateLocation("W1", {Station::ProcessModule, 0}),
+        LocationUpdateResult::InvalidLocation
+    );
+
+    EXPECT_EQ(
+        manager.getLocation("W1"),
+        (Location{Station::LoadPort, 1})
+    );
+}
+
+TEST_F(WaferManagerTest, RejectsInvalidDestinationStation)
+{
+    WaferManager manager;
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    EXPECT_EQ(
+        manager.updateLocation(
+            "W1",
+            {static_cast<Station>(999), 1}
+        ),
+        LocationUpdateResult::InvalidLocation
+    );
+
+    EXPECT_EQ(
+        manager.getLocation("W1"),
+        (Location{Station::LoadPort, 1})
+    );
+}
+
+TEST_F(WaferManagerTest, RejectsOccupiedDestination)
+{
+    WaferManager manager;
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    ASSERT_EQ(
+        manager.addWafer({"W2", {Station::LoadPort, 2}}),
+        WaferRegistrationResult::Registered
+    );
+
+    EXPECT_EQ(
+        manager.updateLocation("W2", {Station::LoadPort, 1}),
+        LocationUpdateResult::SlotOccupied
+    );
+
+    EXPECT_EQ(
+        manager.getLocation("W1"),
+        (Location{Station::LoadPort, 1})
+    );
+
+    EXPECT_EQ(
+        manager.getLocation("W2"),
+        (Location{Station::LoadPort, 2})
+    );
+}
+
+TEST_F(WaferManagerTest, UpdatingToSameLocationSucceeds)
+{
+    WaferManager manager;
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    EXPECT_EQ(
+        manager.updateLocation("W1", {Station::LoadPort, 1}),
+        LocationUpdateResult::Updated
+    );
+
+    EXPECT_EQ(
+        manager.getLocation("W1"),
+        (Location{Station::LoadPort, 1})
+    );
+}
+
+TEST_F(WaferManagerTest, LocationUpdatePersistsAcrossManagerRestart)
+{
+    SqliteWaferRepository repository(":memory:");
+
+    {
+        WaferManager manager(repository);
+
+        ASSERT_EQ(
+            manager.addWafer({"W1", {Station::LoadPort, 1}}),
+            WaferRegistrationResult::Registered
+        );
+
+        ASSERT_EQ(
+            manager.updateLocation(
+                "W1",
+                {Station::ProcessModule, 1}
+            ),
+            LocationUpdateResult::Updated
+        );
+    }
+
+    // Reconstruct manager using the same repository.
+    {
+        WaferManager restoredManager(repository);
+
+        const auto location = restoredManager.getLocation("W1");
+
+        ASSERT_TRUE(location.has_value());
+
+        EXPECT_EQ(
+            *location,
+            (Location{Station::ProcessModule, 1})
+        );
+
+        EXPECT_EQ(restoredManager.getWafers().size(), 1);
+    }
+}
+
+
+TEST_F(WaferManagerTest, RejectedMovementDoesNotModifyDatabase)
+{
+    SqliteWaferRepository repository(":memory:");
+
+    WaferManager manager(repository);
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    ASSERT_EQ(
+        manager.addWafer({"W2", {Station::LoadPort, 2}}),
+        WaferRegistrationResult::Registered
+    );
+
+    EXPECT_EQ(
+        manager.updateLocation("W2", {Station::LoadPort, 1}),
+        LocationUpdateResult::SlotOccupied
+    );
+
+    EXPECT_EQ(
+        manager.getLocation("W2"),
+        (Location{Station::LoadPort, 2})
+    );
+
+    const auto persisted = repository.getAll();
+
+    const auto it = std::find_if(
+        persisted.begin(),
+        persisted.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.id == "W2";
+        }
+    );
+
+    ASSERT_NE(it, persisted.end());
+
+    EXPECT_EQ(
+        it->location,
+        (Location{Station::LoadPort, 2})
+    );
+}
 

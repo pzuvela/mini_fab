@@ -1,6 +1,7 @@
 #include <unordered_map>
 #include <memory>
 #include <string>
+#include <stdexcept>
 
 #include "domain/wafer.h"
 #include "wafer_manager.h"
@@ -104,6 +105,14 @@ LocationUpdateResult WaferManager::updateLocation(const std::string& waferId, Lo
 	auto iterator = wafers_.find(waferId);
 
 	if (iterator == wafers_.end()) return LocationUpdateResult::WaferNotFound;
+
+	if (location.slot < 1 || toString(location.station) == "Unknown") return LocationUpdateResult::InvalidLocation;
+
+	if (isLocationOccupied(waferId, location)) return LocationUpdateResult::SlotOccupied;
+
+	if (it->second->location == location) return LocationUpdateResult::Updated;
+
+	if (repository_ && !repository_->updateLocation(waferId, location)) throw std::runtime_error("Failed to persist wafer location");
 
 	iterator->second->location = location;
 

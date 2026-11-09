@@ -3,6 +3,9 @@
 enum class LocationUpdateResult
 {
 	Updated,
-	WaferNotFound
+	WaferNotFound,
+	InvalidLocation,
+	SlotOccupied
 };
+
 
