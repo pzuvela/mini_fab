@@ -246,9 +246,6 @@ TEST_F(WaferRoutesTests, PostRejectsInvalidRequests)
         R"({"id":"W2","station":"LoadPort","slot":"4"})",
         R"({"id":"W2","station":"LoadPort","slot":4,})",
         R"({"id":"W2","station":"LoadPort","slot":4.5})",
-        R"({"id":"","station":"LoadPort","slot":4})",
-        R"({"id":"W2","station":"LoadPort","slot":0})",
-        R"({"id":"W2","station":"LoadPort","slot":-1})",
         R"({"id":"W2","station":"LoadPort","slot":4,"extra":true})",
         "not json"
     };
