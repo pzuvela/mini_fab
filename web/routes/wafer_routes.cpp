@@ -31,59 +31,68 @@ server.Post("/api/wafers",
     [&controller](const httplib::Request& request,
                   httplib::Response& response)
     {
-        const auto parsed = MiniFab::Web::escapeJson(
-            request.body
-        );
+        // Helper: safely serialize a JSON message.
+        auto setJsonResponse =
+            [&response](int status,
+                        std::string_view key,
+                        std::string_view message)
+        {
+            std::ostringstream out;
+
+            out << "{";
+            MiniFab::Web::writeJsonString(out, key);
+            out << ":";
+            MiniFab::Web::writeJsonString(out, message);
+            out << "}";
+
+            response.status = status;
+            response.set_content(
+                out.str(),
+                "application/json"
+            );
+        };
+
+        const auto parsed =
+            MiniFab::Web::parseWaferJson(request.body);
 
         if (!parsed.wafer)
         {
-            response.status = 400;
-	    response.set_content(
-    		"{\"error\":\"" + MiniFab::Web::writeJsonString(parsed.error) + "\"}",
-    		"application/json"
-	    );
+            setJsonResponse(400, "error", parsed.error);
             return;
         }
 
-        const auto result = controller.registerWafer(
-            *parsed.wafer
-        );
-
-	std::ostringstream out;
-	out << R"({"error":)";
+        const auto result =
+            controller.registerWafer(*parsed.wafer);
 
         switch (result)
         {
             case WaferRegistrationResult::Registered:
-                response.status = 201;
-		MiniFab::Web:writeJsonstring(out, parsed.error);
-		out << "}";
-	    	response.set_content(out.str(), "application/json");
+                setJsonResponse(
+                    201, "status", "registered");
                 break;
 
             case WaferRegistrationResult::InvalidId:
+                setJsonResponse(
+                    400, "error", "Invalid wafer ID");
+                break;
+
             case WaferRegistrationResult::InvalidLocation:
-                response.status = 400;
-		MiniFab::Web:writeJsonstring(out, parsed.error);
-		out << "}";
-	    	response.set_content(out.str(), "application/json");
+                setJsonResponse(
+                    400, "error", "Invalid wafer location");
                 break;
 
             case WaferRegistrationResult::DuplicateId:
-                response.status = 409;
-		MiniFab::Web:writeJsonstring(out, parsed.error);
-	    	out << "}";
-		response.set_content(out.str(), "application/json");
+                setJsonResponse(
+                    409, "error", "Wafer ID already exists");
                 break;
 
             case WaferRegistrationResult::SlotOccupied:
-                response.status = 409;
-		MiniFab::Web:writeJsonstring(out, parsed.error);
-		out << "}";
-	    	response.set_content(out.str(), "application/json");
+                setJsonResponse(
+                    409, "error", "Slot already occupied");
                 break;
         }
     });
+
 
     }
 }
