@@ -5,6 +5,48 @@
 #include "domain/wafer.h"
 #include "wafer_manager.h"
 
+WaferManager::WaferManager(IWaferRepository& repository)
+	: repository_(&repository)
+{
+	for (const auto& wafer : repository.getAll())
+	{
+		const auto result = validateWafer(wafer);
+
+		if (result != WaferRegistrationResult::Registered) throw std::runtime_error("Invalid persisted wafer inventory");
+
+		insertWaferToMemory(wafer);
+	}
+}
+
+WaferRegistrationResult WaferManager::validateWafer(const Wafer& wafer) const
+{
+    if (wafer.id.empty())
+        return WaferRegistrationResult::InvalidId;
+
+    if (wafer.location.slot < 1)
+        return WaferRegistrationResult::InvalidLocation;
+
+    if (toString(wafer.location.station) == "Unknown")
+        return WaferRegistrationResult::InvalidLocation;
+
+    if (wafers_.contains(wafer.id))
+        return WaferRegistrationResult::DuplicateId;
+
+    if (isLocationOccupied(wafer.id, wafer.location))
+        return WaferRegistrationResult::SlotOccupied;
+
+    return WaferRegistrationResult::Registered;
+}
+
+void WaferManager::insertWaferToMemory(
+    const Wafer& wafer)
+{
+    wafers_.emplace(
+        wafer.id,
+        std::make_unique<Wafer>(wafer)
+    );
+}
+
 bool WaferManager::isLocationOccupied(const std::string& waferId, const Location& location) const
 {
 	for (const auto& [existingWaferId, existingWafer] : wafers_)
@@ -31,20 +73,15 @@ bool WaferManager::isSlotNegativeOrZero(const int slot) const
     {
 	std::lock_guard<std::mutex> lock(mutex_);
 
-	if (isWaferIdEmpty(wafer.id)) return WaferRegistrationResult::InvalidId;
-
-	if (isSlotNegativeOrZero(wafer.location.slot)) return WaferRegistrationResult::InvalidLocation;
-
-	if (wafers_.contains(wafer.id)) return WaferRegistrationResult::DuplicateId;
-
 	if (wafer.location.station != Station::LoadPort) return WaferRegistrationResult::InvalidLocation;
 
-	if (isLocationOccupied(wafer.id, wafer.location)) return WaferRegistrationResult::SlotOccupied;
+	const auto result = validateWafer(wafer);
 
-        wafers_.emplace(  // can also use auto [iterator, succeeded]
-            wafer.id,
-            std::make_unique<Wafer>(wafer)
-        );
+	if (result != WaferRegistrationResult::Registered) return result;
+
+	if (repository_ && !repository_->insert(wafer)) throw std::runtime_error("Failed to persist wafer registration");
+
+	insertWaferToMemory(wafer);
 
         return WaferRegistrationResult::Registered;
     }
