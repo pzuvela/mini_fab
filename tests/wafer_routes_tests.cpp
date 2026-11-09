@@ -289,3 +289,105 @@ TEST_F(WaferRoutesTests, RejectedRegistrationDoesNotModifyInventory)
     EXPECT_EQ(after.size(), before.size());
 }
 
+
+TEST_F(WaferRoutesTests, RejectsUnsupportedContentType)
+{
+    auto cli = client();
+
+    const auto response = cli.Post(
+        "/api/wafers",
+        R"({"id":"W2","station":"LoadPort","slot":4})",
+        "text/plain"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 415);
+    EXPECT_EQ(controller_.wafersSnapshot().size(), 1);
+}
+
+TEST_F(WaferRoutesTests, RejectsIntegerOverflow)
+{
+    auto cli = client();
+
+    const auto response = cli.Post(
+        "/api/wafers",
+        R"({"id":"W2","station":"LoadPort","slot":999999999999999999999})",
+        "application/json"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 400);
+    EXPECT_EQ(controller_.wafersSnapshot().size(), 1);
+}
+
+TEST_F(WaferRoutesTests, RejectsTrailingJsonContent)
+{
+    auto cli = client();
+
+    const auto response = cli.Post(
+        "/api/wafers",
+        R"({"id":"W2","station":"LoadPort","slot":4} garbage)",
+        "application/json"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 400);
+    EXPECT_EQ(controller_.wafersSnapshot().size(), 1);
+}
+
+TEST_F(WaferRoutesTests, RejectsInvalidWaferSemantics)
+{
+    auto cli = client();
+
+    const std::vector<std::string> invalid = {
+        R"({"id":"","station":"LoadPort","slot":4})",
+        R"({"id":"W2","station":"LoadPort","slot":0})",
+        R"({"id":"W2","station":"LoadPort","slot":-1})",
+        R"({"id":"W2","station":"ProcessModule","slot":1})"
+    };
+
+    for (const auto& body : invalid)
+    {
+        SCOPED_TRACE(body);
+
+        const auto response = cli.Post(
+            "/api/wafers",
+            body,
+            "application/json"
+        );
+
+        ASSERT_TRUE(response);
+        EXPECT_EQ(response->status, 422);
+        EXPECT_EQ(controller_.wafersSnapshot().size(), 1);
+    }
+}
+
+TEST_F(WaferRoutesTests, SuccessReturnsRegisteredWafer)
+{
+    auto cli = client();
+
+    const auto response = cli.Post(
+        "/api/wafers",
+        R"({"id":"W2","station":"LoadPort","slot":4})",
+        "application/json"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 201);
+
+    EXPECT_NE(
+        response->body.find(R"("id":"W2")"),
+        std::string::npos
+    );
+
+    EXPECT_NE(
+        response->body.find(R"("station":"LoadPort")"),
+        std::string::npos
+    );
+
+    EXPECT_NE(
+        response->body.find(R"("slot":4)"),
+        std::string::npos
+    );
+}
+

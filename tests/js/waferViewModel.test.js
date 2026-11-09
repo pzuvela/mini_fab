@@ -167,3 +167,183 @@ test("Handles inventory loading failure", async () => {
         restore();
     }
 });
+
+
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { createWaferViewModel } from
+    "../../web/public/js/viewmodel/waferViewModel.js";
+
+function response(status, body) {
+    return {
+        ok: status >= 200 && status < 300,
+        status,
+        json: async () => body
+    };
+}
+
+function setup(fetchMock) {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = fetchMock;
+
+    const vm = createWaferViewModel();
+    let state;
+
+    vm.subscribe(value => {
+        state = { ...value, wafers: [...value.wafers] };
+    });
+
+    return {
+        vm,
+        get state() { return state; },
+        restore() { globalThis.fetch = originalFetch; }
+    };
+}
+
+test("loads wafer inventory", async () => {
+    const ctx = setup(async () => response(200, {
+        wafers: [
+            { id: "W1", location: { station: "LoadPort", slot: 3 } },
+            { id: "W2", location: { station: "LoadPort", slot: 4 } }
+        ]
+    }));
+
+    try {
+        await ctx.vm.load();
+
+        assert.equal(ctx.state.wafers.length, 2);
+        assert.equal(ctx.state.wafers[1].id, "W2");
+        assert.equal(ctx.state.message, "");
+    } finally {
+        ctx.restore();
+    }
+});
+
+test("reports inventory loading failure", async () => {
+    const ctx = setup(async () => {
+        throw new Error("Connection refused");
+    });
+
+    try {
+        await ctx.vm.load();
+
+        assert.match(ctx.state.message, /Failed to load/);
+        assert.match(ctx.state.message, /Connection refused/);
+    } finally {
+        ctx.restore();
+    }
+});
+
+test("registers wafer and refreshes inventory", async () => {
+    const calls = [];
+
+    const ctx = setup(async (url, options) => {
+        calls.push({ url, options });
+
+        if (options?.method === "POST")
+            return response(201, { status: "registered" });
+
+        return response(200, {
+            wafers: [
+                { id: "W1", location: { station: "LoadPort", slot: 3 } },
+                { id: "W2", location: { station: "LoadPort", slot: 4 } }
+            ]
+        });
+    });
+
+    try {
+        await ctx.vm.register("W2", 4);
+
+        assert.equal(calls[0].url, "/api/wafers");
+        assert.equal(calls[0].options.method, "POST");
+
+        assert.deepEqual(
+            JSON.parse(calls[0].options.body),
+            { id: "W2", station: "LoadPort", slot: 4 }
+        );
+
+        assert.equal(ctx.state.wafers.length, 2);
+        assert.equal(ctx.state.busy, false);
+        assert.match(ctx.state.message, /W2 registered/);
+    } finally {
+        ctx.restore();
+    }
+});
+
+test("registration conflict preserves inventory", async () => {
+    const ctx = setup(async () => response(409, {
+        error: "Slot already occupied"
+    }));
+
+    try {
+        await ctx.vm.register("W2", 3);
+
+        assert.equal(ctx.state.wafers.length, 0);
+        assert.equal(ctx.state.busy, false);
+        assert.match(ctx.state.message, /Slot already occupied/);
+    } finally {
+        ctx.restore();
+    }
+});
+
+test("prevents duplicate submissions", async () => {
+    let resolvePost;
+    let postCount = 0;
+
+    const ctx = setup((url, options) => {
+        if (options?.method === "POST") {
+            postCount++;
+
+            return new Promise(resolve => {
+                resolvePost = resolve;
+            });
+        }
+
+        return Promise.resolve(response(200, { wafers: [] }));
+    });
+
+    try {
+        const first = ctx.vm.register("W2", 4);
+        const second = ctx.vm.register("W2", 4);
+
+        assert.equal(postCount, 1);
+
+        resolvePost(response(201, { status: "registered" }));
+
+        await Promise.all([first, second]);
+        assert.equal(ctx.state.busy, false);
+    } finally {
+        ctx.restore();
+    }
+});
+
+test("ignores stale inventory responses", async () => {
+    const resolvers = [];
+
+    const ctx = setup(() => new Promise(resolve => {
+        resolvers.push(resolve);
+    }));
+
+    try {
+        const first = ctx.vm.load();
+        const second = ctx.vm.load();
+
+        resolvers[1](response(200, {
+            wafers: [{ id: "W2", location: { station: "LoadPort", slot: 4 } }]
+        }));
+
+        await second;
+
+        resolvers[0](response(200, {
+            wafers: [{ id: "W1", location: { station: "LoadPort", slot: 3 } }]
+        }));
+
+        await first;
+
+        assert.equal(ctx.state.wafers[0].id, "W2");
+    } finally {
+        ctx.restore();
+    }
+});
+
