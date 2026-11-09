@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/run.css">
+    <title>MiniFab - Wafers</title>
+</head>
+<body>
+<main class="dashboard">
+
+    <header class="dashboard-header">
+        <div>
+            <p class="eyebrow">EQUIPMENT CONTROL SYSTEM</p>
+            <h1>MiniFab <span>Wafer Inventory</span></h1>
+        </div>
+        <span class="version" data-app-version></span>
+    </header>
+
+    <nav class="main-nav">
+        <a href="/run.html">Run</a>
+        <a href="/recipes.html">Recipes</a>
+        <a href="/jobs.html">Jobs</a>
+        <a href="/wafers.html" class="active">Wafers</a>
+    </nav>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Register Wafer</h2>
+        </div>
+
+        <form id="waferForm" class="recipe-config">
+            <label>
+                Wafer ID
+                <input id="waferId"
+                       type="text"
+                       placeholder="e.g. W2"
+                       required>
+            </label>
+
+            <label>
+                LoadPort Slot
+                <input id="waferSlot"
+                       type="number"
+                       min="1"
+                       step="1"
+                       placeholder="e.g. 4"
+                       required>
+            </label>
+
+            <button id="registerButton" type="submit">
+                Register Wafer
+            </button>
+        </form>
+
+        <p id="message" role="status">Loading wafers...</p>
+    </section>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <h2>Registered Wafers</h2>
+            <span id="waferCount" class="event-count">
+                0 wafers
+            </span>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Wafer ID</th>
+                        <th>Station</th>
+                        <th>Slot</th>
+                    </tr>
+                </thead>
+                <tbody id="waferRows"></tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<script type="module">
+    import { createWaferViewModel } from
+        "/js/viewmodel/waferViewModel.js";
+
+    const vm = createWaferViewModel();
+
+    const form = document.querySelector("#waferForm");
+    const idInput = document.querySelector("#waferId");
+    const slotInput = document.querySelector("#waferSlot");
+    const registerButton =
+        document.querySelector("#registerButton");
+
+    const message = document.querySelector("#message");
+    const rows = document.querySelector("#waferRows");
+    const count = document.querySelector("#waferCount");
+
+    vm.subscribe(state => {
+        message.textContent = state.message;
+
+        count.textContent =
+            `${state.wafers.length} wafers`;
+
+        registerButton.disabled = state.busy;
+        idInput.disabled = state.busy;
+        slotInput.disabled = state.busy;
+
+        rows.replaceChildren();
+
+        for (const wafer of state.wafers) {
+            const row = document.createElement("tr");
+
+            for (const value of [
+                wafer.id,
+                wafer.location.station,
+                wafer.location.slot
+            ]) {
+                const cell = document.createElement("td");
+                cell.textContent = value;
+                row.appendChild(cell);
+            }
+
+            rows.appendChild(row);
+        }
+    });
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        if (!form.reportValidity()) return;
+
+        const id = idInput.value.trim();
+        const slot = Number(slotInput.value);
+
+        await vm.register(id, slot);
+    });
+
+    vm.load();
+</script>
+
+<script src="/js/appConfig.js"></script>
+</body>
+</html>
