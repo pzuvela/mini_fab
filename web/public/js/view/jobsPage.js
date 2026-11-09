@@ -179,11 +179,11 @@ elements.resetScheduler.addEventListener("click", () => {
 });
 
 elements.submitJob.addEventListener("click", () => {
-    void vm.submitJob(waferId);
+    void vm.submitJob();
 });
 
-elements.waferSelect.addEventListener("cahnge", event => {
-	vm.SelectWafer(event.target.value)
+elements.waferSelect.addEventListener("change", event => {
+	vm.selectWafer(event.target.value)
 });
 
 elements.recipeSelect.addEventListener("change", event => {
