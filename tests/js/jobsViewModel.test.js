@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { createJobsViewModel } from  "../../web/public/js/viewmodel/jobsViewModel.js";
 
 function createMockApi(wafers = []) {
+    let wafers = initialWafers;
     const submissions = [];
 
     const api = {
@@ -39,7 +40,7 @@ function createMockApi(wafers = []) {
         }
     };
 
-    return { api, submissions };
+    return { api, submissions, setWafers(newWafers) { wafers = newWafers; } };
 }
 
 const wafer = (id, station = "LoadPort") => ({
@@ -168,6 +169,74 @@ test("Job submits selected wafer and recipe", async () => {
         assert.deepEqual(mock.submissions, [
             { waferId: "W2", recipeId: 1 }
         ]);
+    } finally {
+        ctx.stop();
+    }
+});
+
+
+test("Selection updates when wafer becomes unavailable", async () => {
+    const mock = createMockApi([
+        wafer("W1"),
+        wafer("W2")
+    ]);
+
+    const ctx = await prepareViewModel(mock);
+
+    try {
+        ctx.vm.selectWafer("W2");
+
+        assert.equal(ctx.getState().selectedWaferId, "W2");
+
+        mock.setWafers([
+            wafer("W1"),
+            wafer("W2", "ProcessModule")
+        ]);
+
+        await ctx.vm.loadWafers();
+
+        assert.deepEqual(
+            ctx.getState().wafers.map(w => w.id),
+            ["W1"]
+        );
+
+        assert.equal(
+            ctx.getState().selectedWaferId,
+            "W1"
+        );
+    } finally {
+        ctx.stop();
+    }
+});
+
+test("Refresh preserves valid wafer selection", async () => {
+    const mock = createMockApi([
+        wafer("W1"),
+        wafer("W2")
+    ]);
+
+    const ctx = await prepareViewModel(mock);
+
+    try {
+        ctx.vm.selectWafer("W2");
+
+        mock.setWafers([
+            wafer("W1"),
+            wafer("W2"),
+            wafer("W3")
+        ]);
+
+        await ctx.vm.loadWafers();
+
+        assert.equal(
+            ctx.getState().selectedWaferId,
+            "W2"
+        );
+
+        assert.equal(
+            ctx.getState().wafers.length,
+            3
+        );
     } finally {
         ctx.stop();
     }
