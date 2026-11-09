@@ -15,7 +15,7 @@ std::optional<int> parseJsonInteger(
     std::string_view input,
     std::size_t& pos)
 {
-    skipWhiteSpace(input, pos);
+    skipWhitespace(input, pos);
 
     const auto start = pos;
 
@@ -149,7 +149,7 @@ std::optional<int> parseJsonInteger(
             }
         }
 
-        skipWhiteSpace(input, pos);
+        skipWhitespace(input, pos);
 
         if (pos != input.size())
             return {
