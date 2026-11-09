@@ -2,8 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createEventLogViewModel } from
-    "../web/public/js/viewmodel/eventLogViewModel.js";
+import { createEventLogViewModel } from "../../web/public/js/viewmodel/eventLogViewModel.js";
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
