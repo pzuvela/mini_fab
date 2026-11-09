@@ -83,11 +83,40 @@
         </div>
     </section>
 
+<section class="panel">
+    <div class="panel-heading">
+        <h2>Equipment Event Log</h2>
+        <span id="eventCount" class="event-count">
+            0 events
+        </span>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Time</th>
+                    <th>Event</th>
+                    <th>Severity</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody id="eventRows"></tbody>
+        </table>
+    </div>
+
+    <p id="eventError" role="alert"></p>
+</section>
+
 </main>
 
 <script type="module">
     import { createWaferViewModel } from
         "/js/viewmodel/waferViewModel.js";
+
+    import { renderEventLog } from "/js/view/eventLogView.js";
+    import { createEventLogViewModel } from "/js/viewmodel/eventLogViewModel.js";
 
     const vm = createWaferViewModel();
 
@@ -144,7 +173,27 @@
         await vm.register(id, slot);
     });
 
-    vm.load();
+const eventVm = createEventLogViewModel();
+
+const eventElements = {
+    eventRows: document.querySelector("#eventRows"),
+    eventCount: document.querySelector("#eventCount"),
+    eventError: document.querySelector("#eventError")
+};
+
+eventVm.subscribe(state => {
+    renderEventLog(state.events, eventElements);
+    eventElements.eventError.textContent =
+        state.error ?? "";
+});
+
+vm.load();
+
+eventVm.start();
+
+window.addEventListener("pagehide", () => {
+    eventVm.stop();
+});
 </script>
 
 <script src="/js/appConfig.js"></script>
