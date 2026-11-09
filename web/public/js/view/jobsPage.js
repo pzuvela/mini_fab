@@ -13,7 +13,7 @@ const elements = {
     stopScheduler: document.querySelector("#stopScheduler"),
     resetScheduler: document.querySelector("#resetScheduler"),
     submitJob: document.querySelector("#submitJob"),
-    waferId: document.querySelector("#waferId"),
+    waferSelect: document.querySelector("#waferSelect"),
     recipeSelect: document.querySelector("#recipeSelect"),
     eventRows: document.querySelector("#eventRows"),
     eventCount: document.querySelector("#eventCount"),
@@ -92,7 +92,47 @@ vm.subscribe(state => {
     elements.resetScheduler.disabled =
         !available || schedulerState !== "Faulted";
 
-    elements.submitJob.disabled = !available || state.selectedRecipeId === null;
+    elements.submitJob.disabled = !available || state.selectedRecipeId === null || state.selectedWaferId === null;
+
+const waferSelect = elements.waferSelect;
+
+const waferOptions = state.wafers.map(wafer => ({
+    value: wafer.id,
+    label: `${wafer.id} — Slot ${wafer.location.slot}`
+}));
+
+const wafersChanged =
+    waferSelect.options.length !== waferOptions.length ||
+    waferOptions.some((item, i) =>
+        waferSelect.options[i].value !== item.value ||
+        waferSelect.options[i].textContent !== item.label
+    );
+
+if (wafersChanged) {
+    waferSelect.replaceChildren();
+
+    for (const item of waferOptions) {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.label;
+        waferSelect.appendChild(option);
+    }
+}
+
+if (waferOptions.length === 0) {
+    waferSelect.replaceChildren();
+
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = state.waferError
+        ? "Failed to load wafers"
+        : "No available wafers";
+
+    waferSelect.appendChild(option);
+}
+
+waferSelect.value = state.selectedWaferId ?? "";
+waferSelect.disabled = !available || waferOptions.length === 0;
 
     const select = elements.recipeSelect;
     const expected = state.recipes.map(r => ({
@@ -139,12 +179,11 @@ elements.resetScheduler.addEventListener("click", () => {
 });
 
 elements.submitJob.addEventListener("click", () => {
-    const waferId = elements.waferId.value.trim();
-    if (!waferId) {
-        elements.message.textContent = "Wafer ID is required";
-        return;
-    }
     void vm.submitJob(waferId);
+});
+
+elements.waferSelect.addEventListener("cahnge", event => {
+	vm.SelectWafer(event.target.value)
 });
 
 elements.recipeSelect.addEventListener("change", event => {
