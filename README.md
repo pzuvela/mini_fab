@@ -112,3 +112,31 @@ The application uses `minifab.db` as its local SQLite database, relative to the 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for coding, architecture, testing, and review guidelines.
 
 MiniFab is developed incrementally: implement one well-defined behavior, verify it at the relevant layers, run the full tests, then commit. Future ideas such as fault injection or event-log clearing are not implemented merely because they appear on a backlog.
+
+## Wafer registration API
+
+`GET /api/wafers` returns `{"wafers":[{"id":"W1","location":{"station":"LoadPort","slot":3}}]}`.
+
+Register a wafer using the **flat** request schema (the initial station must be `LoadPort`, and the slot must be a positive integer):
+
+```http
+POST /api/wafers
+Content-Type: application/json
+
+{"id":"W2","station":"LoadPort","slot":4}
+```
+
+Success: HTTP `201` and `{"id":"W2","location":{"station":"LoadPort","slot":4}}`. The new wafer also appears in subsequent `GET /api/wafers` responses.
+
+Errors use `{"error":"message"}` with these status codes:
+
+| Status | Meaning |
+| --- | --- |
+| 400 | Malformed JSON, missing or incorrectly typed fields, unknown fields, or integer overflow |
+| 409 | Duplicate wafer ID or occupied slot |
+| 415 | Unsupported request Content-Type |
+| 422 | Empty wafer ID, nonpositive slot, or invalid registration station |
+
+The browser inventory page is at `http://127.0.0.1:8080/wafers.html`. It displays registered wafers and supports LoadPort registration. Duplicate submissions are blocked and stale inventory responses ignored.
+
+Manual smoke check: start the web server, visit `/wafers.html`, register `W2` in slot `4`, refresh, and verify W2 remains visible. Check the empty-inventory message with a fresh empty inventory.

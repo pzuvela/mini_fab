@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <algorithm>
+#include <atomic>
 #include <vector>
 
 #include "controller/mini_fab_controller.h"
@@ -388,3 +389,67 @@ TEST_F(WaferRoutesTests, SuccessReturnsRegisteredWafer)
     );
 }
 
+
+TEST_F(WaferRoutesTests, ConcurrentRegistrationRejectsDuplicateId)
+{
+    std::atomic<bool> start{false};
+    int statuses[2] = {0, 0};
+
+    auto registerWafer = [&](int index)
+    {
+        auto cli = client();
+        while (!start.load(std::memory_order_acquire))
+            std::this_thread::yield();
+
+        const auto response = cli.Post(
+            "/api/wafers",
+            R"({"id":"W2","station":"LoadPort","slot":4})",
+            "application/json"
+        );
+        statuses[index] = response ? response->status : 0;
+    };
+
+    std::thread first(registerWafer, 0);
+    std::thread second(registerWafer, 1);
+    start.store(true, std::memory_order_release);
+    first.join();
+    second.join();
+
+    std::sort(std::begin(statuses), std::end(statuses));
+    EXPECT_EQ(statuses[0], 201);
+    EXPECT_EQ(statuses[1], 409);
+    EXPECT_EQ(controller_.wafersSnapshot().size(), 2);
+}
+
+TEST_F(WaferRoutesTests, ConcurrentRegistrationRejectsOccupiedSlot)
+{
+    std::atomic<bool> start{false};
+    int statuses[2] = {0, 0};
+    const char* bodies[] = {
+        R"({"id":"W2","station":"LoadPort","slot":4})",
+        R"({"id":"W3","station":"LoadPort","slot":4})"
+    };
+
+    auto registerWafer = [&](int index)
+    {
+        auto cli = client();
+        while (!start.load(std::memory_order_acquire))
+            std::this_thread::yield();
+
+        const auto response = cli.Post(
+            "/api/wafers", bodies[index], "application/json"
+        );
+        statuses[index] = response ? response->status : 0;
+    };
+
+    std::thread first(registerWafer, 0);
+    std::thread second(registerWafer, 1);
+    start.store(true, std::memory_order_release);
+    first.join();
+    second.join();
+
+    std::sort(std::begin(statuses), std::end(statuses));
+    EXPECT_EQ(statuses[0], 201);
+    EXPECT_EQ(statuses[1], 409);
+    EXPECT_EQ(controller_.wafersSnapshot().size(), 2);
+}
