@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { createJobsViewModel } from  "../../web/public/js/viewmodel/jobsViewModel.js";
 
-function createMockApi(wafers = []) {
+function createMockApi(initialWafers = []) {
     let wafers = initialWafers;
     const submissions = [];
 
