@@ -1,5 +1,3 @@
-#pragma once
-
 #include <charconv>
 #include <limits>
 #include <optional>
