@@ -48,7 +48,7 @@ export function createWaferViewModel() {
     }
 
     async function register(id, slot) {
-	if (state.busy) reutrn;
+	if (state.busy) return;
         state.busy = true;
         state.message = "Registering wafer...";
         notify();
