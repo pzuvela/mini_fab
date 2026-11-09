@@ -14,7 +14,7 @@
 
 using namespace std::chrono_literals;
 
-class WaferRoutesTest : public ::testing::Test
+class WaferRoutesTests : public ::testing::Test
 {
 protected:
     SqliteRecipeRepository repository_{":memory:"};
@@ -62,7 +62,7 @@ protected:
     }
 };
 
-TEST_F(WaferRoutesTest, ReturnsInitialWafer)
+TEST_F(WaferRoutesTests, ReturnsInitialWafer)
 {
     auto cli = client();
     auto response = cli.Get("/api/wafers");
@@ -76,7 +76,7 @@ TEST_F(WaferRoutesTest, ReturnsInitialWafer)
     );
 }
 
-TEST_F(WaferRoutesTest, ReturnsJsonContentType)
+TEST_F(WaferRoutesTests, ReturnsJsonContentType)
 {
     auto cli = client();
     auto response = cli.Get("/api/wafers");
@@ -90,7 +90,7 @@ TEST_F(WaferRoutesTest, ReturnsJsonContentType)
     );
 }
 
-TEST_F(WaferRoutesTest, ReturnsRegisteredWafers)
+TEST_F(WaferRoutesTests, ReturnsRegisteredWafers)
 {
     const Wafer wafer{
         "W2",
@@ -119,7 +119,7 @@ TEST_F(WaferRoutesTest, ReturnsRegisteredWafers)
     EXPECT_EQ(controller_.wafersSnapshot().size(), 2);
 }
 
-TEST_F(WaferRoutesTest, EscapesSpecialCharacters)
+TEST_F(WaferRoutesTests, EscapesSpecialCharacters)
 {
     const Wafer wafer{
         "W\"2",
@@ -140,7 +140,7 @@ TEST_F(WaferRoutesTest, EscapesSpecialCharacters)
     );
 }
 
-TEST_F(WaferRoutesTest, ReflectsInventoryChanges)
+TEST_F(WaferRoutesTests, ReflectsInventoryChanges)
 {
     auto cli = client();
 
