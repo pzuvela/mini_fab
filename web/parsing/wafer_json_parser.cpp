@@ -166,7 +166,8 @@ std::optional<int> parseJsonInteger(
         if (*station != "LoadPort")
             return {
                 std::nullopt,
-                "Unknown station"
+                "Unknown station",
+		WaferParseError::InvalidLocation
             };
 
         Wafer wafer{

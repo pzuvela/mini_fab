@@ -1,5 +1,6 @@
-#include "web/routes/wafer_routes.h"
+#include <string>
 
+#include "web/routes/wafer_routes.h"
 #include "controller/mini_fab_controller.h"
 #include "web/serialization/wafer_json.h"
 #include "web/serialization/json_utils.h"
@@ -52,12 +53,21 @@ server.Post("/api/wafers",
             );
         };
 
-        const auto parsed =
-            MiniFab::Web::parseWaferJson(request.body);
+	const auto contentType = request.get_header_value("Content-Type");
+
+	if (contentType != "application/json" && !contentType.starts_with("application/json;"))
+	{
+		setJsonResponse(415, "error", "Unsupported Content-Type");
+		return;
+	}
+
+        const auto parsed = MiniFab::Web::parseWaferJson(request.body);
 
         if (!parsed.wafer)
         {
-            setJsonResponse(400, "error", parsed.error);
+	    const int status = parsed.errorType == WaferParseError::InvalidLocation ? 422 : 400;
+
+            setJsonResponse(status, "error", parsed.error);
             return;
         }
 
@@ -67,28 +77,27 @@ server.Post("/api/wafers",
         switch (result)
         {
             case WaferRegistrationResult::Registered:
-                setJsonResponse(
-                    201, "status", "registered");
+		response.status = 201'
+		response.set_content(
+			waferToJson(*parsed.wafer),
+			"application/json"
+		);
                 break;
 
             case WaferRegistrationResult::InvalidId:
-                setJsonResponse(
-                    400, "error", "Invalid wafer ID");
+                setJsonResponse(422, "error", "Invalid wafer ID");
                 break;
 
             case WaferRegistrationResult::InvalidLocation:
-                setJsonResponse(
-                    400, "error", "Invalid wafer location");
+                setJsonResponse(422, "error", "Invalid wafer location");
                 break;
 
             case WaferRegistrationResult::DuplicateId:
-                setJsonResponse(
-                    409, "error", "Wafer ID already exists");
+                setJsonResponse(409, "error", "Wafer ID already exists");
                 break;
 
             case WaferRegistrationResult::SlotOccupied:
-                setJsonResponse(
-                    409, "error", "Slot already occupied");
+                setJsonResponse(409, "error", "Slot already occupied");
                 break;
         }
     });

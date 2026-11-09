@@ -266,7 +266,7 @@ TEST_F(WaferRoutesTests, PostRejectsInvalidRequests)
         );
 
         ASSERT_TRUE(response);
-        EXPECT_EQ(response->status, 400);
+        EXPECT_EQ(response->status, 422);
     }
 }
 
