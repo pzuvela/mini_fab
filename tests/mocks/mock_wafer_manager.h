@@ -15,7 +15,7 @@ private:
     std::unique_ptr<Wafer> waferToReturn_;
     bool locationUpdateWasCalled_ = false;
     bool locationUpdateSucceeds_;
-    bool isLocationAvailable_ = true;
+    bool locationAvailable_ = true;
 
 public:
     MockWaferManager(std::unique_ptr<Wafer> waferToReturn, bool locationUpdateSucceeds = true);
