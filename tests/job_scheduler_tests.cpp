@@ -257,3 +257,43 @@ TEST(JobSchedulerTest, RejectsDuplicateQueuedWafer)
     EXPECT_EQ(jobs.front().job.waferId, "W1");
     EXPECT_EQ(jobs.front().status, JobStatus::Queued);
 }
+
+TEST(JobSchedulerTest, RejectsDuplicateActiveWafer)
+{
+    JobScheduler scheduler;
+
+    // 1. Enqueue W1
+    const auto firstId = scheduler.enqueue("W1", 1, 1);
+    ASSERT_GT(firstId, 0u);
+
+    // 2. Dispatch W1
+    ASSERT_TRUE(scheduler.dispatchNext(
+        [](const Job&) { return true; }
+    ));
+
+    // 3. W1 is active, queue is empty
+    ASSERT_EQ(scheduler.pendingCount(), 0u);
+
+    const auto active = scheduler.activeJob();
+    ASSERT_TRUE(active.has_value());
+    EXPECT_EQ(active->id, firstId);
+    EXPECT_EQ(active->waferId, "W1");
+
+    // 4. Attempt to enqueue W1 again
+    const auto duplicateId = scheduler.enqueue("W1", 2, 1);
+
+    // 5. Must reject duplicate
+    EXPECT_EQ(duplicateId, 0u);
+    EXPECT_EQ(scheduler.pendingCount(), 0u);
+
+    // 6. Original job remains active
+    const auto stillActive = scheduler.activeJob();
+    ASSERT_TRUE(stillActive.has_value());
+    EXPECT_EQ(stillActive->id, firstId);
+    EXPECT_EQ(scheduler.jobStatus(firstId), JobStatus::Running);
+
+    // 7. No duplicate job created
+    EXPECT_EQ(scheduler.jobsSnapshot().size(), 1u);
+}
+
+

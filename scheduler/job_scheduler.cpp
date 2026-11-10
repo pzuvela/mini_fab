@@ -9,7 +9,7 @@ std::uint64_t JobScheduler::enqueue(
 	int processModuleId
 )
 {
-	const auto duplicate = std::ranges::any_of(
+	const bool alreadyQueued = std::ranges::any_of()
 		queue_,
 		[&waferId](const Job& job)
 		{
@@ -17,7 +17,9 @@ std::uint64_t JobScheduler::enqueue(
 		}
 	);
 
-	if (duplicate) return 0;
+	const bool alreadyActive = activeJob_.has_value() && activeJob_->waferId == waferId;
+
+	if (alreadyQueued || alreadyActive) return 0;
 
 	const std::uint64_t jobId = nextJobId_++;
 	Job job{
