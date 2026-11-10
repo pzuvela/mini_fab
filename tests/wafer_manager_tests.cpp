@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <thread>
 
 #include "wafer/wafer_manager.h"
 #include "wafer/location_update_result.h"
@@ -356,6 +357,80 @@ TEST_F(WaferManagerTest, RejectsInvalidProcessModuleSlot)
         manager.getLocation("W1"),
         (Location{Station::LoadPort, 1})
     );
+}
+
+TEST_F(WaferManagerTest, ConcurrentMovesCannotOccupySameLocation)
+{
+    WaferManager manager;
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    ASSERT_EQ(
+        manager.addWafer({"W2", {Station::LoadPort, 2}}),
+        WaferRegistrationResult::Registered
+    );
+
+    LocationUpdateResult result1{};
+    LocationUpdateResult result2{};
+
+    const Location destination{Station::ProcessModule, 1};
+
+    std::thread t1([&] {
+        result1 = manager.updateLocation("W1", destination);
+    });
+
+    std::thread t2([&] {
+        result2 = manager.updateLocation("W2", destination);
+    });
+
+    t1.join();
+    t2.join();
+
+    const bool firstWins =
+        result1 == LocationUpdateResult::Updated &&
+        result2 == LocationUpdateResult::SlotOccupied;
+
+    const bool secondWins =
+        result2 == LocationUpdateResult::Updated &&
+        result1 == LocationUpdateResult::SlotOccupied;
+
+    EXPECT_TRUE(firstWins || secondWins);
+
+    const auto location1 = manager.getLocation("W1");
+    const auto location2 = manager.getLocation("W2");
+
+    ASSERT_TRUE(location1.has_value());
+    ASSERT_TRUE(location2.has_value());
+
+    EXPECT_NE(*location1, *location2);
+}
+
+TEST_F(WaferManagerTest, ReturnsWaferToOriginalLoadPortSlot)
+{
+    WaferManager manager;
+
+    const Location original{Station::LoadPort, 3};
+    const Location processModule{Station::ProcessModule, 1};
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", original}),
+        WaferRegistrationResult::Registered
+    );
+
+    ASSERT_EQ(
+        manager.updateLocation("W1", processModule),
+        LocationUpdateResult::Updated
+    );
+
+    EXPECT_EQ(
+        manager.updateLocation("W1", original),
+        LocationUpdateResult::Updated
+    );
+
+    EXPECT_EQ(manager.getLocation("W1"), original);
 }
 
 }
