@@ -9,6 +9,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include <algorithm>
 
 namespace MiniFab::Web
 {
@@ -115,27 +116,37 @@ server.Post("/api/run",
 
 	const std::string waferId = request.get_param_value("waferId");
 
-	const auto wafer = controller.getWafer(waferId);
+const auto wafers = controller.wafersSnapshot();
 
-	if (!wafer.has_value())
-	{
-		response.status = 404;
-		response.set_content(
-			R"({"error":"Wafer not found"}),
-			"application/json"
-		);
-		return;
-	}
+const auto waferIt = std::find_if(
+    wafers.begin(),
+    wafers.end(),
+    [&waferId](const Wafer& wafer)
+    {
+        return wafer.id == waferId;
+    }
+);
 
-	if (wafer->location.station != Station::LoadPort)
-	{
-		response.status = 409;
-		response.set_content(
-			R"({"error":"Wafer is not at LoadPort"})",
-			"application/json"
-		);
-		return;
-	}
+if (waferIt == wafers.end())
+{
+    response.status = 404;
+    response.set_content(
+        R"({"error":"Wafer not found"})",
+        "application/json"
+    );
+    return;
+}
+
+if (waferIt->location.station != Station::LoadPort)
+{
+    response.status = 409;
+    response.set_content(
+        R"({"error":"Wafer is not at LoadPort"})",
+        "application/json"
+    );
+    return;
+}
+
 
 	std::uint64_t runId = 0;
 
