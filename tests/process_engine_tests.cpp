@@ -1352,4 +1352,30 @@ TEST_F(ProcessEngineTest, RejectsNewRunWhenProcessModuleIsOccupied)
     );
 }
 
+TEST_F(ProcessEngineTest, RejectsRunWhenMockReportsDestinationOccupied)
+{
+    auto wafer = std::make_unique<Wafer>(wafer_);
+
+    MockWaferManager manager(std::move(wafer));
+    manager.setLocationAvailable(false);
+
+    MockRobot robot{true};
+    MockProcessModule processModule{true};
+
+    ProcessEngine engine(
+        manager, robot, processModule, eventLog_
+    );
+
+    EXPECT_EQ(
+        engine.startProcessWafer(
+            wafer_.id,
+            destination_,
+            recipe_
+        ),
+        StartResult::Rejected
+    );
+
+    EXPECT_EQ(engine.state(), EquipmentState::Idle);
+}
+
 }
