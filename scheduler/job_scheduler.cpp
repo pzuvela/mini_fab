@@ -9,6 +9,16 @@ std::uint64_t JobScheduler::enqueue(
 	int processModuleId
 )
 {
+	const auto duplicate = std::ranges::any_of(
+		queue_,
+		[&waferId](const Job& job)
+		{
+			return job.waferId == waferId;
+		}
+	);
+
+	if (duplicate) return 0;
+
 	const std::uint64_t jobId = nextJobId_++;
 	Job job{
 		.id = jobId,
