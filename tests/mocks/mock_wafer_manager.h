@@ -15,10 +15,17 @@ private:
     std::unique_ptr<Wafer> waferToReturn_;
     bool locationUpdateWasCalled_ = false;
     bool locationUpdateSucceeds_;
+    bool isLocationAvailable_ = true;
+
 public:
     MockWaferManager(std::unique_ptr<Wafer> waferToReturn, bool locationUpdateSucceeds = true);
     WaferRegistrationResult addWafer(const Wafer& wafer) override;
     Wafer* findWafer(const std::string& waferId) override;
     LocationUpdateResult updateLocation(const std::string& waferId, Location location) override;
     bool locationUpdateWasCalled() const;
+    bool isLocationAvailable(
+	const std::string& waferId,
+	const Location& location
+    ) const override;
+    void setLocationAvailable(bool available);
 };

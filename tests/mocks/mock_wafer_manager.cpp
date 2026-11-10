@@ -31,3 +31,17 @@ bool MockWaferManager::locationUpdateWasCalled() const
 {
 	return locationUpdateWasCalled_;
 }
+
+bool MockWaferManager::isLocationAvailable(
+    const std::string& waferId,
+    const Location& location
+) const
+{
+    return locationAvailable_;
+}
+
+void MockWaferManager::setLocationAvailable(bool available)
+{
+    locationAvailable_ = available;
+}
+
