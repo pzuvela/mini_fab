@@ -292,32 +292,37 @@ TEST_F(JobRoutesTest, ReturnsEmptyJobList)
 
 TEST_F(JobRoutesTest, ListsQueuedJobsInOrder)
 {
-    ASSERT_TRUE(postJob());
-    ASSERT_TRUE(postJob());
+    ASSERT_EQ(
+        controller_.registerWafer({
+            "W2",
+            {Station::LoadPort, 4}
+        }),
+        WaferRegistrationResult::Registered
+    );
 
+    // Enqueue two different wafers
+    ASSERT_TRUE(postJob());
+    ASSERT_TRUE(postJob(
+        "waferId=W2&recipeId=1&processModuleId=1"
+    ));
+
+    // Retrieve queued jobs
     auto cli = client();
     auto response = cli.Get("/api/jobs");
 
     ASSERT_TRUE(response);
     EXPECT_EQ(response->status, 200);
 
-ASSERT_EQ(
-    controller_.registerWafer({
-        "W2",
-        {Station::LoadPort, 4}
-    }),
-    WaferRegistrationResult::Registered
-);
-
-auto first = postJob();
-auto second = postJob(
-    "waferId=W2&recipeId=1&processModuleId=1"
-);
+    // Find positions of job IDs in JSON
+    const auto first = response->body.find(R"("jobId":1)");
+    const auto second = response->body.find(R"("jobId":2)");
 
     ASSERT_NE(first, std::string::npos);
     ASSERT_NE(second, std::string::npos);
 
+    // Verify ordering
     EXPECT_LT(first, second);
+
     EXPECT_NE(
         response->body.find(R"("status":"Queued")"),
         std::string::npos
