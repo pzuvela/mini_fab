@@ -68,8 +68,16 @@ TEST(MiniFabControllerTest, CompletedJobAllowsNextJobToDispatch)
 
     ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
 
-    const auto job1 = controller.enqueueJob("W1", 1, 1);
-    const auto job2 = controller.enqueueJob("W1", 1, 1);
+ASSERT_EQ(
+    controller.registerWafer({
+        "W2",
+        {Station::LoadPort, 4}
+    }),
+    WaferRegistrationResult::Registered
+);
+
+const auto job1 = controller.enqueueJob("W1", 1, 1);
+const auto job2 = controller.enqueueJob("W2", 1, 1);
 
     EXPECT_NE(job1, job2);
     EXPECT_EQ(controller.pendingJobCount(), 2);
@@ -159,8 +167,16 @@ TEST(MiniFabControllerTest, AutoSchedulerProcessesQueuedJobs)
 
     ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
 
-    const auto job1 = controller.enqueueJob("W1", 1, 1);
-    const auto job2 = controller.enqueueJob("W1", 1, 1);
+ASSERT_EQ(
+    controller.registerWafer({
+        "W2",
+        {Station::LoadPort, 4}
+    }),
+    WaferRegistrationResult::Registered
+);
+
+const auto job1 = controller.enqueueJob("W1", 1, 1);
+const auto job2 = controller.enqueueJob("W2", 1, 1);
 
     EXPECT_EQ(controller.jobStatus(job1), JobStatus::Queued);
     EXPECT_EQ(controller.jobStatus(job2), JobStatus::Queued);
@@ -366,8 +382,16 @@ TEST(MiniFabControllerTest, SchedulerResumesAfterBusyJobCompletes)
 
     ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
 
-    const auto job1 = controller.enqueueJob("W1", 1, 1);
-    const auto job2 = controller.enqueueJob("W1", 1, 1);
+ASSERT_EQ(
+    controller.registerWafer({
+        "W2",
+        {Station::LoadPort, 4}
+    }),
+    WaferRegistrationResult::Registered
+);
+
+const auto job1 = controller.enqueueJob("W1", 1, 1);
+const auto job2 = controller.enqueueJob("W2", 1, 1);
 
     ASSERT_EQ(
         controller.dispatchNextJob(),
@@ -434,8 +458,16 @@ TEST(MiniFabControllerTest, ManualJobKeepsCompletionOwnership)
 
     ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
 
-    const auto job1 = controller.enqueueJob("W1", 1, 1);
-    const auto job2 = controller.enqueueJob("W1", 1, 1);
+ASSERT_EQ(
+    controller.registerWafer({
+        "W2",
+        {Station::LoadPort, 4}
+    }),
+    WaferRegistrationResult::Registered
+);
+
+const auto job1 = controller.enqueueJob("W1", 1, 1);
+const auto job2 = controller.enqueueJob("W2", 1, 1);
 
     ASSERT_EQ(
         controller.dispatchNextJob(),
@@ -487,8 +519,16 @@ TEST(MiniFabControllerTest, CompletionExceptionFaultsScheduler)
         controller.addRecipe({1, "Fast Etch", 0.01})
     );
 
-    const auto job1 = controller.enqueueJob("W1", 1, 1);
-    const auto job2 = controller.enqueueJob("W1", 1, 1);
+ASSERT_EQ(
+    controller.registerWafer({
+        "W2",
+        {Station::LoadPort, 4}
+    }),
+    WaferRegistrationResult::Registered
+);
+
+const auto job1 = controller.enqueueJob("W1", 1, 1);
+const auto job2 = controller.enqueueJob("W2", 1, 1);
 
     controller.startScheduler();
 
@@ -529,8 +569,16 @@ TEST(MiniFabControllerTest, SchedulerRecoversAfterCompletionException)
         controller.addRecipe({1, "Fast Etch", 0.01})
     );
 
-    const auto job1 = controller.enqueueJob("W1", 1, 1);
-    const auto job2 = controller.enqueueJob("W1", 1, 1);
+ASSERT_EQ(
+    controller.registerWafer({
+        "W2",
+        {Station::LoadPort, 4}
+    }),
+    WaferRegistrationResult::Registered
+);
+
+const auto job1 = controller.enqueueJob("W1", 1, 1);
+const auto job2 = controller.enqueueJob("W2", 1, 1);
 
     controller.startScheduler();
 
