@@ -178,6 +178,21 @@ Conflicting registrations must leave the existing inventory unchanged. If concur
 
 The browser registration interface is available at `/wafers.html`.
 
+## Wafer location rules (v0.9)
+
+MiniFab currently models a single Aligner and a single-wafer ProcessModule. A `Location` consists of a station and a slot; the slot identifies a wafer position, **not** a process-module ID.
+
+| Station | Valid slot numbers | Occupancy rule |
+| --- | --- | --- |
+| `LoadPort` | Positive integers (1+) | One wafer per slot |
+| `Aligner` | 1 | One wafer total |
+| `ProcessModule` | 1 | One wafer total |
+| `Output` | Positive integers (1+) | One wafer per slot |
+
+New wafers may only be registered at the LoadPort. `WaferManager::updateLocation` rejects unknown wafer IDs, invalid stations/slots, and occupied destinations. It validates and updates under the manager mutex, so competing moves cannot claim the same destination. Rejected moves leave the in-memory location unchanged; successful moves are persisted when a repository is configured. Updating a wafer to its existing location succeeds without changing it.
+
+These rules validate **destination validity and occupancy**, not the full physical movement path. The process engine coordinates movement, processing, cancellation, and recovery. Multi-module equipment and configurable chamber capacity are future extensions; do not interpret `ProcessModule, slot 2` as a second chamber.
+
 ## Data and persistence
 
 The application uses `minifab.db` as its local SQLite database, relative to the process working directory. Recipe and event data can survive process restarts.
