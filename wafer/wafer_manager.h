@@ -24,6 +24,7 @@ private:
 	bool isSlotNegativeOrZero(const int slot) const;
 	WaferRegistrationResult validateWafer(const Wafer& wafer) const;
 	void insertWaferToMemory(const Wafer& wafer);
+	static bool isValidLocation(const Location& location);
 
 public:
 	WaferManager() = default;

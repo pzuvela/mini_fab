@@ -21,20 +21,13 @@ WaferManager::WaferManager(IWaferRepository& repository)
 
 WaferRegistrationResult WaferManager::validateWafer(const Wafer& wafer) const
 {
-    if (wafer.id.empty())
-        return WaferRegistrationResult::InvalidId;
+    if (wafer.id.empty()) return WaferRegistrationResult::InvalidId;
 
-    if (wafer.location.slot < 1)
-        return WaferRegistrationResult::InvalidLocation;
+    if (!isValidLocation(wafer.location)) return WaferRegistrationResult::InvalidLocation;
 
-    if (toString(wafer.location.station) == "Unknown")
-        return WaferRegistrationResult::InvalidLocation;
+    if (wafers_.contains(wafer.id)) return WaferRegistrationResult::DuplicateId;
 
-    if (wafers_.contains(wafer.id))
-        return WaferRegistrationResult::DuplicateId;
-
-    if (isLocationOccupied(wafer.id, wafer.location))
-        return WaferRegistrationResult::SlotOccupied;
+    if (isLocationOccupied(wafer.id, wafer.location)) return WaferRegistrationResult::SlotOccupied;
 
     return WaferRegistrationResult::Registered;
 }
@@ -106,7 +99,7 @@ LocationUpdateResult WaferManager::updateLocation(const std::string& waferId, Lo
 
 	if (iterator == wafers_.end()) return LocationUpdateResult::WaferNotFound;
 
-	if (location.slot < 1 || toString(location.station) == "Unknown") return LocationUpdateResult::InvalidLocation;
+	if (!isValidLocation(location)) return LocationUpdatedResult::InvalidLocation;
 
 	if (isLocationOccupied(waferId, location)) return LocationUpdateResult::SlotOccupied;
 
@@ -145,4 +138,22 @@ std::vector<Wafer> WaferManager::getWafers() const
 	}
 
 	return wafers;
+}
+
+bool WaferManager::isValidLocation(const Location& location)
+{
+	if (location.slot < 1) return false;
+
+	switch (location.station)
+	{
+		case Station::LoadPort:
+		case Station::Output:
+			return true;
+
+		case Station::Aligner:
+		case Station::ProcessModule
+			return location.slot == 1;
+	}
+	
+	return false;
 }
