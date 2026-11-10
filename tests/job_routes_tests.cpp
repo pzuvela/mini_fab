@@ -484,4 +484,36 @@ TEST_F(JobRoutesTest, RejectsDuplicateQueuedWafer)
     EXPECT_EQ(jobs.front().status, JobStatus::Queued);
 }
 
+TEST_F(JobRoutesTest, RunEndpointAcceptsSelectedWafer)
+{
+    // Register a second wafer.
+    ASSERT_EQ(
+        controller_.registerWafer({
+            "W2",
+            {Station::LoadPort, 4}
+        }),
+        WaferRegistrationResult::Registered
+    );
+
+    auto cli = client();
+
+    // Explicitly request W2, not the default W1.
+    auto response = cli.Post(
+        "/api/run",
+        "waferId=W2&recipeId=1",
+        "application/x-www-form-urlencoded"
+    );
+
+    ASSERT_TRUE(response);
+    ASSERT_EQ(response->status, 202);
+
+    // The equipment should have started W2.
+    const auto snapshot = controller_.status();
+
+    EXPECT_TRUE(
+        snapshot.robotWaferId == "W2" ||
+        snapshot.processModuleWaferId == "W2"
+    );
+}
+
 
