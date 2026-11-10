@@ -335,4 +335,29 @@ TEST_F(WaferManagerTest, RejectedMovementDoesNotModifyDatabase)
     );
 }
 
+TEST_F(WaferManagerTest, RejectsInvalidProcessModuleSlot)
+{
+    WaferManager manager;
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    EXPECT_EQ(
+        manager.updateLocation(
+            "W1",
+            {Station::ProcessModule, 2}
+        ),
+        LocationUpdateResult::InvalidLocation
+    );
+
+    EXPECT_EQ(
+        manager.getLocation("W1"),
+        (Location{Station::LoadPort, 1})
+    );
 }
+
+}
+
+
