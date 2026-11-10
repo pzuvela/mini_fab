@@ -151,9 +151,9 @@ bool WaferManager::isValidLocation(const Location& location)
 			return true;
 
 		case Station::Aligner:
-		case Station::ProcessModule
+		case Station::ProcessModule:
 			return location.slot == 1;
 	}
-	
+
 	return false;
 }
