@@ -286,8 +286,16 @@ TEST(MiniFabControllerTest, InvalidJobDoesNotBlockValidJob)
 
     ASSERT_TRUE(controller.addRecipe({1, "Fast Etch", 0.01}));
 
-    const auto invalidJob = controller.enqueueJob("W1", 1, 2);
-    const auto validJob = controller.enqueueJob("W1", 1, 1);
+ASSERT_EQ(
+    controller.registerWafer({
+        "W2",
+        {Station::LoadPort, 4}
+    }),
+    WaferRegistrationResult::Registered
+);
+
+const auto invalidJob = controller.enqueueJob("W1", 1, 2);
+const auto validJob = controller.enqueueJob("W2", 1, 1);
 
     controller.startScheduler();
 
