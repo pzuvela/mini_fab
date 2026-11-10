@@ -36,7 +36,7 @@ namespace MiniFab::Tests
 
         Location destination_{
             .station = Station::Aligner,
-            .slot = 7
+            .slot = 1
         };
 
         Recipe recipe_{
