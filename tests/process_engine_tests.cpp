@@ -1307,6 +1307,49 @@ TEST_F(ProcessEngineTest, FailedProcessingPreservesWaferLocation)
     EXPECT_EQ(manager.getLocation("W1"), destination);
 }
 
+TEST_F(ProcessEngineTest, RejectsNewRunWhenProcessModuleIsOccupied)
+{
+    MockRobot robot{true};
+    MockProcessModule processModule{true};
+    WaferManager manager;
 
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    ASSERT_EQ(
+        manager.addWafer({"W2", {Station::LoadPort, 2}}),
+        WaferRegistrationResult::Registered
+    );
+
+    ASSERT_EQ(
+        manager.updateLocation("W1", {Station::ProcessModule, 1}),
+        LocationUpdateResult::Updated
+    );
+
+    ProcessEngine engine(manager, robot, processModule, eventLog_);
+
+    EXPECT_EQ(
+        engine.startProcessWafer(
+            "W2",
+            {Station::ProcessModule, 1},
+            recipe_
+        ),
+        StartResult::Rejected
+    );
+
+    EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+    EXPECT_EQ(
+        manager.getLocation("W1"),
+        (Location{Station::ProcessModule, 1})
+    );
+
+    EXPECT_EQ(
+        manager.getLocation("W2"),
+        (Location{Station::LoadPort, 2})
+    );
+}
 
 }
