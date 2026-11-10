@@ -111,7 +111,7 @@ OperationResult ProcessEngine::process(
 	return result;
 }
 
-Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId, std::uint64_t& runId)
+Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId, const Location& destination, std::uint64_t& runId)
 {
 	std::lock_guard<std::mutex> lock(mutex_);
 
@@ -119,14 +119,16 @@ Wafer* ProcessEngine::acceptWaferForProcessing(const std::string& waferId, std::
 
 	Wafer* wafer = mgr_.findWafer(waferId);
 
-	if (wafer != nullptr)
-	{
-		state_ = EquipmentState::Moving;
-		runId = eventLog_.record(
-			EventType::RunAccepted,
-			"Wafer " + waferId + " accepted for processing"
-		);
-	}
+	if (wafer == nullptr) return nullptr;
+
+	if (!mgr_.isLocationAvailable(waferId, destination)) return nullptr;
+
+	state_ = EquipmentState::Moving;
+
+	runId = eventLog_.record(
+		EventType::RunAccepted,
+		"Wafer " + waferId + " accepted for processing"
+	);
 
 	return wafer;
 }
@@ -326,7 +328,7 @@ OperationResult ProcessEngine::processWafer(
 {
 	std::uint64_t runId = 0;
 
-	Wafer* wafer = acceptWaferForProcessing(waferId, runId);
+	Wafer* wafer = acceptWaferForProcessing(waferId, processModuleLocation, runId);
 
 	if (wafer == nullptr) return OperationResult::Failed;
 
@@ -349,7 +351,7 @@ StartResult ProcessEngine::startProcessWafer(
 
 	std::uint64_t runId = 0;
 
-	Wafer* wafer = acceptWaferForProcessing(waferId, runId);
+	Wafer* wafer = acceptWaferForProcessing(waferId, processModuleLocation, runId);
 
 	if (wafer == nullptr) return StartResult::Rejected;
 

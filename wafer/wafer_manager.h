@@ -36,4 +36,8 @@ public:
 		const std::string& waferId
 	) const;
 	std::vector<Wafer> getWafers() const;
+	bool isLocationAvailable(
+		const std::string& waferId,
+		const Location& locadtion
+	) const;
 };

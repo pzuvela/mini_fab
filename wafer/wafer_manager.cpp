@@ -157,3 +157,13 @@ bool WaferManager::isValidLocation(const Location& location)
 
 	return false;
 }
+
+bool WaferManager::isLocationAvailable(
+	const std::string& waferId,
+	const Location& location
+) const
+{
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	return isValidLocation(location) && !isLocationOccupied(waferId, location);
+}

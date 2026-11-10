@@ -89,7 +89,7 @@ private:
 
     bool tryTransition(EquipmentState expectedState, EquipmentState newState);
 
-    Wafer* acceptWaferForProcessing(const std::string& waferId, std::uint64_t& runId);
+    Wafer* acceptWaferForProcessing(const std::string& waferId, const Location&destination, std::uint64_t& runId);
 
     void recordRunOutcome(const std::string& waferId, OperationResult result, std::uint64_t runId);
 

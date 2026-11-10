@@ -433,6 +433,39 @@ TEST_F(WaferManagerTest, ReturnsWaferToOriginalLoadPortSlot)
     EXPECT_EQ(manager.getLocation("W1"), original);
 }
 
+TEST_F(WaferManagerTest, LocationAvailabilityRespectsOccupancy)
+{
+    WaferManager manager;
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    EXPECT_TRUE(manager.isLocationAvailable(
+        "W2", {Station::ProcessModule, 1}
+    ));
+
+    ASSERT_EQ(
+        manager.updateLocation(
+            "W1", {Station::ProcessModule, 1}
+        ),
+        LocationUpdateResult::Updated
+    );
+
+    EXPECT_FALSE(manager.isLocationAvailable(
+        "W2", {Station::ProcessModule, 1}
+    ));
+
+    EXPECT_TRUE(manager.isLocationAvailable(
+        "W1", {Station::ProcessModule, 1}
+    ));
+
+    EXPECT_FALSE(manager.isLocationAvailable(
+        "W2", {Station::ProcessModule, 2}
+    ));
+}
+
 }
 
 
