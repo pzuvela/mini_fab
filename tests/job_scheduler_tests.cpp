@@ -235,3 +235,25 @@ TEST(JobSchedulerTest, UnknownJobHasNoStatus)
     EXPECT_EQ(scheduler.jobStatus(999), std::nullopt);
 }
 
+
+TEST(JobSchedulerTest, RejectsDuplicateQueuedWafer)
+{
+    JobScheduler scheduler;
+
+    const auto firstId = scheduler.enqueue("W1", 1, 1);
+
+    ASSERT_GT(firstId, 0u);
+    ASSERT_EQ(scheduler.pendingCount(), 1u);
+
+    // W1 already has a queued job.
+    const auto duplicateId = scheduler.enqueue("W1", 2, 1);
+
+    EXPECT_EQ(duplicateId, 0u);
+    EXPECT_EQ(scheduler.pendingCount(), 1u);
+
+    const auto jobs = scheduler.jobsSnapshot();
+
+    ASSERT_EQ(jobs.size(), 1u);
+    EXPECT_EQ(jobs.front().job.waferId, "W1");
+    EXPECT_EQ(jobs.front().status, JobStatus::Queued);
+}
