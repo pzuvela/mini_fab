@@ -296,4 +296,30 @@ TEST(JobSchedulerTest, RejectsDuplicateActiveWafer)
     EXPECT_EQ(scheduler.jobsSnapshot().size(), 1u);
 }
 
+TEST(JobSchedulerTest, AllowsWaferRequeueAfterCompletion)
+{
+    JobScheduler scheduler;
 
+    const auto firstId = scheduler.enqueue("W1", 1, 1);
+    ASSERT_GT(firstId, 0u);
+
+    ASSERT_TRUE(scheduler.dispatchNext(
+        [](const Job&) { return true; }
+    ));
+
+    ASSERT_TRUE(scheduler.finishActiveJob(
+        firstId,
+        OperationResult::Completed
+    ));
+
+    EXPECT_FALSE(scheduler.activeJob().has_value());
+    EXPECT_EQ(scheduler.jobStatus(firstId), JobStatus::Completed);
+
+    // Same wafer should now be available for another job.
+    const auto secondId = scheduler.enqueue("W1", 2, 1);
+
+    ASSERT_GT(secondId, 0u);
+    EXPECT_NE(firstId, secondId);
+    EXPECT_EQ(scheduler.pendingCount(), 1u);
+    EXPECT_EQ(scheduler.jobStatus(secondId), JobStatus::Queued);
+}
