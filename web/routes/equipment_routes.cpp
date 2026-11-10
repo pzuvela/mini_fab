@@ -103,9 +103,43 @@ server.Post("/api/run",
             return;
         }
 
+	if (!request.has_param("waferId") || request.get_param_value("waferId").empty())
+	{
+		response.status = 400;
+		response.set_content(
+			R"({"error":"Missing wafer ID"})",
+			"application/json"
+		);
+		return;
+	}
+
+	const std::string waferId = request.get_param_value("waferId");
+
+	const auto wafer = controller.getWafer(waferId);
+
+	if (!wafer.has_value())
+	{
+		response.status = 404;
+		response.set_content(
+			R"({"error":"Wafer not found"}),
+			"application/json"
+		);
+		return;
+	}
+
+	if (wafer->location.station != Station::LoadPort)
+	{
+		response.status = 409;
+		response.set_content(
+			R"({"error":"Wafer is not at LoadPort"})",
+			"application/json"
+		);
+		return;
+	}
+
 	std::uint64_t runId = 0;
 
-        const auto result = controller.runWafer(recipeId, &runId);
+        const auto result = controller.runWafer(waferId, recipeId, 1, &runId);
 
         if (result == StartResult::Accepted)
         {
