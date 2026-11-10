@@ -9,7 +9,7 @@ std::uint64_t JobScheduler::enqueue(
 	int processModuleId
 )
 {
-	const bool alreadyQueued = std::ranges::any_of()
+	const bool alreadyQueued = std::ranges::any_of(
 		queue_,
 		[&waferId](const Job& job)
 		{
