@@ -516,4 +516,35 @@ TEST_F(JobRoutesTest, RunEndpointAcceptsSelectedWafer)
     );
 }
 
+TEST_F(JobRoutesTest, RunRejectsMissingWaferId)
+{
+    auto response = client().Post(
+        "/api/run",
+        "recipeId=1",
+        "application/x-www-form-urlencoded"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 400);
+    EXPECT_EQ(
+        response->body,
+        R"({"error":"Missing wafer ID"})"
+    );
+}
+
+TEST_F(JobRoutesTest, RunRejectsUnknownWafer)
+{
+    auto response = client().Post(
+        "/api/run",
+        "waferId=UNKNOWN&recipeId=1",
+        "application/x-www-form-urlencoded"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 404);
+    EXPECT_EQ(
+        response->body,
+        R"({"error":"Wafer not found"})"
+    );
+}
 
