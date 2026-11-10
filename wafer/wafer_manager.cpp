@@ -99,7 +99,7 @@ LocationUpdateResult WaferManager::updateLocation(const std::string& waferId, Lo
 
 	if (iterator == wafers_.end()) return LocationUpdateResult::WaferNotFound;
 
-	if (!isValidLocation(location)) return LocationUpdatedResult::InvalidLocation;
+	if (!isValidLocation(location)) return LocationUpdateResult::InvalidLocation;
 
 	if (isLocationOccupied(waferId, location)) return LocationUpdateResult::SlotOccupied;
 
