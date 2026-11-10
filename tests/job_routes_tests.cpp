@@ -226,8 +226,18 @@ TEST_F(JobRoutesTest, RejectsInvalidJobId)
 
 TEST_F(JobRoutesTest, CreatesJobsWithUniqueIds)
 {
-    auto first = postJob();
-    auto second = postJob();
+ASSERT_EQ(
+    controller_.registerWafer({
+        "W2",
+        {Station::LoadPort, 4}
+    }),
+    WaferRegistrationResult::Registered
+);
+
+auto first = postJob();
+auto second = postJob(
+    "waferId=W2&recipeId=1&processModuleId=1"
+);
 
     ASSERT_TRUE(first);
     ASSERT_TRUE(second);
@@ -291,8 +301,18 @@ TEST_F(JobRoutesTest, ListsQueuedJobsInOrder)
     ASSERT_TRUE(response);
     EXPECT_EQ(response->status, 200);
 
-    const auto first = response->body.find(R"("jobId":1)");
-    const auto second = response->body.find(R"("jobId":2)");
+ASSERT_EQ(
+    controller_.registerWafer({
+        "W2",
+        {Station::LoadPort, 4}
+    }),
+    WaferRegistrationResult::Registered
+);
+
+auto first = postJob();
+auto second = postJob(
+    "waferId=W2&recipeId=1&processModuleId=1"
+);
 
     ASSERT_NE(first, std::string::npos);
     ASSERT_NE(second, std::string::npos);
