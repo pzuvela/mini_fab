@@ -453,4 +453,35 @@ TEST_F(JobRoutesTest, AcceptsRegisteredSecondWafer)
     EXPECT_EQ(response->status, 201);
 }
 
+TEST_F(JobRoutesTest, RejectsDuplicateQueuedWafer)
+{
+    // First submission succeeds
+    auto first = postJob();
+
+    ASSERT_TRUE(first);
+    ASSERT_EQ(first->status, 201);
+    EXPECT_EQ(first->body, R"({"jobId":1})");
+
+    // Same wafer, second submission
+    auto duplicate = postJob();
+
+    ASSERT_TRUE(duplicate);
+
+    // A queued wafer cannot be queued again
+    EXPECT_EQ(duplicate->status, 409);
+    EXPECT_EQ(
+        duplicate->body,
+        R"({"error":"Wafer already queued"})"
+    );
+
+    // No second job was created
+    EXPECT_EQ(controller_.pendingJobCount(), 1u);
+
+    const auto jobs = controller_.jobsSnapshot();
+
+    ASSERT_EQ(jobs.size(), 1u);
+    EXPECT_EQ(jobs.front().job.waferId, "W1");
+    EXPECT_EQ(jobs.front().status, JobStatus::Queued);
+}
+
 

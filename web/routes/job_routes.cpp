@@ -125,6 +125,12 @@ if (waferIt->location.station != Station::LoadPort)
                 *pmId
             );
 
+	    if (jobId == 0)
+	    {
+		sendError(response, 409, "Wafer already queued");
+		return;
+	    }
+
             response.status = 201;
             response.set_header(
                 "Location",
