@@ -39,5 +39,5 @@ public:
 	bool isLocationAvailable(
 		const std::string& waferId,
 		const Location& locadtion
-	) const;
+	) const override;
 };

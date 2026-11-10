@@ -12,7 +12,7 @@ public:
 
     virtual LocationUpdateResult updateLocation(const std::string& waferId, Location location) = 0;
 
-    bool isLocationAvailable(const std::string& waferId, const Location& location) const;
+    virtual bool isLocationAvailable(const std::string& waferId, const Location& location) const = 0;
 
     virtual ~IWaferManager() = default;
 };
