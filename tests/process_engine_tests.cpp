@@ -1237,4 +1237,76 @@ TEST_F(ProcessEngineTest, AsyncRunGeneratesRunCompletedEvent)
     EXPECT_EQ(events.back().type, EventType::RunCompleted);
 }
 
+TEST_F(ProcessEngineTest, CancelledProcessingPreservesWaferLocation)
+{
+    MockRobot robot{true};
+    BlockingMockProcessModule processModule;
+
+    WaferManager manager;
+    const Location original{Station::LoadPort, 3};
+    const Location destination{Station::ProcessModule, 1};
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", original}),
+        WaferRegistrationResult::Registered
+    );
+
+    ProcessEngine engine(
+        manager, robot, processModule, eventLog_
+    );
+
+    ASSERT_EQ(
+        engine.startProcessWafer("W1", destination, recipe_),
+        StartResult::Accepted
+    );
+
+    processModule.waitUntilProcessingStarts();
+
+    EXPECT_EQ(
+        manager.getLocation("W1"),
+        destination
+    );
+
+    EXPECT_TRUE(engine.cancel().isCancelled);
+
+    const auto result = engine.waitForCompletion();
+
+    EXPECT_EQ(result, OperationResult::Cancelled);
+    EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+    // Cancellation does not currently unload the wafer.
+    EXPECT_EQ(manager.getLocation("W1"), destination);
+}
+
+TEST_F(ProcessEngineTest, FailedProcessingPreservesWaferLocation)
+{
+    MockRobot robot{true};
+    MockProcessModule processModule{false};
+
+    WaferManager manager;
+
+    const Location original{Station::LoadPort, 3};
+    const Location destination{Station::ProcessModule, 1};
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", original}),
+        WaferRegistrationResult::Registered
+    );
+
+    ProcessEngine engine(
+        manager, robot, processModule, eventLog_
+    );
+
+    const auto result =
+        engine.processWafer("W1", destination, recipe_);
+
+    EXPECT_EQ(result, OperationResult::Failed);
+    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+
+    // Processing failed after the wafer reached the module.
+    EXPECT_EQ(manager.getLocation("W1"), destination);
+}
+
+
+
 }
