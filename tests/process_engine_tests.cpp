@@ -1378,4 +1378,71 @@ TEST_F(ProcessEngineTest, RejectsRunWhenMockReportsDestinationOccupied)
     EXPECT_EQ(engine.state(), EquipmentState::Idle);
 }
 
+TEST_F(ProcessEngineTest,
+    RejectedOccupiedDestinationDoesNotEmitRunAccepted)
+{
+    MockRobot robot{true};
+    MockProcessModule processModule{true};
+    WaferManager manager;
+
+    ASSERT_EQ(
+        manager.addWafer({"W1", {Station::LoadPort, 1}}),
+        WaferRegistrationResult::Registered
+    );
+
+    ASSERT_EQ(
+        manager.addWafer({"W2", {Station::LoadPort, 2}}),
+        WaferRegistrationResult::Registered
+    );
+
+    ASSERT_EQ(
+        manager.updateLocation(
+            "W1",
+            {Station::ProcessModule, 1}
+        ),
+        LocationUpdateResult::Updated
+    );
+
+    ProcessEngine engine(
+        manager, robot, processModule, eventLog_
+    );
+
+    // Capture events generated during admission only.
+    const auto eventsBefore = eventLog_.getEvents().size();
+
+    EXPECT_EQ(
+        engine.startProcessWafer(
+            "W2",
+            {Station::ProcessModule, 1},
+            recipe_
+        ),
+        StartResult::Rejected
+    );
+
+    const auto events = eventLog_.getEvents();
+
+    auto forbiddenEventCount = std::ranges::count_if(
+        events.begin() + eventsBefore,
+        events.end(),
+        [](const EquipmentEvent& event)
+        {
+            return event.type == EventType::RunAccepted ||
+                   event.type == EventType::EquipmentMoving;
+        }
+    );
+
+    EXPECT_EQ(forbiddenEventCount, 0);
+    EXPECT_EQ(engine.state(), EquipmentState::Idle);
+
+    EXPECT_EQ(
+        manager.getLocation("W1"),
+        (Location{Station::ProcessModule, 1})
+    );
+
+    EXPECT_EQ(
+        manager.getLocation("W2"),
+        (Location{Station::LoadPort, 2})
+    );
+}
+
 }
