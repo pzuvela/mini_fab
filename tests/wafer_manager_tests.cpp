@@ -28,7 +28,7 @@ namespace MiniFab::Tests
 
 		Location location_{
 			.station = Station::Aligner,
-			.slot = 3
+			.slot = 1
 		};
 
 	};
