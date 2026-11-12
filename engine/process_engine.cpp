@@ -612,11 +612,22 @@ RecoveryResult ProcessEngine::recoverWafer(
 
 	if (destination.station != Station::LoadPort || !mgr_.isLocationAvailable(waferId, destination)) return reject();
 
-	const auto movement = executeMoveWafer(
-		*wafer,
-		destination,
-		std::stop_token{}
-	);
+	MovementStageResult movement;
+
+	try
+	{
+		movement = executeMoveWafer(
+			*wafer,
+			destination,
+			std::stop_token{}
+		);
+	}
+	catch (...)
+	{
+		setFaulted(FaultSource::WaferTracking);
+		return RecoveryResult::Failed;
+	}
+
 
 	if (movement.movementResult != OperationResult::Completed)
 	{
