@@ -93,4 +93,42 @@ test("Run API submits selected wafer and recipe", async () => {
     }
 });
 
+test("Wafer API retrieves registered wafers", async () => {
+    const previousFetch = globalThis.fetch;
+
+    let capturedUrl;
+
+    globalThis.fetch = async url => {
+        capturedUrl = url;
+
+        return {
+            ok: true,
+            status: 200,
+            async json() {
+                return {
+                    wafers: [
+                        {
+                            id: "W1",
+                            location: {
+                                station: "LoadPort",
+                                slot: 3
+                            }
+                        }
+                    ]
+                };
+            }
+        };
+    };
+
+    try {
+        const result = await miniFabApi.getWafers();
+
+        assert.equal(capturedUrl, "/api/wafers");
+        assert.equal(result.wafers.length, 1);
+        assert.equal(result.wafers[0].id, "W1");
+    } finally {
+        globalThis.fetch = previousFetch;
+    }
+});
+
 

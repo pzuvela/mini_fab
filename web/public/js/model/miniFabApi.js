@@ -118,5 +118,17 @@ async resetEquipment() {
     };
 },
 
+async getWafers() {
+    const response = await fetch("/api/wafers", {
+        cache: "no-store"
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+
+    return readJson(response);
+},
+
 };
 
