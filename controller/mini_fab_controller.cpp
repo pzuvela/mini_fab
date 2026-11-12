@@ -544,3 +544,11 @@ WaferRegistrationResult MiniFabController::registerWafer(const Wafer& wafer)
 
 	return result;
 }
+
+RecoveryResult MiniFabController::recoverWafer(
+	const std::string& waferId,
+	const Location& destination
+)
+{
+	return engine_.recoverWafer(waferId, destination);
+}

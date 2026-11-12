@@ -121,4 +121,6 @@ public:
     RecoveryResult reset();
 
     StateTransition cancel();
+
+    RecoveryResult recoverWafer(const std::string& waferId, const Location& destination);
 };

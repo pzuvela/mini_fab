@@ -914,4 +914,91 @@ TEST(MiniFabControllerTest, StatusReportsWaferOccupyingProcessModule)
     );
 }
 
+TEST(MiniFabControllerTest, RecoversStrandedWaferToSelectedLoadPortSlot)
+{
+    SqliteRecipeRepository recipeRepo(":memory:");
+    SqliteEventRepository eventRepo(":memory:");
+    SqliteWaferRepository waferRepo(":memory:");
+
+    RecipeManager recipeManager(recipeRepo);
+
+    // Simulate persisted wafer left in PM1.
+    ASSERT_TRUE(waferRepo.insert({
+        "W2",
+        {Station::LoadPort, 4}
+    }));
+
+    ASSERT_TRUE(waferRepo.updateLocation(
+        "W2",
+        {Station::ProcessModule, 1}
+    ));
+
+    MiniFabController controller(
+        recipeManager,
+        eventRepo,
+        waferRepo
+    );
+
+    const Location destination{
+        Station::LoadPort, 4
+    };
+
+    ASSERT_EQ(
+        controller.status().state,
+        EquipmentState::Idle
+    );
+
+    // New recovery API - not implemented yet.
+    const auto result = controller.recoverWafer(
+        "W2",
+        destination
+    );
+
+    EXPECT_EQ(
+        result,
+        RecoveryResult::Recovered
+    );
+
+    // Check inventory after recovery.
+    const auto wafers = controller.wafersSnapshot();
+
+    const auto it = std::find_if(
+        wafers.begin(),
+        wafers.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.id == "W2";
+        }
+    );
+
+    ASSERT_NE(it, wafers.end());
+
+    EXPECT_EQ(it->location, destination);
+
+    // PM1 should now be empty.
+    EXPECT_FALSE(
+        controller.status().processModuleWaferId.has_value()
+    );
+
+    EXPECT_EQ(
+        controller.status().state,
+        EquipmentState::Idle
+    );
+
+    // Verify SQLite was updated too.
+    const auto persistedWafers = waferRepo.getAll();
+
+    const auto persisted = std::find_if(
+        persistedWafers.begin(),
+        persistedWafers.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.id == "W2";
+        }
+    );
+
+    ASSERT_NE(persisted, persistedWafers.end());
+
+    EXPECT_EQ(persisted->location, destination);
+}
 

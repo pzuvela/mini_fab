@@ -121,4 +121,6 @@ public:
 
 	std::vector<Wafer> wafersSnapshot() const;
 	WaferRegistrationResult registerWafer(const Wafer& wafer);
+
+	RecoveryResult recoverWafer(const std::string& waferId, const Location& destination);
 };

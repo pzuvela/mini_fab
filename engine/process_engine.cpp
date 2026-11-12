@@ -589,3 +589,55 @@ void ProcessEngine::recordRunOutcome(
     }
 }
 
+RecoveryResult ProcessEngine::recoverWafer(
+	const std::string& waferId,
+	const Location& destination
+)
+{
+	std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex_);
+
+	if (!tryTransition(EquipmentState::Idle, EquipmentState::Recovering)) return RecoveryResult::Failed;
+
+	const auto reject = [this]()
+	{
+		setState(EquipmentState::Idle);
+		return RecoveryResult::Failed;
+	};
+
+	Wafer* wafer = mgr_.findWafer(waferId);
+
+	if (!wafer) return reject();
+
+	if (wafer->location != Location{Station::ProcessModule, 1}) return reject();
+
+	if (destination.station != Station::LoadPort || !mgr_.isLocationAvailable(waferId, destination)) return reject();
+
+	const auto movement = executeMoveWafer(
+		*wafer,
+		destination,
+		std::stop_token{}
+	);
+
+	if (movement.movementResult != OperationResult::Completed)
+	{
+		setFaulted(FaultSource::Robot);
+		return RecoveryResult::Failed;
+	}
+
+	if (movement.movementResult != OperationResult::Updated)
+	{
+		setFaulted(FaultSource::WaferTracking);
+		return RecoveryResult::Failed;
+	}
+
+	eventLog_.record(
+		EventType::WaferLocationUpdated,
+		"Recovered wafer " + waferId + 
+		" to LoadPort / Slot " +
+		std::to_string(destination.slot)
+	);
+
+	setState(EquipmentState::Idle);
+
+	return RecoveryResult::Recovered;
+}
