@@ -624,7 +624,7 @@ RecoveryResult ProcessEngine::recoverWafer(
 		return RecoveryResult::Failed;
 	}
 
-	if (movement.movementResult != LocationUpdateResult::Updated)
+	if (movement.locationUpdateResult != LocationUpdateResult::Updated)
 	{
 		setFaulted(FaultSource::WaferTracking);
 		return RecoveryResult::Failed;
