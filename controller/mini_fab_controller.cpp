@@ -102,7 +102,7 @@ EquipmentSnapshot MiniFabController::status() const
 		.state = engine_.state(),
 		.waferLocation = manager_.getLocation("W1"),
 		.robotWaferId = robot_.carriedWaferId(),
-		.processModuleWaferId = processModule_.processingWaferId()
+		.processModuleWaferId = processModuleWaferId
 	};
 }
 
