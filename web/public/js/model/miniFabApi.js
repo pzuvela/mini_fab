@@ -13,22 +13,20 @@ async function readJson(response) {
 
 export const miniFabApi = {
 
-async runWafer(recipeId) {
+async runWafer(waferId, recipeId) {
     const response = await fetch("/api/run", {
         method: "POST",
         body: new URLSearchParams({
+            waferId: String(waferId),
             recipeId: String(recipeId)
         })
     });
 
-    const result = await response.json();
-
     return {
         httpStatus: response.status,
-        ...result
+        ...await readJson(response)
     };
 },
-
 	async getStatus() {
 	    const response = await fetch("/api/status", { cache: "no-store" });
 

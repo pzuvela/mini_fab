@@ -16,7 +16,7 @@ test("Run rejection preserves the server's domain error", async () => {
         async json() { return { accepted: false, error: "Run rejected" }; }
     });
     try {
-        const result = await miniFabApi.runWafer(1);
+        const result = await miniFabApi.runWafer("W2", 1);
         assert.equal(result.accepted, false);
         assert.equal(result.error, "Run rejected");
     } finally {
@@ -49,3 +49,48 @@ test("Reset reports HTTP failures without a domain error", async () => {
         globalThis.fetch = previousFetch;
     }
 });
+
+test("Run API submits selected wafer and recipe", async () => {
+    const previousFetch = globalThis.fetch;
+
+    let capturedUrl;
+    let capturedOptions;
+
+    globalThis.fetch = async (url, options) => {
+        capturedUrl = url;
+        capturedOptions = options;
+
+        return {
+            status: 202,
+            ok: true,
+            async json() {
+                return { accepted: true, runId: 42 };
+            }
+        };
+    };
+
+    try {
+        const result = await miniFabApi.runWafer("W2", 1);
+
+        assert.equal(capturedUrl, "/api/run");
+        assert.equal(capturedOptions.method, "POST");
+
+        assert.equal(
+            capturedOptions.body.get("waferId"),
+            "W2"
+        );
+
+        assert.equal(
+            capturedOptions.body.get("recipeId"),
+            "1"
+        );
+
+        assert.equal(result.accepted, true);
+        assert.equal(result.runId, 42);
+        assert.equal(result.httpStatus, 202);
+    } finally {
+        globalThis.fetch = previousFetch;
+    }
+});
+
+
