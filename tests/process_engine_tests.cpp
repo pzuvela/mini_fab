@@ -1445,4 +1445,66 @@ TEST_F(ProcessEngineTest,
     );
 }
 
+TEST_F(ProcessEngineTest, CancelledProcessingReturnsWaferToLoadPort)
+{
+    // Arrange
+    MockRobot robot{ true };
+    BlockingMockProcessModule processModule;
+    WaferManager mgr;
+
+    const Location originalLocation{
+        Station::LoadPort, 2
+    };
+
+    const Location processLocation{
+        Station::ProcessModule, 1
+    };
+
+    ASSERT_EQ(
+        mgr.addWafer(wafer_),
+        WaferRegistrationResult::Registered
+    );
+
+    ProcessEngine engine(
+        mgr, robot, processModule, eventLog_
+    );
+
+    // Act
+    ASSERT_EQ(
+        engine.startProcessWafer(
+            wafer_.id,
+            processLocation,
+            longRecipe_
+        ),
+        StartResult::Accepted
+    );
+
+    processModule.waitUntilProcessingStarts();
+
+    EXPECT_EQ(
+        mgr.getLocation(wafer_.id),
+        processLocation
+    );
+
+    const auto cancellation = engine.cancel();
+
+    ASSERT_TRUE(cancellation.isCancelled);
+
+    const auto result = engine.waitForCompletion();
+
+    // Assert
+    EXPECT_EQ(result, OperationResult::Cancelled);
+
+    EXPECT_EQ(
+        mgr.getLocation(wafer_.id),
+        originalLocation
+    );
+
+    EXPECT_TRUE(
+        mgr.isLocationAvailable("W2", processLocation)
+    );
+
+    EXPECT_EQ(engine.state(), EquipmentState::Idle);
+}
+
 }

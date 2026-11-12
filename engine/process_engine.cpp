@@ -271,9 +271,23 @@ OperationResult ProcessEngine::processWaferAtModule(
 
 		case OperationResult::Cancelled:
 		{
+			const std::stop_token recoveryToken{};
+
+			const auto movement = executeMoveWafer(wafer, originalLocation, recoveryToken);
+
+			if (movement.movementResult != OperaitonResult::Completed || movement.locationUpdateResult != LocationUpdateResult::Updated)
+			{
+				setFaulted(FaultSource::Robot);
+				return OperationResult::Failed;
+			}
+
 			bool hasTransitioned = tryTransition(EquipmentState::Stopping, EquipmentState::Idle);
 
-			if (!hasTransitioned) return resultFromFailedTransition(stopToken);
+			if (!hasTransitioned)
+			{
+				setFaulted(FaultSource::Robot);
+				return OperationResult::Failed;
+			}
 
 			return OperationResult::Cancelled;
 		}
