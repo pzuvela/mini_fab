@@ -1002,3 +1002,186 @@ TEST(MiniFabControllerTest, RecoversStrandedWaferToSelectedLoadPortSlot)
     EXPECT_EQ(persisted->location, destination);
 }
 
+TEST(MiniFabControllerTest, OccupiedDestinationRejectsRecovery)
+{
+    SqliteRecipeRepository recipeRepo(":memory:");
+    SqliteEventRepository eventRepo(":memory:");
+    SqliteWaferRepository waferRepo(":memory:");
+
+    RecipeManager recipeManager(recipeRepo);
+
+ASSERT_TRUE(waferRepo.insert({
+    "W1", {Station::LoadPort, 3}
+}));
+
+    ASSERT_TRUE(waferRepo.insert({
+        "W2", {Station::LoadPort, 4}
+    }));
+
+    ASSERT_TRUE(waferRepo.updateLocation(
+        "W2", {Station::ProcessModule, 1}
+    ));
+
+    MiniFabController controller(
+        recipeManager, eventRepo, waferRepo
+    );
+
+    // W1 already occupies LoadPort / Slot 3.
+    EXPECT_EQ(
+        controller.recoverWafer(
+            "W2", {Station::LoadPort, 3}
+        ),
+        RecoveryResult::Failed
+    );
+
+    EXPECT_EQ(controller.status().state, EquipmentState::Idle);
+    EXPECT_EQ(controller.status().processModuleWaferId, "W2");
+
+    const auto wafers = controller.wafersSnapshot();
+
+    const auto w1 = std::find_if(
+        wafers.begin(), wafers.end(),
+        [](const Wafer& w) { return w.id == "W1"; }
+    );
+
+    ASSERT_NE(w1, wafers.end());
+    EXPECT_EQ(w1->location, (Location{Station::LoadPort, 3}));
+}
+
+TEST(MiniFabControllerTest, RecoveryRejectsWaferNotInProcessModule)
+{
+    MiniFabController controller;
+
+    EXPECT_EQ(
+        controller.recoverWafer(
+            "W1", {Station::LoadPort, 4}
+        ),
+        RecoveryResult::Failed
+    );
+
+    EXPECT_EQ(controller.status().state, EquipmentState::Idle);
+    EXPECT_EQ(
+        controller.status().waferLocation,
+        (Location{Station::LoadPort, 3})
+    );
+}
+
+TEST(MiniFabControllerTest, RecoveryRejectsInvalidDestination)
+{
+    SqliteRecipeRepository recipeRepo(":memory:");
+    SqliteEventRepository eventRepo(":memory:");
+    SqliteWaferRepository waferRepo(":memory:");
+
+    RecipeManager recipeManager(recipeRepo);
+
+    ASSERT_TRUE(waferRepo.insert({
+        "W2", {Station::LoadPort, 4}
+    }));
+
+    ASSERT_TRUE(waferRepo.updateLocation(
+        "W2", {Station::ProcessModule, 1}
+    ));
+
+    MiniFabController controller(
+        recipeManager, eventRepo, waferRepo
+    );
+
+    EXPECT_EQ(
+        controller.recoverWafer(
+            "W2", {Station::LoadPort, 0}
+        ),
+        RecoveryResult::Failed
+    );
+
+    EXPECT_EQ(
+        controller.recoverWafer(
+            "W2", {Station::ProcessModule, 1}
+        ),
+        RecoveryResult::Failed
+    );
+
+    EXPECT_EQ(controller.status().state, EquipmentState::Idle);
+    EXPECT_EQ(controller.status().processModuleWaferId, "W2");
+}
+
+TEST(MiniFabControllerTest, RecoveryRejectsWhileEquipmentIsProcessing)
+{
+    SqliteRecipeRepository recipeRepo(":memory:");
+    SqliteEventRepository eventRepo(":memory:");
+    SqliteWaferRepository waferRepo(":memory:");
+
+    RecipeManager recipeManager(recipeRepo);
+
+    // W2 is stranded in PM1.
+    ASSERT_TRUE(waferRepo.insert({
+        "W2", {Station::LoadPort, 4}
+    }));
+
+    ASSERT_TRUE(waferRepo.updateLocation(
+        "W2", {Station::ProcessModule, 1}
+    ));
+
+    MiniFabController controller(
+        recipeManager, eventRepo, waferRepo
+    );
+
+    ASSERT_TRUE(controller.addRecipe({
+        1, "Long Etch", 60.0
+    }));
+
+    // PM1 is occupied, so the engine must reject W1.
+    EXPECT_EQ(
+        controller.runWafer("W1", 1, 1),
+        StartResult::Rejected
+    );
+
+    // Recover W2 to free PM1.
+    ASSERT_EQ(
+        controller.recoverWafer(
+            "W2", {Station::LoadPort, 4}
+        ),
+        RecoveryResult::Recovered
+    );
+
+    // Start a long-running process using W2.
+    ASSERT_EQ(
+        controller.runWafer("W2", 1, 1),
+        StartResult::Accepted
+    );
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.status().state ==
+            EquipmentState::Processing;
+    }));
+
+    // Recovery must not interrupt active processing.
+    EXPECT_EQ(
+        controller.recoverWafer(
+            "W2", {Station::LoadPort, 5}
+        ),
+        RecoveryResult::Failed
+    );
+
+    EXPECT_EQ(
+        controller.status().state,
+        EquipmentState::Processing
+    );
+
+    // Clean up the active run.
+    EXPECT_TRUE(controller.cancelRun().isCancelled);
+
+    // The engine's worker finishes during destruction,
+    // but we explicitly wait for the equipment to become Idle.
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller.status().state ==
+            EquipmentState::Idle;
+    }));
+
+    EXPECT_EQ(
+        controller.status().processModuleWaferId,
+        std::nullopt
+    );
+}
+
