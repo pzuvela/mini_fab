@@ -91,7 +91,7 @@ EquipmentSnapshot MiniFabController::status() const
 
 	for (const auto& wafer : wafers)
 	{
-		if (wafer.location.station == Station.ProcessModule && wafer.location.slot == 1)
+		if (wafer.location.station == Station::ProcessModule && wafer.location.slot == 1)
 		{
 			processModuleWaferId = wafer.id;
 			break;
