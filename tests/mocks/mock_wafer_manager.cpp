@@ -1,4 +1,5 @@
 #include <memory>
+#include <stdexcept>
 
 #include "domain/wafer.h"
 #include "mock_wafer_manager.h"
@@ -25,6 +26,8 @@ LocationUpdateResult MockWaferManager::updateLocation(const std::string& waferId
 {
 	locationUpdateWasCalled_ = true;
 	++locationUpdateCount_;
+
+	if (throwOnLocationUpdate_) throw std::runtime_error("Simulated persistence failure");
 
 	if (locationUpdateCount_ == failOnLocationUpdate_) return LocationUpdateResult::WaferNotFound;
 
@@ -58,4 +61,10 @@ int MockWaferManager::locationUpdateCount() const
 {
 	return locationUpdateCount_;
 }
+
+void MockWaferManager::setThrowOnLocationUpdate(bool enabled)
+{
+	throwOnLocationUpdate_ = enabled;
+}
+
 

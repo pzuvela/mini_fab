@@ -18,6 +18,7 @@ private:
 	bool locationAvailable_ = true;
 	int locationUpdateCount_ = 0;
 	int failOnLocationUpdate_ = -1;
+	bool throwOnLocationUpdate_ = false;
 
 public:
 	MockWaferManager(std::unique_ptr<Wafer> waferToReturn, bool locationUpdateSucceeds = true);
@@ -32,5 +33,6 @@ public:
 	void setLocationAvailable(bool available);
 	void failOnLocationUpdate(int updateNumber);
 	int locationUpdateCount() const;
+	void setThrowOnLocationUpdate(bool enabled);
 };
 

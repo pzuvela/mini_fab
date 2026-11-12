@@ -1645,4 +1645,54 @@ TEST_F(ProcessEngineTest, FailedManualWaferRecoveryFaultsEquipment)
     );
 }
 
+
+TEST_F(ProcessEngineTest, RecoveryPersistenceExceptionFaultsEquipment)
+{
+    const Location stranded{
+        Station::ProcessModule, 1
+    };
+
+    const Location destination{
+        Station::LoadPort, 4
+    };
+
+    auto wafer = std::make_unique<Wafer>(
+        Wafer{"W2", stranded}
+    );
+
+    MockWaferManager manager(std::move(wafer));
+    manager.setThrowOnLocationUpdate(true);
+
+    MockRobot robot{true};
+    MockProcessModule processModule{true};
+
+    ProcessEngine engine(
+        manager,
+        robot,
+        processModule,
+        eventLog_
+    );
+
+    RecoveryResult result = RecoveryResult::Recovered;
+
+    EXPECT_NO_THROW({
+        result = engine.recoverWafer(
+            "W2", destination
+        );
+    });
+
+    EXPECT_EQ(result, RecoveryResult::Failed);
+    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+    EXPECT_EQ(manager.locationUpdateCount(), 1);
+
+    // The update threw, so the tracked location
+    // must not be considered successfully updated.
+    ASSERT_NE(manager.findWafer("W2"), nullptr);
+    EXPECT_EQ(
+        manager.findWafer("W2")->location,
+        stranded
+    );
+}
+
+
 }
