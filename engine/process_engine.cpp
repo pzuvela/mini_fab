@@ -275,7 +275,7 @@ OperationResult ProcessEngine::processWaferAtModule(
 
 			const auto movement = executeMoveWafer(wafer, originalLocation, recoveryToken);
 
-			if (movement.movementResult != OperaitonResult::Completed || movement.locationUpdateResult != LocationUpdateResult::Updated)
+			if (movement.movementResult != OperationResult::Completed || movement.locationUpdateResult != LocationUpdateResult::Updated)
 			{
 				setFaulted(FaultSource::Robot);
 				return OperationResult::Failed;
