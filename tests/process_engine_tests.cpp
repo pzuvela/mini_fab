@@ -1237,7 +1237,7 @@ TEST_F(ProcessEngineTest, AsyncRunGeneratesRunCompletedEvent)
     EXPECT_EQ(events.back().type, EventType::RunCompleted);
 }
 
-TEST_F(ProcessEngineTest, CancelledProcessingPreservesWaferLocation)
+TEST_F(ProcessEngineTest, CancelledProcessingRestoresOriginalWaferLocation)
 {
     MockRobot robot{true};
     BlockingMockProcessModule processModule;
@@ -1274,8 +1274,14 @@ TEST_F(ProcessEngineTest, CancelledProcessingPreservesWaferLocation)
     EXPECT_EQ(result, OperationResult::Cancelled);
     EXPECT_EQ(engine.state(), EquipmentState::Idle);
 
-    // Cancellation does not currently unload the wafer.
-    EXPECT_EQ(manager.getLocation("W1"), destination);
+// Successful cancellation recovery returns the wafer
+// to its original LoadPort location.
+EXPECT_EQ(manager.getLocation("W1"), original);
+
+EXPECT_TRUE(
+    manager.isLocationAvailable("W2", destination)
+);
+
 }
 
 TEST_F(ProcessEngineTest, FailedProcessingPreservesWaferLocation)
