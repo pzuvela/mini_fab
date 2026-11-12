@@ -858,3 +858,60 @@ TEST(MiniFabControllerTest, RestoresPersistedWaferInventory)
     }
 }
 
+TEST(MiniFabControllerTest, StatusReportsWaferOccupyingProcessModule)
+{
+    SqliteRecipeRepository recipeRepo(":memory:");
+    SqliteEventRepository eventRepo(":memory:");
+    SqliteWaferRepository waferRepo(":memory:");
+
+    RecipeManager recipeManager(recipeRepo);
+
+    // Simulate a wafer left in PM1 after a failed run.
+    ASSERT_TRUE(waferRepo.insert({
+        "W2",
+        {Station::LoadPort, 4}
+    }));
+
+    ASSERT_TRUE(waferRepo.updateLocation(
+        "W2",
+        {Station::ProcessModule, 1}
+    ));
+
+    MiniFabController controller(
+        recipeManager,
+        eventRepo,
+        waferRepo
+    );
+
+    // Verify inventory was restored correctly.
+    const auto wafers = controller.wafersSnapshot();
+
+    const auto it = std::find_if(
+        wafers.begin(),
+        wafers.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.id == "W2";
+        }
+    );
+
+    ASSERT_NE(it, wafers.end());
+
+    EXPECT_EQ(
+        it->location,
+        (Location{Station::ProcessModule, 1})
+    );
+
+    // The dashboard must report physical occupancy,
+    // not just active processing.
+    const auto snapshot = controller.status();
+
+    ASSERT_TRUE(snapshot.processModuleWaferId.has_value());
+
+    EXPECT_EQ(
+        snapshot.processModuleWaferId.value(),
+        "W2"
+    );
+}
+
+

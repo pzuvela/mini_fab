@@ -85,6 +85,19 @@ MiniFabController::~MiniFabController()
 
 EquipmentSnapshot MiniFabController::status() const
 {
+	std::optional<std::string> procesSModuleWaferId;
+
+	const auto wafers = manager_.getWafers();
+
+	for (const auto& wafer : wafers)
+	{
+		if (wafer.location.station == Station.ProcessModule && wafer.location.slot == 1)
+		{
+			processModuleWaferId = wafer.id;
+			break;
+		}
+	}
+
 	return EquipmentSnapshot{
 		.state = engine_.state(),
 		.waferLocation = manager_.getLocation("W1"),
