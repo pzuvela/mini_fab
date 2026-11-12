@@ -1121,6 +1121,10 @@ TEST(MiniFabControllerTest, RecoveryRejectsWhileEquipmentIsProcessing)
         "W2", {Station::ProcessModule, 1}
     ));
 
+ASSERT_TRUE(waferRepo.insert({
+    "W1", {Station::LoadPort, 3}
+}));
+
     MiniFabController controller(
         recipeManager, eventRepo, waferRepo
     );
