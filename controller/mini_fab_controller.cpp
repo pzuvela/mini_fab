@@ -85,7 +85,7 @@ MiniFabController::~MiniFabController()
 
 EquipmentSnapshot MiniFabController::status() const
 {
-	std::optional<std::string> procesSModuleWaferId;
+	std::optional<std::string> processModuleWaferId;
 
 	const auto wafers = manager_.getWafers();
 
