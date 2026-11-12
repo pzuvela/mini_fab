@@ -1507,4 +1507,94 @@ TEST_F(ProcessEngineTest, CancelledProcessingReturnsWaferToLoadPort)
     EXPECT_EQ(engine.state(), EquipmentState::Idle);
 }
 
+TEST_F(ProcessEngineTest, FailedCancellationRecoveryLeavesEquipmentFaulted)
+{
+    MockRobot robot{ true };
+    BlockingMockProcessModule processModule;
+    WaferManager mgr;
+
+    mgr.addWafer(wafer_);
+
+    const Location processLocation{
+        Station::ProcessModule, 1
+    };
+
+    ProcessEngine engine(
+        mgr, robot, processModule, eventLog_
+    );
+
+    ASSERT_EQ(
+        engine.startProcessWafer(
+            wafer_.id,
+            processLocation,
+            longRecipe_
+        ),
+        StartResult::Accepted
+    );
+
+    processModule.waitUntilProcessingStarts();
+
+    // First movement succeeded.
+    // Make the return movement fail.
+    robot.setMoveShouldSucceed(false);
+
+    ASSERT_TRUE(engine.cancel().isCancelled);
+
+    const auto result = engine.waitForCompletion();
+
+    EXPECT_EQ(result, OperationResult::Failed);
+    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+
+    EXPECT_EQ(
+        mgr.getLocation(wafer_.id),
+        processLocation
+    );
+
+    EXPECT_FALSE(
+        mgr.isLocationAvailable("W2", processLocation)
+    );
+}
+
+TEST_F(ProcessEngineTest, FailedLocationUpdateDuringCancellationRecoveryFaultsEquipment)
+{
+    MockRobot robot{ true };
+    BlockingMockProcessModule processModule;
+
+    MockWaferManager mgr{
+        std::make_unique<Wafer>(wafer_), true
+    };
+
+    // First update succeeds; return update fails.
+    mgr.failOnLocationUpdate(2);
+
+    const Location processLocation{
+        Station::ProcessModule, 1
+    };
+
+    ProcessEngine engine(
+        mgr, robot, processModule, eventLog_
+    );
+
+    ASSERT_EQ(
+        engine.startProcessWafer(
+            wafer_.id,
+            processLocation,
+            longRecipe_
+        ),
+        StartResult::Accepted
+    );
+
+    processModule.waitUntilProcessingStarts();
+
+    ASSERT_EQ(mgr.locationUpdateCount(), 1);
+
+    ASSERT_TRUE(engine.cancel().isCancelled);
+
+    const auto result = engine.waitForCompletion();
+
+    EXPECT_EQ(result, OperationResult::Failed);
+    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+    EXPECT_EQ(mgr.locationUpdateCount(), 2);
+}
+
 }

@@ -24,7 +24,11 @@ Wafer* MockWaferManager::findWafer(const std::string& waferId)
 LocationUpdateResult MockWaferManager::updateLocation(const std::string& waferId, Location location)
 {
 	locationUpdateWasCalled_ = true;
-    return locationUpdateSucceeds_ ? LocationUpdateResult::Updated : LocationUpdateResult::WaferNotFound;
+	++locationUpdateCount_;
+
+	if (locationUpdateCount_ == failOnLocationUpdate_) return LocationUpdateResult::WaferNotFound;
+
+	return locationUpdateSucceeds_ ? LocationUpdateResult::Updated : LocationUpdateResult::WaferNotFound;
 }
 
 bool MockWaferManager::locationUpdateWasCalled() const
@@ -43,5 +47,15 @@ bool MockWaferManager::isLocationAvailable(
 void MockWaferManager::setLocationAvailable(bool available)
 {
     locationAvailable_ = available;
+}
+
+void MockWaferManager::failOnLocationUpdate(int updateNumber)
+{
+	failOnLocationUpdate_ = updateNumber;
+}
+
+int MockWaferManager::locationUpdateCount() const
+{
+	return locationUpdateCount_;
 }
 
