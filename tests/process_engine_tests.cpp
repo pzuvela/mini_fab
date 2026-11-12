@@ -1603,4 +1603,46 @@ TEST_F(ProcessEngineTest, FailedLocationUpdateDuringCancellationRecoveryFaultsEq
     EXPECT_EQ(mgr.locationUpdateCount(), 2);
 }
 
+TEST_F(ProcessEngineTest, FailedManualWaferRecoveryFaultsEquipment)
+{
+    MockRobot robot{false};
+    MockProcessModule processModule{true};
+
+    WaferManager manager;
+
+    const Location original{Station::LoadPort, 4};
+    const Location stranded{Station::ProcessModule, 1};
+
+    ASSERT_EQ(
+        manager.addWafer({"W2", original}),
+        WaferRegistrationResult::Registered
+    );
+
+    ASSERT_EQ(
+        manager.updateLocation("W2", stranded),
+        LocationUpdateResult::Updated
+    );
+
+    ProcessEngine engine(
+        manager, robot, processModule, eventLog_
+    );
+
+    const auto result = engine.recoverWafer(
+        "W2", original
+    );
+
+    EXPECT_EQ(result, RecoveryResult::Failed);
+    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
+
+    // Failed movement must not change tracked location.
+    EXPECT_EQ(manager.getLocation("W2"), stranded);
+
+    // PM1 must remain occupied.
+    EXPECT_FALSE(
+        manager.isLocationAvailable(
+            "W1", stranded
+        )
+    );
+}
+
 }
