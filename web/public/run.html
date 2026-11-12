@@ -130,7 +130,8 @@
 	    recipeSelect: document.querySelector("#recipeSelect"),
 	    recipeDetails: document.querySelector("#recipeDetails"),
 	    cancelButton: document.querySelector("#cancelButton"),
-	    resetButton: document.querySelector("#resetButton")
+	    resetButton: document.querySelector("#resetButton"),
+	    waferSelect: document.querySelector("#waferSelect"),
         };
 
         // View: only presentation logic.
@@ -153,6 +154,54 @@
 	    elements.eventCount.textContent = `${state.events.length} events`;
 	    elements.eventRows.replaceChildren();
 	    renderEventLog(state.events, elements);
+	    const waferSelect = elements.waferSelect;
+
+const waferOptions = state.wafers.map(wafer => ({
+    value: wafer.id,
+    label: `${wafer.id} — Slot ${wafer.location.slot}`
+}));
+
+const waferOptionsChanged =
+    waferSelect.options.length !== waferOptions.length ||
+    waferOptions.some((expected, index) => {
+        const actual = waferSelect.options[index];
+
+        return actual.value !== expected.value ||
+               actual.textContent !== expected.label;
+    });
+
+if (waferOptionsChanged) {
+    waferSelect.replaceChildren();
+
+    for (const wafer of waferOptions) {
+        const option = document.createElement("option");
+
+        option.value = wafer.value;
+        option.textContent = wafer.label;
+
+        waferSelect.appendChild(option);
+    }
+}
+
+if (waferOptions.length === 0 &&
+    waferSelect.options.length === 0) {
+    const option = document.createElement("option");
+
+    option.value = "";
+    option.textContent = state.waferError
+        ? "Failed to load wafers"
+        : "No available wafers";
+
+    waferSelect.appendChild(option);
+}
+
+const selectedWaferValue = state.selectedWaferId ?? "";
+
+if (waferSelect.value !== selectedWaferValue) {
+    waferSelect.value = selectedWaferValue;
+}
+
+waferSelect.disabled = waferOptions.length === 0;
 
 const select = elements.recipeSelect;
 
@@ -237,6 +286,10 @@ elements.recipeSelect.addEventListener("change", event => {
     vm.selectRecipe(
         value === "" ? null : Number(value)
     );
+});
+
+elements.waferSelect.addEventListener("change", event => {
+    vm.selectWafer(event.target.value || null);
 });
 
 vm.start();
