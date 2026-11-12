@@ -624,7 +624,7 @@ RecoveryResult ProcessEngine::recoverWafer(
 		return RecoveryResult::Failed;
 	}
 
-	if (movement.movementResult != OperationResult::Updated)
+	if (movement.movementResult != LocationUpdateResult::Updated)
 	{
 		setFaulted(FaultSource::WaferTracking);
 		return RecoveryResult::Failed;
@@ -632,7 +632,7 @@ RecoveryResult ProcessEngine::recoverWafer(
 
 	eventLog_.record(
 		EventType::WaferLocationUpdated,
-		"Recovered wafer " + waferId + 
+		"Recovered wafer " + waferId +
 		" to LoadPort / Slot " +
 		std::to_string(destination.slot)
 	);
