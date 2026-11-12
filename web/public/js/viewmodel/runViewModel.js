@@ -17,6 +17,10 @@ export function createRunViewModel(api = miniFabApi) {
 	let selectedRecipeId = null;
 	let recipesLoading = false;
 	let recipeError = null;
+	let wafers = [];
+	let selectedWaferId = null;
+	let wafersLoading = false;
+	let waferError = null;
 	let eventsRefreshing = false;
 	let currentRunId = null;
 	let controlCommandPending = false;
@@ -38,12 +42,18 @@ export function createRunViewModel(api = miniFabApi) {
 			recipes: [...recipes],
 			selectedRecipeId,
 			recipeError,
+			wafers: [...wafers],
+			selectedWaferId,
+			waferError,
 			canRun: snapshot?.equipmentState === "Idle"
     				&& !runningCommand
     				&& !controlCommandPending
     				&& selectedRecipeId !== null
     				&& !recipesLoading
-    				&& recipeError === null,
+    				&& recipeError === null
+				&& selectedWaferId !== null
+				&& !wafersLoading
+				&& waferError === null,
 			canCancel: ["Moving", "Processing"].includes(
 				snapshot?.equipmentState
 			) && !controlCommandPending && !cancellationPending,
@@ -178,13 +188,15 @@ async function run() {
 
     const recipeId = selectedRecipeId;
 
+    const waferId = selectedWaferId;
+
     runningCommand = true;
     runPhase = "accepted";
     runMessage = `Submitting recipe ${recipeId}...`;
     notify();
 
     try {
-        const result = await api.runWafer(recipeId);
+        const result = await api.runWafer(waferId, recipeId);
 
 	if (result.accepted) {
 		currentRunId = result.runId;
@@ -220,8 +232,9 @@ async function run() {
 	function start() {
 		if (timerId !== null) return;
 
-		loadRecipes();
-		refresh();
+		void loadRecipes();
+		void refresh();
+		void loadWafers();
 		timerId = setInterval(refresh, 250);
 	}
 
@@ -304,6 +317,41 @@ function selectRecipe(id) {
     notify();
 }
 
+async function loadWafers() {
+    wafersLoading = true;
+    waferError = null;
+    notify();
+
+    try {
+        const data = await api.getWafers();
+
+        wafers = data.wafers.filter(
+            wafer => wafer.location.station === "LoadPort"
+        );
+
+        if (!wafers.some(w => w.id === selectedWaferId)) {
+            selectedWaferId = wafers[0]?.id ?? null;
+        }
+    } catch (error) {
+        wafers = [];
+        selectedWaferId = null;
+        waferError = `Wafer load error: ${error.message}`;
+    } finally {
+        wafersLoading = false;
+        notify();
+    }
+}
+
+function selectWafer(id) {
+    selectedWaferId = wafers.some(w => w.id === id)
+        ? id
+        : null;
+
+    notify();
+}
+
+
+
 	return {
 		getState,
 		subscribe,
@@ -311,6 +359,8 @@ function selectRecipe(id) {
 		refreshEvents,
 		loadRecipes,
 		selectRecipe,
+		loadWafers,
+		selectWafer,
 		run,
 		start,
 		stop,
@@ -319,3 +369,4 @@ function selectRecipe(id) {
 	};
 
 }
+

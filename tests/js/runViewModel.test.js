@@ -8,7 +8,7 @@ import { createRunViewModel } from
 function createMockApi() {
     let equipmentState = "Idle";
     let events = [];
-    const submittedRecipes = [];
+    const submittedRuns = [];
     let nextRunId = 1;
     let currentRunId = null;
     const cancelRequests = [];
@@ -39,16 +39,16 @@ function createMockApi() {
             }];
         },
 
-        async runWafer(recipeId) {
-            submittedRecipes.push(recipeId);
-	    currentRunId = nextRunId++;
+async runWafer(waferId, recipeId) {
+    submittedRuns.push({ waferId, recipeId });
+    currentRunId = nextRunId++;
 
-            return {
-                httpStatus: 202,
-                accepted: true,
-		runId: currentRunId
-            };
-        },
+    return {
+        httpStatus: 202,
+        accepted: true,
+        runId: currentRunId
+    };
+},
 
 	async cancelRun() {
  	   	cancelRequests.push(true);
@@ -58,12 +58,21 @@ function createMockApi() {
 	async resetEquipment() {
     		resetRequests.push(true);
     		return { httpStatus: 200, recovered: true };
-	}
+	},
+
+async getWafers() {
+    return {
+        wafers: [
+            { id: "W1", location: { station: "LoadPort", slot: 3 } },
+            { id: "W2", location: { station: "LoadPort", slot: 4 } }
+        ]
     };
+}
+};
 
     return {
         api,
-        submittedRecipes,
+        submittedRuns,
 	cancelRequests,
 	resetRequests,
         setEquipmentState(value) {
@@ -79,17 +88,19 @@ function createMockApi() {
 		runId
     	});
 	}
-    };
+	};
 }
 
 async function prepareViewModel(mock) {
     const vm = createRunViewModel(mock.api);
 
     await vm.loadRecipes();
+    await vm.loadWafers();
     await vm.refresh();
 
     return vm;
 }
+
 
 test("Idle equipment with a recipe can run", async () => {
     const mock = createMockApi();
@@ -105,7 +116,7 @@ test("Run submits the selected recipe", async () => {
 
     await vm.run();
 
-    assert.deepEqual(mock.submittedRecipes, [1]);
+    assert.deepEqual(mock.submittedRuns, [ { waferId: "W1", recipeId: 1 } ]);
     assert.match(vm.getState().message, /accepted/i);
 });
 
@@ -154,7 +165,7 @@ test("Same recipe can be run twice sequentially", async () => {
 
     await vm.run();
 
-    assert.deepEqual(mock.submittedRecipes, [1, 1]);
+    assert.deepEqual(mock.submittedRuns, [{ waferId: "W1", recipeId: 1  }, { waferId: "W1", recipeId: 1  }]);
 });
 
 test("Status polling preserves run acceptance message", async () => {
@@ -491,4 +502,19 @@ test("Pending control command prevents a new run", async () => {
     assert.equal(vm.getState().canRun, false);
     release({ recovered: true });
     await pending;
+});
+
+test("Run submits selected wafer and recipe", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    vm.selectWafer("W2");
+
+    assert.equal(vm.getState().selectedWaferId, "W2");
+
+    await vm.run();
+
+    assert.deepEqual(mock.submittedRuns, [
+        { waferId: "W2", recipeId: 1 }
+    ]);
 });
