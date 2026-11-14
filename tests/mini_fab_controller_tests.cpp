@@ -1031,7 +1031,7 @@ ASSERT_TRUE(waferRepo.insert({
         controller.recoverWafer(
             "W2", {Station::LoadPort, 3}
         ),
-        WaferRecoveryResult::Failed
+        WaferRecoveryResult::DestinationOccupied
     );
 
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
@@ -1056,7 +1056,7 @@ TEST(MiniFabControllerTest, RecoveryRejectsWaferNotInProcessModule)
         controller.recoverWafer(
             "W1", {Station::LoadPort, 4}
         ),
-        RecoveryResult::Failed
+        WaferRecoveryResult::TrackingFailed
     );
 
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
@@ -1090,14 +1090,14 @@ TEST(MiniFabControllerTest, RecoveryRejectsInvalidDestination)
         controller.recoverWafer(
             "W2", {Station::LoadPort, 0}
         ),
-        RecoveryResult::Failed
+        WaferRecoveryResult::TrackingFailed
     );
 
     EXPECT_EQ(
         controller.recoverWafer(
             "W2", {Station::ProcessModule, 1}
         ),
-        RecoveryResult::Failed
+        WaferRecoveryResult::TrackingFailed
     );
 
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
@@ -1144,7 +1144,7 @@ ASSERT_TRUE(waferRepo.insert({
         controller.recoverWafer(
             "W2", {Station::LoadPort, 4}
         ),
-        RecoveryResult::Recovered
+        WaferRecoveryResult::Recovered
     );
 
     // Start a long-running process using W2.
@@ -1164,7 +1164,7 @@ ASSERT_TRUE(waferRepo.insert({
         controller.recoverWafer(
             "W2", {Station::LoadPort, 5}
         ),
-        RecoveryResult::Failed
+        WaferRecoveryResult::TrackingFailed
     );
 
     EXPECT_EQ(
