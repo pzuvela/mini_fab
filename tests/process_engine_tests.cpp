@@ -1696,7 +1696,7 @@ TEST_F(ProcessEngineTest, RecoveryPersistenceExceptionFaultsEquipment)
 
 TEST_F(ProcessEngineTest, RecoveryReportsMissingWafer)
 {
-    const auto result = engine_.recoverWafer(
+    const auto result = engine.recoverWafer(
         "DOES_NOT_EXIST",
         Location{Station::LoadPort, 4}
     );
@@ -1707,7 +1707,7 @@ TEST_F(ProcessEngineTest, RecoveryReportsMissingWafer)
     );
 
     EXPECT_EQ(
-        engine_.state(),
+        engine.state(),
         EquipmentState::Idle
     );
 }
