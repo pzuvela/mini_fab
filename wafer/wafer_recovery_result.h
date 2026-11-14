@@ -2,12 +2,13 @@
 
 enum class WaferRecoveryResult
 {
-    Recovered,
-    EquipmentBusy,
-    WaferNotFound,
-    InvalidSource,
-    InvalidDestination,
-    DestinationOccupied,
-    RobotFailed,
-    TrackingFailed
+	Recovered,
+	EquipmentBusy,
+	WaferNotFound,
+	InvalidSource,
+	InvalidDestination,
+	DestinationOccupied,
+	RobotFailed,
+	TrackingFailed
 };
+
