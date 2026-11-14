@@ -1090,14 +1090,14 @@ TEST(MiniFabControllerTest, RecoveryRejectsInvalidDestination)
         controller.recoverWafer(
             "W2", {Station::LoadPort, 0}
         ),
-        WaferRecoveryResult::InvalidDestination
+        WaferRecoveryResult::DestinationOccupied
     );
 
     EXPECT_EQ(
         controller.recoverWafer(
             "W2", {Station::ProcessModule, 1}
         ),
-        WaferRecoveryResult::DestinationOccupied
+        WaferRecoveryResult::InvalidDestination
     );
 
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
