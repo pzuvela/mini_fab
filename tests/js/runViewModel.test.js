@@ -95,7 +95,7 @@ async function prepareViewModel(mock) {
 
 	let currentTime = 10_000;
 
-	const vm : createRunViewModel(mock.api, () => currentTime);
+	const vm = createRunViewModel(mock.api, () => currentTime);
 
 	vm.advanceTestClock = (ms = 1001) => {
 		currentTime += ms;
