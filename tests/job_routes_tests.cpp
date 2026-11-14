@@ -660,8 +660,6 @@ EXPECT_NE(
 );
 
 
-    auto cli = client();
-
     const auto response = cli.Post(
         "/api/run",
         "waferId=W2&recipeId=1",
