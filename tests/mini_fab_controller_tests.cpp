@@ -1290,3 +1290,120 @@ TEST(MiniFabControllerTest, ConcurrentDifferentWafersAreBothQueued)
     ));
 }
 
+
+TEST(MiniFabControllerTest, TwoWaferLifecyclePreservesIdentityAndOccupancy)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({
+        1, "Fast Etch", 0.01
+    }));
+
+    ASSERT_EQ(
+        controller.registerWafer({
+            "W2", {Station::LoadPort, 4}
+        }),
+        WaferRegistrationResult::Registered
+    );
+
+    const auto initialWafers = controller.wafersSnapshot();
+    ASSERT_EQ(initialWafers.size(), 2u);
+
+    const auto jobW1 = controller.enqueueJob("W1", 1, 1);
+    const auto jobW2 = controller.enqueueJob("W2", 1, 1);
+
+    ASSERT_NE(jobW1, 0u);
+    ASSERT_NE(jobW2, 0u);
+    ASSERT_NE(jobW1, jobW2);
+
+    EXPECT_EQ(controller.pendingJobCount(), 2u);
+
+    // Execute W1 first.
+    ASSERT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Started
+    );
+
+    EXPECT_EQ(controller.jobStatus(jobW1), JobStatus::Running);
+    EXPECT_EQ(controller.jobStatus(jobW2), JobStatus::Queued);
+
+    // PM1 cannot execute W2 while W1 is active.
+    EXPECT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Busy
+    );
+
+    ASSERT_TRUE(controller.waitForActiveJobCompletion());
+
+    EXPECT_EQ(controller.jobStatus(jobW1), JobStatus::Completed);
+    EXPECT_EQ(controller.jobStatus(jobW2), JobStatus::Queued);
+
+    // Execute W2.
+    ASSERT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Started
+    );
+
+    EXPECT_EQ(controller.jobStatus(jobW2), JobStatus::Running);
+
+    ASSERT_TRUE(controller.waitForActiveJobCompletion());
+
+    EXPECT_EQ(controller.jobStatus(jobW2), JobStatus::Completed);
+    EXPECT_EQ(controller.pendingJobCount(), 0u);
+    EXPECT_EQ(controller.dispatchNextJob(), DispatchResult::Empty);
+
+    // Equipment must be completely released.
+    const auto equipment = controller.status();
+
+    EXPECT_EQ(equipment.state, EquipmentState::Idle);
+    EXPECT_FALSE(equipment.robotWaferId.has_value());
+    EXPECT_FALSE(equipment.processModuleWaferId.has_value());
+
+    // Both wafers must return to their original slots.
+    const auto wafers = controller.wafersSnapshot();
+
+    ASSERT_EQ(wafers.size(), 2u);
+
+    const auto verifyWafer = [&](const std::string& id, int slot)
+    {
+        const auto it = std::find_if(
+            wafers.begin(),
+            wafers.end(),
+            [&](const Wafer& wafer)
+            {
+                return wafer.id == id;
+            }
+        );
+
+        ASSERT_NE(it, wafers.end());
+
+        EXPECT_EQ(
+            it->location,
+            (Location{Station::LoadPort, slot})
+        );
+    };
+
+    verifyWafer("W1", 3);
+    verifyWafer("W2", 4);
+
+    // Both jobs must retain their own identity and terminal status.
+    const auto jobs = controller.jobsSnapshot();
+
+    ASSERT_EQ(jobs.size(), 2u);
+
+    for (const auto& job : jobs)
+    {
+        EXPECT_EQ(job.status, JobStatus::Completed);
+
+        if (job.job.id == jobW1)
+            EXPECT_EQ(job.job.waferId, "W1");
+        else if (job.job.id == jobW2)
+            EXPECT_EQ(job.job.waferId, "W2");
+        else
+            ADD_FAILURE() << "Unexpected job ID: " << job.job.id;
+    }
+}
+
+
