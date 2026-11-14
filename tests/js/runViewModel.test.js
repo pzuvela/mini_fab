@@ -518,3 +518,91 @@ test("Run submits selected wafer and recipe", async () => {
         { waferId: "W2", recipeId: 1 }
     ]);
 });
+
+
+test("Unknown wafer cannot be selected or submitted", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    vm.selectWafer("W999");
+
+    assert.equal(vm.getState().selectedWaferId, null);
+    assert.equal(vm.getState().canRun, false);
+
+    await vm.run();
+
+    assert.deepEqual(mock.submittedRuns, []);
+});
+
+test("Selected wafer disappears after inventory refresh", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    vm.selectWafer("W2");
+    assert.equal(vm.getState().selectedWaferId, "W2");
+
+    mock.api.getWafers = async () => ({
+        wafers: []
+    });
+
+    await vm.loadWafers();
+
+    assert.equal(vm.getState().selectedWaferId, null);
+    assert.equal(vm.getState().canRun, false);
+
+    await vm.run();
+
+    assert.deepEqual(mock.submittedRuns, []);
+});
+
+test("Wafer inventory API failure disables Run", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    mock.api.getWafers = async () => {
+        throw new Error("Inventory unavailable");
+    };
+
+    await vm.loadWafers();
+
+    assert.equal(vm.getState().canRun, false);
+    assert.equal(vm.getState().selectedWaferId, null);
+    assert.match(
+        vm.getState().waferError,
+        /Inventory unavailable/
+    );
+
+    await vm.run();
+
+    assert.deepEqual(mock.submittedRuns, []);
+});
+
+test("Rejected selected-wafer run reports error", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    vm.selectWafer("W2");
+
+    mock.api.runWafer = async (waferId, recipeId) => {
+        mock.submittedRuns.push({ waferId, recipeId });
+
+        return {
+            httpStatus: 409,
+            accepted: false,
+            error: "Wafer already reserved"
+        };
+    };
+
+    await vm.run();
+
+    assert.deepEqual(mock.submittedRuns, [
+        { waferId: "W2", recipeId: 1 }
+    ]);
+
+    assert.equal(vm.getState().runPhase, "finished");
+    assert.match(
+        vm.getState().message,
+        /Wafer already reserved/
+    );
+});
+
