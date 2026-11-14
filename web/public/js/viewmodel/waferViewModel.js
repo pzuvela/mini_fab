@@ -86,5 +86,55 @@ export function createWaferViewModel() {
         }
     }
 
-    return { subscribe, load, register };
+
+async function recover(waferId, destinationSlot) {
+    if (state.busy) return;
+
+    if (!waferId ||
+        !Number.isSafeInteger(destinationSlot) ||
+        destinationSlot < 1) {
+        state.message = "Invalid recovery request";
+        notify();
+        return;
+    }
+
+    state.busy = true;
+    state.message = `Recovering wafer ${waferId}...`;
+    notify();
+
+    try {
+        const response = await fetch("/api/wafers/recover", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                waferId,
+                destinationSlot
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.error ?? `HTTP ${response.status}`
+            );
+        }
+
+        await load();
+
+        state.message =
+            `Wafer ${waferId} recovered to LoadPort / Slot ${destinationSlot}`;
+    } catch (error) {
+        state.message =
+            `Recovery failed: ${error.message}`;
+    } finally {
+        state.busy = false;
+        notify();
+    }
+}
+
+
+    return { subscribe, load, register, recover };
 }

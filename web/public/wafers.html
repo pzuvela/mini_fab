@@ -80,12 +80,48 @@
                         <th>Wafer ID</th>
                         <th>Station</th>
                         <th>Slot</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="waferRows"></tbody>
             </table>
         </div>
     </section>
+
+
+<section class="panel">
+    <div class="panel-heading">
+        <h2>Manual Wafer Recovery</h2>
+    </div>
+
+    <form id="recoveryForm" class="recipe-config">
+        <label>
+            Wafer ID
+            <input
+                id="recoveryWaferId"
+                type="text"
+                readonly
+                required
+            >
+        </label>
+
+        <label>
+            Destination LoadPort Slot
+            <input
+                id="recoverySlot"
+                type="number"
+                min="1"
+                step="1"
+                required
+                placeholder="e.g. 4"
+            >
+        </label>
+
+        <button id="recoveryButton" type="submit">
+            Recover Wafer
+        </button>
+    </form>
+</section>
 
 <section class="panel">
     <div class="panel-heading">
@@ -128,12 +164,23 @@
     const emptyInventory = document.querySelector("#emptyInventory");
     const idInput = document.querySelector("#waferId");
     const slotInput = document.querySelector("#waferSlot");
-    const registerButton =
-        document.querySelector("#registerButton");
+    const registerButton = document.querySelector("#registerButton");
 
     const message = document.querySelector("#message");
     const rows = document.querySelector("#waferRows");
     const count = document.querySelector("#waferCount");
+
+const recoveryForm =
+    document.querySelector("#recoveryForm");
+
+const recoveryWaferId =
+    document.querySelector("#recoveryWaferId");
+
+const recoverySlot =
+    document.querySelector("#recoverySlot");
+
+const recoveryButton =
+    document.querySelector("#recoveryButton");
 
     vm.subscribe(state => {
         message.textContent = state.message;
@@ -145,25 +192,50 @@
         idInput.disabled = state.busy;
         slotInput.disabled = state.busy;
 
+recoveryButton.disabled = state.busy;
+recoverySlot.disabled = state.busy;
+
 	emptyInventory.hidden = !state.loaded || state.wafers.length !== 0;
 
         rows.replaceChildren();
 
-        for (const wafer of state.wafers) {
-            const row = document.createElement("tr");
 
-            for (const value of [
-                wafer.id,
-                wafer.location.station,
-                wafer.location.slot
-            ]) {
-                const cell = document.createElement("td");
-                cell.textContent = value;
-                row.appendChild(cell);
-            }
+for (const wafer of state.wafers) {
+    const row = document.createElement("tr");
 
-            rows.appendChild(row);
-        }
+    for (const value of [
+        wafer.id,
+        wafer.location.station,
+        wafer.location.slot
+    ]) {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        row.appendChild(cell);
+    }
+
+    const actionCell = document.createElement("td");
+
+    if (wafer.location.station === "ProcessModule") {
+        const button = document.createElement("button");
+
+        button.type = "button";
+        button.textContent = "Recover";
+        button.disabled = state.busy;
+
+        button.addEventListener("click", () => {
+            recoveryWaferId.value = wafer.id;
+            recoverySlot.focus();
+        });
+
+        actionCell.appendChild(button);
+    } else {
+        actionCell.textContent = "—";
+    }
+
+    row.appendChild(actionCell);
+    rows.appendChild(row);
+}
+
     });
 
     form.addEventListener("submit", async event => {
@@ -189,6 +261,17 @@ eventVm.subscribe(state => {
     renderEventLog(state.events, eventElements);
     eventElements.eventError.textContent =
         state.error ?? "";
+});
+
+recoveryForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (!recoveryForm.reportValidity()) return;
+
+    const waferId = recoveryWaferId.value.trim();
+    const slot = Number(recoverySlot.value);
+
+    await vm.recover(waferId, slot);
 });
 
 vm.load();
