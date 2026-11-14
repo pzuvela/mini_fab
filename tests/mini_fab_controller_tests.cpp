@@ -1056,7 +1056,7 @@ TEST(MiniFabControllerTest, RecoveryRejectsWaferNotInProcessModule)
         controller.recoverWafer(
             "W1", {Station::LoadPort, 4}
         ),
-        WaferRecoveryResult::TrackingFailed
+        WaferRecoveryResult::InvalidSource
     );
 
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
@@ -1090,7 +1090,7 @@ TEST(MiniFabControllerTest, RecoveryRejectsInvalidDestination)
         controller.recoverWafer(
             "W2", {Station::LoadPort, 0}
         ),
-        WaferRecoveryResult::TrackingFailed
+        WaferRecoveryResult::InvalidDestination
     );
 
     EXPECT_EQ(
@@ -1164,7 +1164,7 @@ ASSERT_TRUE(waferRepo.insert({
         controller.recoverWafer(
             "W2", {Station::LoadPort, 5}
         ),
-        WaferRecoveryResult::TrackingFailed
+        WaferRecoveryResult::EquipmentBusy
     );
 
     EXPECT_EQ(
