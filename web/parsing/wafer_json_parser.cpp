@@ -177,8 +177,6 @@ std::optional<int> parseJsonInteger(
 
         return {wafer, ""};
     }
-}
-
 
 WaferRecoveryParseResult parseWaferRecoveryJson(
     const std::string& json)
@@ -270,4 +268,8 @@ WaferRecoveryParseResult parseWaferRecoveryJson(
         ""
     };
 }
+
+
+}
+
 
