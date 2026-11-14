@@ -774,3 +774,19 @@ TEST_F(JobRoutesTest, SequentialWafersCompleteWithDistinctRunIds)
     EXPECT_NE(*w1RunId, *w2RunId);
 }
 
+TEST_F(JobRoutesTest, CancelWithoutActiveRunReturnsConflict)
+{
+    const auto response = client().Post(
+        "/api/cancel",
+        "",
+        "application/x-www-form-urlencoded"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 409);
+    EXPECT_EQ(
+        response->body,
+        R"({"accepted":false,"error":"No active run to cancel"})"
+    );
+}
+
