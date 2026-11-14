@@ -263,6 +263,8 @@ eventVm.subscribe(state => {
         state.error ?? "";
 });
 
+vm.load();
+
 recoveryForm.addEventListener("submit", async event => {
     event.preventDefault();
 
@@ -274,7 +276,10 @@ recoveryForm.addEventListener("submit", async event => {
     await vm.recover(waferId, slot);
 });
 
-vm.load();
+button.addEventListener("click", () => {
+    recoveryWaferId.value = wafer.id;
+    recoverySlot.focus();
+});
 
 eventVm.start();
 
