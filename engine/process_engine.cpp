@@ -606,7 +606,7 @@ WaferRecoveryResult ProcessEngine::recoverWafer(
 
 	Wafer* wafer = mgr_.findWafer(waferId);
 
-	if (!wafer) return reject(WaferRecoveryResult::WafeerNotFound);
+	if (!wafer) return reject(WaferRecoveryResult::WaferNotFound);
 
 	if (wafer->location != Location{Station::ProcessModule, 1}) return reject(WaferRecoveryResult::InvalidSource);
 
