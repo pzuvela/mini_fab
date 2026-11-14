@@ -504,3 +504,21 @@ TEST_F(WaferRoutesTests, ConcurrentRegistrationSameSlot)
 }
 
 
+TEST_F(WaferRoutesTests, RecoverWaferRejectsInvalidJson)
+{
+    auto cli = client();
+
+    auto response = cli.Post(
+        "/api/wafers/recover",
+        R"({"waferId":"W1","destinationSlot":)",
+        "application/json"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 400);
+    EXPECT_EQ(
+        response->get_header_value("Content-Type"),
+        "application/json"
+    );
+}
+

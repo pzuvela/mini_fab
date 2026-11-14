@@ -103,5 +103,22 @@ server.Post("/api/wafers",
     });
 
 
+server.Post("/api/wafers/recover",
+    [](const httplib::Request& request,
+       httplib::Response& response)
+    {
+        response.status = 400;
+
+        response.set_content(
+            R"({"error":"Invalid recovery request"})",
+            "application/json"
+        );
     }
+);
+
+
+
+    }
+
+
 }
