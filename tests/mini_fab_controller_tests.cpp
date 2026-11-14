@@ -4,6 +4,9 @@
 #include <functional>
 #include <algorithm>
 #include <filesystem>
+#include <cstdint>
+#include <latch>
+#include <Vector>
 
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
@@ -1187,5 +1190,51 @@ ASSERT_TRUE(waferRepo.insert({
         controller.status().processModuleWaferId,
         std::nullopt
     );
+}
+
+
+TEST(MiniFabControllerTest, ConcurrentDuplicateWaferSubmission)
+{
+    MiniFabController controller;
+
+    constexpr int threadCount = 16;
+
+    std::vector<std::thread> threads;
+    std::vector<std::uint64_t> jobIds(threadCount, 0);
+
+    // Start all workers together.
+    std::latch startGate(1);
+
+    for (int i = 0; i < threadCount; ++i)
+    {
+        threads.emplace_back([&, i]()
+        {
+            startGate.wait();
+
+            jobIds[i] = controller.enqueueJob("W1", 1, 1);
+        });
+    }
+
+    startGate.count_down();
+
+    for (auto& thread : threads)
+    {
+        thread.join();
+    }
+
+    const auto accepted = std::count_if(
+        jobIds.begin(),
+        jobIds.end(),
+        [](std::uint64_t id) { return id != 0; }
+    );
+
+    EXPECT_EQ(accepted, 1);
+    EXPECT_EQ(controller.pendingJobCount(), 1u);
+
+    const auto jobs = controller.jobsSnapshot();
+
+    ASSERT_EQ(jobs.size(), 1u);
+    EXPECT_EQ(jobs.front().job.waferId, "W1");
+    EXPECT_EQ(jobs.front().status, JobStatus::Queued);
 }
 
