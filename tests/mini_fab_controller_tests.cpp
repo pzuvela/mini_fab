@@ -1238,3 +1238,55 @@ TEST(MiniFabControllerTest, ConcurrentDuplicateWaferSubmission)
     EXPECT_EQ(jobs.front().status, JobStatus::Queued);
 }
 
+
+TEST(MiniFabControllerTest, ConcurrentDifferentWafersAreBothQueued)
+{
+    MiniFabController controller;
+
+    std::latch startGate(1);
+
+    std::uint64_t jobW1 = 0;
+    std::uint64_t jobW2 = 0;
+
+    std::thread first([&]() {
+        startGate.wait();
+        jobW1 = controller.enqueueJob("W1", 1, 1);
+    });
+
+    std::thread second([&]() {
+        startGate.wait();
+        jobW2 = controller.enqueueJob("W2", 1, 1);
+    });
+
+    startGate.count_down();
+
+    first.join();
+    second.join();
+
+    ASSERT_NE(jobW1, 0u);
+    ASSERT_NE(jobW2, 0u);
+    EXPECT_NE(jobW1, jobW2);
+
+    EXPECT_EQ(controller.pendingJobCount(), 2u);
+
+    const auto jobs = controller.jobsSnapshot();
+
+    ASSERT_EQ(jobs.size(), 2u);
+
+    EXPECT_TRUE(std::any_of(
+        jobs.begin(), jobs.end(),
+        [](const JobSnapshot& job) {
+            return job.job.waferId == "W1"
+                && job.status == JobStatus::Queued;
+        }
+    ));
+
+    EXPECT_TRUE(std::any_of(
+        jobs.begin(), jobs.end(),
+        [](const JobSnapshot& job) {
+            return job.job.waferId == "W2"
+                && job.status == JobStatus::Queued;
+        }
+    ));
+}
+
