@@ -92,13 +92,20 @@ async getWafers() {
 }
 
 async function prepareViewModel(mock) {
-    const vm = createRunViewModel(mock.api);
 
-    await vm.loadRecipes();
-    await vm.loadWafers();
-    await vm.refresh();
+	let currentTime = 10_000;
 
-    return vm;
+	const vm : createRunViewModel(mock.api, () => currentTime);
+
+	vm.advanceTestClock = (ms = 1001) => {
+		currentTime += ms;
+	};
+
+	await vm.loadRecipes();
+	await vm.loadWafers();
+	await vm.refresh();
+
+	return vm;
 }
 
 
@@ -223,7 +230,7 @@ test("RunCompleted event finishes the run", async () => {
 
     mock.addEvent("RunCompleted");
 
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    vm.advanceTestClock();
     await vm.refreshEvents();
 
     assert.equal(vm.getState().runPhase, "finished");
@@ -241,7 +248,7 @@ test("RunFailed event finishes the run", async () => {
 
     mock.addEvent("RunFailed");
 
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    vm.advanceTestClock();
     await vm.refreshEvents();
 
     assert.equal(vm.getState().runPhase, "finished");
@@ -259,7 +266,7 @@ test("RunCancelled event finishes the run", async () => {
 
     mock.addEvent("RunCancelled");
 
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    vm.advanceTestClock();
     await vm.refreshEvents();
 
     assert.equal(vm.getState().runPhase, "finished");
@@ -279,7 +286,8 @@ test("Faulted equipment waits for RunFailed event", async () => {
 
     mock.addEvent("RunFailed");
 
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    vm.advanceTestClock();
+
     await vm.refreshEvents();
 
     assert.equal(vm.getState().runPhase, "finished");
@@ -309,7 +317,7 @@ test("Old RunCompleted event must not finish a newer run", async () => {
     await vm.refresh();
 
     // Delayed event polling retrieves the first run's completion.
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    vm.advanceTestClock();
     await vm.refreshEvents();
 
     // The old event must not finish the second run.
@@ -441,7 +449,7 @@ test("Rejected second run attempt preserves active run correlation", async () =>
     await vm.refresh();
     await vm.run(); // Must not clear currentRunId.
     mock.addEvent("RunCompleted", 1);
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    vm.advanceTestClock();
     await vm.refreshEvents();
     assert.equal(vm.getState().runPhase, "finished");
 });
@@ -467,7 +475,7 @@ test("Unsorted events are processed in sequence order", async () => {
         { sequenceId: 2, runId: 1, type: "RunCompleted" },
         { sequenceId: 1, runId: 1, type: "WaferMoved" }
     ] });
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    vm.advanceTestClock();
     await vm.refreshEvents();
     assert.equal(vm.getState().runPhase, "finished");
     assert.deepEqual(vm.getState().events.map(event => event.sequenceId), [1, 2]);
@@ -482,7 +490,7 @@ test("Failed event fetch can retry immediately", async () => {
         if (calls === 1) throw new Error("temporary outage");
         return { events: [] };
     };
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    vm.advanceTestClock();
     await vm.refreshEvents();
     await vm.refreshEvents();
     assert.equal(calls, 2);

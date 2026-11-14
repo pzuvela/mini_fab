@@ -1,6 +1,6 @@
 import { miniFabApi } from "../model/miniFabApi.js";
 
-export function createRunViewModel(api = miniFabApi) {
+export function createRunViewModel(api = miniFabApi, now = () => Date.now()) {
 	let snapshot = null;
 	let events = [];
 	let lastEventSequenceId = 0;
@@ -115,7 +115,7 @@ async function refresh() {
 async function refreshEvents() {
     if (eventsRefreshing) return;
 
-    const now = Date.now();
+    const currentTime = now();
 
     if (now - lastEventRefresh < 1000) return;
 
@@ -140,7 +140,7 @@ async function refreshEvents() {
 
         events = [...events, ...newEvents];
         lastEventSequenceId = latestId;
-        lastEventRefresh = Date.now();
+        lastEventRefresh = now();
 
 	for (const event of newEvents) {
 
