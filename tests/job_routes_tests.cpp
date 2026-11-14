@@ -790,3 +790,49 @@ TEST_F(JobRoutesTest, CancelWithoutActiveRunReturnsConflict)
     );
 }
 
+TEST_F(JobRoutesTest, CancellingW2ProducesCorrelatedTerminalEvent)
+{
+    auto cli = client();
+
+    ASSERT_TRUE(registerW2ViaHttp(cli));
+    ASSERT_TRUE(controller_.addRecipe({2, "Long Etch", 30.0}));
+
+    const auto runId = startWaferViaHttp(cli, "W2", 2);
+    ASSERT_TRUE(runId.has_value());
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        const auto events = controller_.events();
+
+        return std::any_of(
+            events.begin(),
+            events.end(),
+            [&](const EquipmentEvent& event)
+            {
+                return event.runId == *runId &&
+                       event.type == EventType::ProcessStarted;
+            }
+        );
+    }));
+
+    const auto response = cli.Post("/api/cancel");
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 202);
+
+    EXPECT_TRUE(waitUntil([&]()
+    {
+        const auto events = controller_.events();
+
+        return std::any_of(
+            events.begin(),
+            events.end(),
+            [&](const EquipmentEvent& event)
+            {
+                return event.runId == *runId &&
+                       event.type == EventType::RunCancelled;
+            }
+        );
+    }));
+}
+
