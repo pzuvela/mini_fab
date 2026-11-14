@@ -1696,6 +1696,9 @@ TEST_F(ProcessEngineTest, RecoveryPersistenceExceptionFaultsEquipment)
 
 TEST_F(ProcessEngineTest, RecoveryReportsMissingWafer)
 {
+        MockRobot robot{ true };
+        ProcessEngine engine(mgr_, robot, processModule_, eventLog_);
+
     const auto result = engine.recoverWafer(
         "DOES_NOT_EXIST",
         Location{Station::LoadPort, 4}
