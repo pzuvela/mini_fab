@@ -14,6 +14,7 @@
 #include "wafer/wafer_tracking_recovery_context.h"
 #include "equipment/event_log.h"
 #include "start_result.h"
+#include "wafer/wafer_recovery_result.h"
 
 
 class ProcessEngine
@@ -122,5 +123,5 @@ public:
 
     StateTransition cancel();
 
-    RecoveryResult recoverWafer(const std::string& waferId, const Location& destination);
+    WaferRecoveryResult recoverWafer(const std::string& waferId, const Location& destination);
 };
