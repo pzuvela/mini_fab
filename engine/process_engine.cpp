@@ -589,28 +589,30 @@ void ProcessEngine::recordRunOutcome(
     }
 }
 
-RecoveryResult ProcessEngine::recoverWafer(
+WaferRecoveryResult ProcessEngine::recoverWafer(
 	const std::string& waferId,
 	const Location& destination
 )
 {
 	std::lock_guard<std::mutex> lifecycleLock(lifecycleMutex_);
 
-	if (!tryTransition(EquipmentState::Idle, EquipmentState::Recovering)) return RecoveryResult::Failed;
+	if (!tryTransition(EquipmentState::Idle, EquipmentState::Recovering)) return WaferRecoveryResult::EquipmentBusy;
 
-	const auto reject = [this]()
+	const auto reject = [this](WaferRecoveryResult reason)
 	{
 		setState(EquipmentState::Idle);
-		return RecoveryResult::Failed;
+		return reason;
 	};
 
 	Wafer* wafer = mgr_.findWafer(waferId);
 
-	if (!wafer) return reject();
+	if (!wafer) return reject(WaferRecoveryResult::WafeerNotFound);
 
-	if (wafer->location != Location{Station::ProcessModule, 1}) return reject();
+	if (wafer->location != Location{Station::ProcessModule, 1}) return reject(WaferRecoveryResult::InvalidSource);
 
-	if (destination.station != Station::LoadPort || !mgr_.isLocationAvailable(waferId, destination)) return reject();
+	if (destination.station != Station::LoadPort) return reject(WaferRecoveryResult::InvalidDestination);
+
+	if (!mgr_.isLocationAvailable(waferId, destination)) return reject(WaferRecoveryResult::DestinationOccupied);
 
 	MovementStageResult movement;
 
@@ -625,20 +627,20 @@ RecoveryResult ProcessEngine::recoverWafer(
 	catch (...)
 	{
 		setFaulted(FaultSource::WaferTracking);
-		return RecoveryResult::Failed;
+		return WaferRecoveryResult::TrackingFailed;
 	}
 
 
 	if (movement.movementResult != OperationResult::Completed)
 	{
 		setFaulted(FaultSource::Robot);
-		return RecoveryResult::Failed;
+		return WaferRecoveryResult::RobotFailed;
 	}
 
 	if (movement.locationUpdateResult != LocationUpdateResult::Updated)
 	{
 		setFaulted(FaultSource::WaferTracking);
-		return RecoveryResult::Failed;
+		return WaferRecoveryResult::TrackingFailed;
 	}
 
 	eventLog_.record(
@@ -650,5 +652,5 @@ RecoveryResult ProcessEngine::recoverWafer(
 
 	setState(EquipmentState::Idle);
 
-	return RecoveryResult::Recovered;
+	return WaferRecoveryResult::Recovered;
 }
