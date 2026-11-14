@@ -1681,7 +1681,7 @@ TEST_F(ProcessEngineTest, RecoveryPersistenceExceptionFaultsEquipment)
         );
     });
 
-    EXPECT_EQ(result, WaferRecoveryResult::WaferTrackingFailed);
+    EXPECT_EQ(result, WaferRecoveryResult::TrackingFailed);
     EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     EXPECT_EQ(manager.locationUpdateCount(), 1);
 
