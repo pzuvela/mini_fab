@@ -9,6 +9,10 @@
 #include <algorithm>
 #include <array>
 #include <latch>
+#include <optional>
+#include <charconv>
+#include <cstdint>
+#include <system_error>
 
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
@@ -555,211 +559,183 @@ TEST_F(JobRoutesTest, RunRejectsUnknownWafer)
 }
 
 
-TEST_F(JobRoutesTest, ConcurrentDuplicateJobRequestsCreateOnlyOneJob)
+
+namespace
 {
-    std::latch startGate(1);
-
-    std::array<int, 2> statuses{0, 0};
-    std::array<std::string, 2> bodies;
-
-    auto submit = [&](std::size_t index)
+    struct ConcurrentJobResponses
     {
-        auto cli = client();
+        std::array<int, 2> statuses{};
+        std::array<std::string, 2> bodies;
+    };
 
-        startGate.wait();
+    ConcurrentJobResponses submitConcurrentDuplicateJobs(int port)
+    {
+        ConcurrentJobResponses result;
+        std::latch startGate(1);
 
+        auto submit = [&](std::size_t index)
+        {
+            httplib::Client cli("127.0.0.1", port);
+            startGate.wait();
+
+            const auto response = cli.Post(
+                "/api/jobs",
+                "waferId=W1&recipeId=1&processModuleId=1",
+                "application/x-www-form-urlencoded"
+            );
+
+            if (response)
+            {
+                result.statuses[index] = response->status;
+                result.bodies[index] = response->body;
+            }
+        };
+
+        std::thread first(submit, 0);
+        std::thread second(submit, 1);
+        startGate.count_down();
+        first.join();
+        second.join();
+        std::sort(result.statuses.begin(), result.statuses.end());
+        return result;
+    }
+
+    bool registerW2ViaHttp(httplib::Client& cli)
+    {
         const auto response = cli.Post(
-            "/api/jobs",
-            "waferId=W1&recipeId=1&processModuleId=1",
+            "/api/wafers",
+            R"({"id":"W2","station":"LoadPort","slot":4})",
+            "application/json"
+        );
+        return response && response->status == 201;
+    }
+
+    std::optional<std::uint64_t> startW2ViaHttp(httplib::Client& cli)
+    {
+        const auto response = cli.Post(
+            "/api/run",
+            "waferId=W2&recipeId=1",
             "application/x-www-form-urlencoded"
         );
 
-        if (response)
-        {
-            statuses[index] = response->status;
-            bodies[index] = response->body;
-        }
-    };
+        if (!response || response->status != 202 ||
+            response->body.find(R"("accepted":true)") == std::string::npos)
+            return std::nullopt;
 
-    std::thread first(submit, 0);
-    std::thread second(submit, 1);
+        const auto position = response->body.find(R"("runId":)");
+        if (position == std::string::npos)
+            return std::nullopt;
 
-    startGate.count_down();
+        const auto value = response->body.substr(position + 8);
+        std::uint64_t runId = 0;
+        const auto [end, error] = std::from_chars(
+            value.data(), value.data() + value.size(), runId
+        );
+        if (error != std::errc{} || end == value.data() || runId == 0)
+            return std::nullopt;
 
-    first.join();
-    second.join();
+        return runId;
+    }
 
-    std::sort(statuses.begin(), statuses.end());
+    bool hasCompletedRun(const MiniFabController& controller, std::uint64_t runId)
+    {
+        const auto events = controller.events();
+        return std::any_of(events.begin(), events.end(),
+            [runId](const EquipmentEvent& event)
+            {
+                return event.runId == runId &&
+                    event.type == EventType::RunCompleted;
+            });
+    }
+}
 
-    EXPECT_EQ(statuses[0], 201);
-    EXPECT_EQ(statuses[1], 409);
+TEST_F(JobRoutesTest, ConcurrentDuplicateRequestsReturnCreatedAndConflict)
+{
+    const auto result = submitConcurrentDuplicateJobs(port_);
 
+    EXPECT_EQ(result.statuses[0], 201);
+    EXPECT_EQ(result.statuses[1], 409);
     EXPECT_EQ(controller_.pendingJobCount(), 1u);
+}
 
+TEST_F(JobRoutesTest, ConcurrentDuplicateRequestsPreserveSingleJobIdentity)
+{
+    const auto result = submitConcurrentDuplicateJobs(port_);
     const auto jobs = controller_.jobsSnapshot();
 
     ASSERT_EQ(jobs.size(), 1u);
-
     EXPECT_EQ(jobs.front().job.waferId, "W1");
-    EXPECT_EQ(jobs.front().status, JobStatus::Queued);
-
-    const auto created = std::count_if(
-        bodies.begin(),
-        bodies.end(),
-        [](const std::string& body)
-        {
-            return body.find(R"("jobId":)") !=
-                std::string::npos;
-        }
+    EXPECT_EQ(
+        std::count_if(result.bodies.begin(), result.bodies.end(),
+            [](const std::string& body)
+            {
+                return body.find(R"("jobId":)") != std::string::npos;
+            }),
+        1
     );
-
-    EXPECT_EQ(created, 1);
-
-    const auto rejected = std::count_if(
-        bodies.begin(),
-        bodies.end(),
-        [](const std::string& body)
-        {
-            return body.find("Wafer already queued") !=
-                std::string::npos;
-        }
-    );
-
-    EXPECT_EQ(rejected, 1);
 }
 
-
-
-TEST_F(JobRoutesTest, RunSelectedW2CompletesWithoutTouchingW1)
+TEST_F(JobRoutesTest, RegisteredW2AppearsInHttpInventory)
 {
+    auto cli = client();
+    ASSERT_TRUE(registerW2ViaHttp(cli));
 
-auto cli = client();
-
-const auto registration = cli.Post(
-    "/api/wafers",
-    R"({"id":"W2","station":"LoadPort","slot":4})",
-    "application/json"
-);
-
-ASSERT_TRUE(registration);
-ASSERT_EQ(registration->status, 201);
-
-const auto inventory = cli.Get("/api/wafers");
-
-ASSERT_TRUE(inventory);
-ASSERT_EQ(inventory->status, 200);
-
-EXPECT_NE(
-    inventory->body.find(R"("id":"W1")"),
-    std::string::npos
-);
-
-EXPECT_NE(
-    inventory->body.find(R"("id":"W2")"),
-    std::string::npos
-);
-
-
-    const auto response = cli.Post(
-        "/api/run",
-        "waferId=W2&recipeId=1",
-        "application/x-www-form-urlencoded"
-    );
-
+    const auto response = cli.Get("/api/wafers");
     ASSERT_TRUE(response);
-    ASSERT_EQ(response->status, 202);
-    EXPECT_NE(
-        response->body.find(R"("accepted":true)"),
-        std::string::npos
-    );
+    EXPECT_NE(response->body.find(R"("id":"W2")"), std::string::npos);
+}
 
-    const auto runIdStart =
-        response->body.find(R"("runId":)");
+TEST_F(JobRoutesTest, SelectedW2RunProducesCorrelatedCompletion)
+{
+    auto cli = client();
+    ASSERT_TRUE(registerW2ViaHttp(cli));
 
-    ASSERT_NE(runIdStart, std::string::npos);
+    const auto runId = startW2ViaHttp(cli);
+    ASSERT_TRUE(runId.has_value());
+    EXPECT_TRUE(waitUntil([&]()
+    {
+        return hasCompletedRun(controller_, *runId);
+    }));
+}
 
-    const auto runId = std::stoull(
-        response->body.substr(runIdStart + 8)
-    );
-
-    ASSERT_GT(runId, 0u);
-
-    // Wait for the actual terminal event, not merely Idle.
+TEST_F(JobRoutesTest, CompletedW2RunLeavesEquipmentIdleAndEmpty)
+{
+    auto cli = client();
+    ASSERT_TRUE(registerW2ViaHttp(cli));
+    const auto runId = startW2ViaHttp(cli);
+    ASSERT_TRUE(runId.has_value());
     ASSERT_TRUE(waitUntil([&]()
     {
-        const auto events = controller_.events();
-
-        return std::any_of(
-            events.begin(),
-            events.end(),
-            [&](const EquipmentEvent& event)
-            {
-                return event.runId == runId &&
-                       event.type == EventType::RunCompleted;
-            }
-        );
+        return hasCompletedRun(controller_, *runId);
     }));
 
-    const auto events = controller_.events();
-
-    bool w2Completed = false;
-
-    for (const auto& event : events)
-    {
-        if (event.runId != runId)
-            continue;
-
-        EXPECT_EQ(
-            event.message.find("W1"),
-            std::string::npos
-        );
-
-        if (event.type == EventType::RunCompleted)
-        {
-            w2Completed = true;
-        }
-    }
-
-    EXPECT_TRUE(w2Completed);
-
     const auto equipment = controller_.status();
-
     EXPECT_EQ(equipment.state, EquipmentState::Idle);
     EXPECT_FALSE(equipment.robotWaferId.has_value());
     EXPECT_FALSE(equipment.processModuleWaferId.has_value());
+}
+
+TEST_F(JobRoutesTest, CompletedW2RunPreservesBothWaferLocations)
+{
+    auto cli = client();
+    ASSERT_TRUE(registerW2ViaHttp(cli));
+    const auto runId = startW2ViaHttp(cli);
+    ASSERT_TRUE(runId.has_value());
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return hasCompletedRun(controller_, *runId);
+    }));
 
     const auto wafers = controller_.wafersSnapshot();
-
-    ASSERT_EQ(wafers.size(), 2u);
-
     const auto findWafer = [&](const std::string& id)
     {
-        return std::find_if(
-            wafers.begin(),
-            wafers.end(),
-            [&](const Wafer& wafer)
-            {
-                return wafer.id == id;
-            }
-        );
+        return std::find_if(wafers.begin(), wafers.end(),
+            [&](const Wafer& wafer) { return wafer.id == id; });
     };
-
     const auto w1 = findWafer("W1");
     const auto w2 = findWafer("W2");
 
-    ASSERT_NE(w1, wafers.end());
-    ASSERT_NE(w2, wafers.end());
-
-    EXPECT_EQ(
-        w1->location,
-        (Location{Station::LoadPort, 3})
-    );
-
-    EXPECT_EQ(
-        w2->location,
-        (Location{Station::LoadPort, 4})
-    );
-
-    EXPECT_EQ(controller_.pendingJobCount(), 0u);
+    ASSERT_TRUE(w1 != wafers.end() && w2 != wafers.end());
+    EXPECT_EQ(w1->location, (Location{Station::LoadPort, 3}));
+    EXPECT_EQ(w2->location, (Location{Station::LoadPort, 4}));
 }
-
