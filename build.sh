@@ -13,7 +13,7 @@ echo "=== Building MiniFab ==="
 cmake --build "$BUILD_DIR" -j$(nproc)
 
 echo "=== Running C++ tests ==="
-ctest --test-dir "$BUILD_DIR" --output-on-failure
+ctest --test-dir "$BUILD_DIR" --parallel 4 --output-on-failure
 
 echo "=== Running JavaScript tests ==="
 if command -v node >/dev/null 2>&1 &&
