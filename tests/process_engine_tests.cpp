@@ -174,9 +174,9 @@ namespace MiniFab::Tests
 
         engine.processWafer(wafer_.id, destination_, recipe_);
 
-        RecoveryResult recoveryResult = engine.reset();
+        WaferRecoveryResult recoveryResult = engine.reset();
 
-        EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+        EXPECT_EQ(recoveryResult, WaferRecoveryResult::Recovered);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
@@ -186,9 +186,9 @@ namespace MiniFab::Tests
         MockProcessModule processModule{ true };
         ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
-        RecoveryResult recoveryResult = engine.reset();
+        WaferRecoveryResult recoveryResult = engine.reset();
 
-        EXPECT_EQ(recoveryResult, RecoveryResult::NotRequired);
+        EXPECT_EQ(recoveryResult, WaferRecoveryResult::NotRequired);
         EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
@@ -534,9 +534,9 @@ namespace MiniFab::Tests
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
 
-	    RecoveryResult recoveryResult = engine.reset();
+	    WaferRecoveryResult recoveryResult = engine.reset();
 
-	    EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	    EXPECT_EQ(recoveryResult, WaferRecoveryResult::Recovered);
 	    EXPECT_EQ(engine.state(), EquipmentState::Idle);
     }
 
@@ -548,9 +548,9 @@ namespace MiniFab::Tests
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
 
-	    RecoveryResult recoveryResult = engine.reset();
+	    WaferRecoveryResult recoveryResult = engine.reset();
 
-	    EXPECT_EQ(recoveryResult, RecoveryResult::Failed);
+	    EXPECT_EQ(recoveryResult, RecoveryResult::RobotFailed);
 	    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     }
 
@@ -562,9 +562,9 @@ namespace MiniFab::Tests
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
 
-	    RecoveryResult recoveryResult = engine.reset();
+	    WaferRecoveryResult recoveryResult = engine.reset();
 
-	    EXPECT_EQ(recoveryResult, RecoveryResult::Failed);
+	    EXPECT_EQ(recoveryResult, WaferRecoveryResult::RobotFailed);
 	    EXPECT_EQ(engine.state(), EquipmentState::Faulted);
 
 	    robot.setRecoveryShouldSucceed(true);
@@ -582,9 +582,9 @@ namespace MiniFab::Tests
 	    ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
-	    RecoveryResult recoveryResult = engine.reset();
+	    WaferRecoveryResult recoveryResult = engine.reset();
 
-	    EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	    EXPECT_EQ(recoveryResult, WaferRecoveryResult::Recovered);
 	    EXPECT_FALSE(processModule.recoverWasCalled());
 	    EXPECT_TRUE(robot.recoverWasCalled());
     }
@@ -596,9 +596,9 @@ namespace MiniFab::Tests
 	    ProcessEngine engine(mgr_, robot, processModule, eventLog_);
 
 	    engine.processWafer(wafer_.id, destination_, recipe_);
-	    RecoveryResult recoveryResult = engine.reset();
+	    WaferRecoveryResult recoveryResult = engine.reset();
 
-	    EXPECT_EQ(recoveryResult, RecoveryResult::Recovered);
+	    EXPECT_EQ(recoveryResult, WaferRecoveryResult::Recovered);
 	    EXPECT_TRUE(processModule.recoverWasCalled());
 	    EXPECT_FALSE(robot.recoverWasCalled());
     }
@@ -1631,7 +1631,7 @@ TEST_F(ProcessEngineTest, FailedManualWaferRecoveryFaultsEquipment)
         "W2", original
     );
 
-    EXPECT_EQ(result, RecoveryResult::Failed);
+    EXPECT_EQ(result, WaferRecoveryResult::RobotFailed);
     EXPECT_EQ(engine.state(), EquipmentState::Faulted);
 
     // Failed movement must not change tracked location.
@@ -1673,7 +1673,7 @@ TEST_F(ProcessEngineTest, RecoveryPersistenceExceptionFaultsEquipment)
         eventLog_
     );
 
-    RecoveryResult result = RecoveryResult::Recovered;
+    WaferRecoveryResult result = WaferRecoveryResult::Recovered;
 
     EXPECT_NO_THROW({
         result = engine.recoverWafer(
@@ -1681,7 +1681,7 @@ TEST_F(ProcessEngineTest, RecoveryPersistenceExceptionFaultsEquipment)
         );
     });
 
-    EXPECT_EQ(result, RecoveryResult::Failed);
+    EXPECT_EQ(result, WaferRecoveryResult::WaferTrackingFailed);
     EXPECT_EQ(engine.state(), EquipmentState::Faulted);
     EXPECT_EQ(manager.locationUpdateCount(), 1);
 

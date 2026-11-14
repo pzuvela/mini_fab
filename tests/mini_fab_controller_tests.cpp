@@ -956,7 +956,7 @@ TEST(MiniFabControllerTest, RecoversStrandedWaferToSelectedLoadPortSlot)
 
     EXPECT_EQ(
         result,
-        RecoveryResult::Recovered
+        WaferRecoveryResult::Recovered
     );
 
     // Check inventory after recovery.
@@ -1031,7 +1031,7 @@ ASSERT_TRUE(waferRepo.insert({
         controller.recoverWafer(
             "W2", {Station::LoadPort, 3}
         ),
-        RecoveryResult::Failed
+        WaferRecoveryResult::Failed
     );
 
     EXPECT_EQ(controller.status().state, EquipmentState::Idle);
