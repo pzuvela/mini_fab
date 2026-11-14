@@ -632,12 +632,33 @@ TEST_F(JobRoutesTest, ConcurrentDuplicateJobRequestsCreateOnlyOneJob)
 
 TEST_F(JobRoutesTest, RunSelectedW2CompletesWithoutTouchingW1)
 {
-    ASSERT_EQ(
-        controller_.registerWafer({
-            "W2", {Station::LoadPort, 4}
-        }),
-        WaferRegistrationResult::Registered
-    );
+
+auto cli = client();
+
+const auto registration = cli.Post(
+    "/api/wafers",
+    R"({"id":"W2","station":"LoadPort","slot":4})",
+    "application/json"
+);
+
+ASSERT_TRUE(registration);
+ASSERT_EQ(registration->status, 201);
+
+const auto inventory = cli.Get("/api/wafers");
+
+ASSERT_TRUE(inventory);
+ASSERT_EQ(inventory->status, 200);
+
+EXPECT_NE(
+    inventory->body.find(R"("id":"W1")"),
+    std::string::npos
+);
+
+EXPECT_NE(
+    inventory->body.find(R"("id":"W2")"),
+    std::string::npos
+);
+
 
     auto cli = client();
 
