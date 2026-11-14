@@ -103,31 +103,77 @@ server.Post("/api/wafers",
     });
 
 
+
 server.Post("/api/wafers/recover",
-    [](const httplib::Request& request,
-       httplib::Response& response)
+    [&controller](const httplib::Request& request,
+                  httplib::Response& response)
     {
+        const auto reply =
+            [&response](int status,
+                        std::string_view key,
+                        std::string_view message)
+        {
+            std::ostringstream out;
+            out << "{";
+            writeJsonString(out, key);
+            out << ":";
+            writeJsonString(out, message);
+            out << "}";
+
+            response.status = status;
+            response.set_content(
+                out.str(),
+                "application/json"
+            );
+        };
+
         const auto contentType =
             request.get_header_value("Content-Type");
 
         if (contentType != "application/json" &&
             !contentType.starts_with("application/json;"))
         {
-            response.status = 415;
-            response.set_content(
-                R"({"error":"Unsupported Content-Type"})",
-                "application/json"
-            );
+            reply(415, "error", "Unsupported Content-Type");
             return;
         }
 
-        response.status = 400;
-        response.set_content(
-            R"({"error":"Invalid recovery request"})",
-            "application/json"
+        const auto parsed =
+            parseWaferRecoveryJson(request.body);
+
+        if (!parsed.request)
+        {
+            reply(400, "error", parsed.error);
+            return;
+        }
+
+        const auto& recovery = *parsed.request;
+
+        if (recovery.destinationSlot < 1)
+        {
+            reply(422, "error", "Invalid destination slot");
+            return;
+        }
+
+        const auto result = controller.recoverWafer(
+            recovery.waferId,
+            Location{
+                Station::LoadPort,
+                recovery.destinationSlot
+            }
         );
+
+        if (result == RecoveryResult::Recovered)
+        {
+            reply(200, "status", "Recovered");
+            return;
+        }
+
+        // Temporary mapping until we introduce
+        // more specific manual recovery results.
+        reply(409, "error", "Recovery rejected or failed");
     }
 );
+
 
     }
 

@@ -7,6 +7,20 @@
 
 namespace MiniFab::Web
 {
+	struct WaferRecoveryRequest
+	{
+		std::string waferId;
+		int destinationSlot;
+	};
+
+	struct WaferRecoveryParseResult
+	{
+		std::optional<WaferRecoveryRequest> request;
+		std::string error;
+	};
+
+	WaferRecoveryParseResult parseWaferRecoveryJson(const std::string& json);
+
 
 	enum class WaferParseError
 	{

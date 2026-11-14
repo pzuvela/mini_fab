@@ -178,3 +178,96 @@ std::optional<int> parseJsonInteger(
         return {wafer, ""};
     }
 }
+
+
+WaferRecoveryParseResult parseWaferRecoveryJson(
+    const std::string& json)
+{
+    std::string_view input = json;
+    std::size_t pos = 0;
+
+    if (!consume(input, pos, '{'))
+        return {std::nullopt, "Expected JSON object"};
+
+    std::optional<std::string> waferId;
+    std::optional<int> destinationSlot;
+
+    if (!consume(input, pos, '}'))
+    {
+        while (true)
+        {
+            auto key = parseJsonString(input, pos);
+
+            if (!key)
+                return {std::nullopt, "Expected field name"};
+
+            if (!consume(input, pos, ':'))
+                return {std::nullopt, "Expected ':'"};
+
+            if (*key == "waferId")
+            {
+                if (waferId)
+                    return {std::nullopt, "Duplicate waferId"};
+
+                waferId = parseJsonString(input, pos);
+
+                if (!waferId)
+                    return {std::nullopt, "Invalid waferId"};
+            }
+            else if (*key == "destinationSlot")
+            {
+                if (destinationSlot)
+                    return {
+                        std::nullopt,
+                        "Duplicate destinationSlot"
+                    };
+
+                destinationSlot = parseJsonInteger(
+                    input, pos
+                );
+
+                if (!destinationSlot)
+                    return {
+                        std::nullopt,
+                        "Invalid destinationSlot"
+                    };
+            }
+            else
+            {
+                return {
+                    std::nullopt,
+                    "Unknown field: " + *key
+                };
+            }
+
+            if (consume(input, pos, '}'))
+                break;
+
+            if (!consume(input, pos, ','))
+                return {
+                    std::nullopt,
+                    "Expected ',' or '}'"
+                };
+        }
+    }
+
+    skipWhitespace(input, pos);
+
+    if (pos != input.size())
+        return {std::nullopt, "Unexpected trailing content"};
+
+    if (!waferId || !destinationSlot)
+        return {std::nullopt, "Missing required fields"};
+
+    if (waferId->empty())
+        return {std::nullopt, "Empty waferId"};
+
+    return {
+        WaferRecoveryRequest{
+            *waferId,
+            *destinationSlot
+        },
+        ""
+    };
+}
+
