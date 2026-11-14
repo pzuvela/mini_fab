@@ -107,16 +107,27 @@ server.Post("/api/wafers/recover",
     [](const httplib::Request& request,
        httplib::Response& response)
     {
-        response.status = 400;
+        const auto contentType =
+            request.get_header_value("Content-Type");
 
+        if (contentType != "application/json" &&
+            !contentType.starts_with("application/json;"))
+        {
+            response.status = 415;
+            response.set_content(
+                R"({"error":"Unsupported Content-Type"})",
+                "application/json"
+            );
+            return;
+        }
+
+        response.status = 400;
         response.set_content(
             R"({"error":"Invalid recovery request"})",
             "application/json"
         );
     }
 );
-
-
 
     }
 

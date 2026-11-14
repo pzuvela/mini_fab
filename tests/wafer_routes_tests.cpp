@@ -522,3 +522,35 @@ TEST_F(WaferRoutesTests, RecoverWaferRejectsInvalidJson)
     );
 }
 
+TEST_F(WaferRoutesTests, RecoverWaferRejectsMissingFields)
+{
+    auto cli = client();
+
+    auto response = cli.Post(
+        "/api/wafers/recover",
+        R"({"waferId":"W2"})",
+        "application/json"
+    );
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 400);
+}
+
+TEST_F(WaferRoutesTests, RecoverWaferRejectsUnsupportedContentType)
+{
+    auto cli = client();
+
+    auto response = cli.Post(
+        "/api/wafers/recover",
+        R"({"waferId":"W2","destinationSlot":4})",
+        "text/plain"
+    );
+
+    ASSERT_TRUE(response);
+
+    EXPECT_EQ(response->status, 415);
+    EXPECT_EQ(
+        response->get_header_value("Content-Type"),
+        "application/json"
+    );
+}
