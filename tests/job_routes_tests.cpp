@@ -647,6 +647,17 @@ namespace
                     event.type == EventType::RunCompleted;
             });
     }
+    bool runW2ToCompletion(httplib::Client& cli, const MiniFabController& controller)
+    {
+        if (!registerW2ViaHttp(cli))
+            return false;
+        const auto runId = startW2ViaHttp(cli);
+        return runId.has_value() && waitUntil([&]()
+        {
+            return hasCompletedRun(controller, *runId);
+        });
+    }
+
 }
 
 TEST_F(JobRoutesTest, ConcurrentDuplicateRequestsReturnCreatedAndConflict)
@@ -701,13 +712,7 @@ TEST_F(JobRoutesTest, SelectedW2RunProducesCorrelatedCompletion)
 TEST_F(JobRoutesTest, CompletedW2RunLeavesEquipmentIdleAndEmpty)
 {
     auto cli = client();
-    ASSERT_TRUE(registerW2ViaHttp(cli));
-    const auto runId = startW2ViaHttp(cli);
-    ASSERT_TRUE(runId.has_value());
-    ASSERT_TRUE(waitUntil([&]()
-    {
-        return hasCompletedRun(controller_, *runId);
-    }));
+    ASSERT_TRUE(runW2ToCompletion(cli, controller_));
 
     const auto equipment = controller_.status();
     EXPECT_EQ(equipment.state, EquipmentState::Idle);
@@ -718,13 +723,7 @@ TEST_F(JobRoutesTest, CompletedW2RunLeavesEquipmentIdleAndEmpty)
 TEST_F(JobRoutesTest, CompletedW2RunPreservesBothWaferLocations)
 {
     auto cli = client();
-    ASSERT_TRUE(registerW2ViaHttp(cli));
-    const auto runId = startW2ViaHttp(cli);
-    ASSERT_TRUE(runId.has_value());
-    ASSERT_TRUE(waitUntil([&]()
-    {
-        return hasCompletedRun(controller_, *runId);
-    }));
+    ASSERT_TRUE(runW2ToCompletion(cli, controller_));
 
     const auto wafers = controller_.wafersSnapshot();
     const auto findWafer = [&](const std::string& id)
