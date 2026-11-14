@@ -12,6 +12,9 @@
 #include "persistence/sqlite_recipe_repository.h"
 #include "recipes/recipe_manager.h"
 #include "web/routes/wafer_routes.h"
+#include "persistence/sqlite_event_repository.h"
+#include "persistence/sqlite_wafer_repository.h"
+
 
 using namespace std::chrono_literals;
 
@@ -554,3 +557,114 @@ TEST_F(WaferRoutesTests, RecoverWaferRejectsUnsupportedContentType)
         "application/json"
     );
 }
+
+
+TEST(WaferRecoveryRoutesTests, RecoversStrandedWaferViaHttp)
+{
+    SqliteRecipeRepository recipeRepo(":memory:");
+    SqliteEventRepository eventRepo(":memory:");
+    SqliteWaferRepository waferRepo(":memory:");
+
+    RecipeManager recipeManager(recipeRepo);
+
+    // Simulate a wafer stranded in PM1.
+    ASSERT_TRUE(waferRepo.insert({
+        "W2", {Station::LoadPort, 4}
+    }));
+
+    ASSERT_TRUE(waferRepo.updateLocation(
+        "W2", {Station::ProcessModule, 1}
+    ));
+
+    MiniFabController controller(
+        recipeManager,
+        eventRepo,
+        waferRepo
+    );
+
+    httplib::Server server;
+
+    MiniFab::Web::registerWaferRoutes(
+        server, controller
+    );
+
+    const int port =
+        server.bind_to_any_port("127.0.0.1");
+
+    ASSERT_GT(port, 0);
+
+    std::thread serverThread([&]()
+    {
+        server.listen_after_bind();
+    });
+
+    // Ensure the server is ready.
+    for (int i = 0;
+         i < 100 && !server.is_running();
+         ++i)
+    {
+        std::this_thread::sleep_for(10ms);
+    }
+
+    httplib::Client client("127.0.0.1", port);
+
+    auto response = client.Post(
+        "/api/wafers/recover",
+        R"({"waferId":"W2","destinationSlot":4})",
+        "application/json"
+    );
+
+    // Always clean up the server before assertions.
+    server.stop();
+    serverThread.join();
+
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->status, 200);
+
+    const auto wafers = controller.wafersSnapshot();
+
+    const auto it = std::find_if(
+        wafers.begin(),
+        wafers.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.id == "W2";
+        }
+    );
+
+    ASSERT_NE(it, wafers.end());
+
+    EXPECT_EQ(
+        it->location,
+        (Location{Station::LoadPort, 4})
+    );
+
+    EXPECT_FALSE(
+        controller.status().processModuleWaferId.has_value()
+    );
+
+    EXPECT_EQ(
+        controller.status().state,
+        EquipmentState::Idle
+    );
+
+    // Verify persistence, not just in-memory state.
+    const auto persisted = waferRepo.getAll();
+
+    const auto persistedIt = std::find_if(
+        persisted.begin(),
+        persisted.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.id == "W2";
+        }
+    );
+
+    ASSERT_NE(persistedIt, persisted.end());
+
+    EXPECT_EQ(
+        persistedIt->location,
+        (Location{Station::LoadPort, 4})
+    );
+}
+
