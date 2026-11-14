@@ -610,11 +610,17 @@ namespace
         return response && response->status == 201;
     }
 
-    std::optional<std::uint64_t> startW2ViaHttp(httplib::Client& cli)
+    std::optional<std::uint64_t> startWaferViaHttp(
+	httplib::Client& cli,
+	const std::string& waferId,
+	int recipeId
+    )
     {
+	const std::string body = "waferId=" + waferId + "&recipeId=" + std::to_string(recipeId);
+
         const auto response = cli.Post(
             "/api/run",
-            "waferId=W2&recipeId=1",
+            body,
             "application/x-www-form-urlencoded"
         );
 
@@ -651,7 +657,7 @@ namespace
     {
         if (!registerW2ViaHttp(cli))
             return false;
-        const auto runId = startW2ViaHttp(cli);
+        const auto runId = startWaferViaHttp(cli, "W2", 1);
         return runId.has_value() && waitUntil([&]()
         {
             return hasCompletedRun(controller, *runId);
@@ -701,7 +707,7 @@ TEST_F(JobRoutesTest, SelectedW2RunProducesCorrelatedCompletion)
     auto cli = client();
     ASSERT_TRUE(registerW2ViaHttp(cli));
 
-    const auto runId = startW2ViaHttp(cli);
+    const auto runId = startWaferViaHttp(cli, "W2", 1);
     ASSERT_TRUE(runId.has_value());
     EXPECT_TRUE(waitUntil([&]()
     {
@@ -738,3 +744,33 @@ TEST_F(JobRoutesTest, CompletedW2RunPreservesBothWaferLocations)
     EXPECT_EQ(w1->location, (Location{Station::LoadPort, 3}));
     EXPECT_EQ(w2->location, (Location{Station::LoadPort, 4}));
 }
+
+TEST_F(JobRoutesTest, SequentialWafersCompleteWithDistinctRunIds)
+{
+    auto cli = client();
+
+    ASSERT_TRUE(registerW2ViaHttp(cli));
+
+    const auto w1RunId = startWaferViaHttp(cli, "W1", 1);
+
+    ASSERT_TRUE(
+        w1RunId.has_value() &&
+        waitUntil([&]()
+        {
+            return hasCompletedRun(controller_, *w1RunId);
+        })
+    );
+
+    const auto w2RunId = startWaferViaHttp(cli, "W2", 1);
+
+    ASSERT_TRUE(
+        w2RunId.has_value() &&
+        waitUntil([&]()
+        {
+            return hasCompletedRun(controller_, *w2RunId);
+        })
+    );
+
+    EXPECT_NE(*w1RunId, *w2RunId);
+}
+
