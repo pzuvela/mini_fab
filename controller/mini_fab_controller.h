@@ -31,6 +31,7 @@
 #include "scheduler/job_snapshot.h"
 #include "wafer/wafer_registration_result.h"
 #include "wafer/iwafer_repository.h"
+#include "wafer/wafer_recovery_result.h"
 
 
 class MiniFabController
@@ -122,5 +123,5 @@ public:
 	std::vector<Wafer> wafersSnapshot() const;
 	WaferRegistrationResult registerWafer(const Wafer& wafer);
 
-	RecoveryResult recoverWafer(const std::string& waferId, const Location& destination);
+	WaferRecoveryResult recoverWafer(const std::string& waferId, const Location& destination);
 };
