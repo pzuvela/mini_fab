@@ -16,6 +16,8 @@
 #include "web/routes/job_routes.h"
 #include "web/routes/recipe_routes.h"
 #include "web/routes/equipment_routes.h"
+#include "web/routes/wafer_routes.h"
+
 
 using namespace std::chrono_literals;
 
@@ -63,6 +65,7 @@ protected:
         );
         MiniFab::Web::registerRecipeRoutes(server_, controller_);
         MiniFab::Web::registerEquipmentRoutes(server_, controller_);
+        MiniFab::Web::registerWaferRoutes(server_, controller_);
 
         // Ask the OS for an available localhost port.
         port_ = server_.bind_to_any_port("127.0.0.1");
@@ -625,4 +628,119 @@ TEST_F(JobRoutesTest, ConcurrentDuplicateJobRequestsCreateOnlyOneJob)
     EXPECT_EQ(rejected, 1);
 }
 
+
+
+TEST_F(JobRoutesTest, RunSelectedW2CompletesWithoutTouchingW1)
+{
+    ASSERT_EQ(
+        controller_.registerWafer({
+            "W2", {Station::LoadPort, 4}
+        }),
+        WaferRegistrationResult::Registered
+    );
+
+    auto cli = client();
+
+    const auto response = cli.Post(
+        "/api/run",
+        "waferId=W2&recipeId=1",
+        "application/x-www-form-urlencoded"
+    );
+
+    ASSERT_TRUE(response);
+    ASSERT_EQ(response->status, 202);
+    EXPECT_NE(
+        response->body.find(R"("accepted":true)"),
+        std::string::npos
+    );
+
+    const auto runIdStart =
+        response->body.find(R"("runId":)");
+
+    ASSERT_NE(runIdStart, std::string::npos);
+
+    const auto runId = std::stoull(
+        response->body.substr(runIdStart + 8)
+    );
+
+    ASSERT_GT(runId, 0u);
+
+    // Wait for the actual terminal event, not merely Idle.
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        const auto events = controller_.events();
+
+        return std::any_of(
+            events.begin(),
+            events.end(),
+            [&](const EquipmentEvent& event)
+            {
+                return event.runId == runId &&
+                       event.type == EventType::RunCompleted;
+            }
+        );
+    }));
+
+    const auto events = controller_.events();
+
+    bool w2Completed = false;
+
+    for (const auto& event : events)
+    {
+        if (event.runId != runId)
+            continue;
+
+        EXPECT_EQ(
+            event.message.find("W1"),
+            std::string::npos
+        );
+
+        if (event.type == EventType::RunCompleted)
+        {
+            w2Completed = true;
+        }
+    }
+
+    EXPECT_TRUE(w2Completed);
+
+    const auto equipment = controller_.status();
+
+    EXPECT_EQ(equipment.state, EquipmentState::Idle);
+    EXPECT_FALSE(equipment.robotWaferId.has_value());
+    EXPECT_FALSE(equipment.processModuleWaferId.has_value());
+
+    const auto wafers = controller_.wafersSnapshot();
+
+    ASSERT_EQ(wafers.size(), 2u);
+
+    const auto findWafer = [&](const std::string& id)
+    {
+        return std::find_if(
+            wafers.begin(),
+            wafers.end(),
+            [&](const Wafer& wafer)
+            {
+                return wafer.id == id;
+            }
+        );
+    };
+
+    const auto w1 = findWafer("W1");
+    const auto w2 = findWafer("W2");
+
+    ASSERT_NE(w1, wafers.end());
+    ASSERT_NE(w2, wafers.end());
+
+    EXPECT_EQ(
+        w1->location,
+        (Location{Station::LoadPort, 3})
+    );
+
+    EXPECT_EQ(
+        w2->location,
+        (Location{Station::LoadPort, 4})
+    );
+
+    EXPECT_EQ(controller_.pendingJobCount(), 0u);
+}
 
