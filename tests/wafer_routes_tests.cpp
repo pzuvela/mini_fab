@@ -668,3 +668,70 @@ TEST(WaferRecoveryRoutesTests, RecoversStrandedWaferViaHttp)
     );
 }
 
+
+TEST_F(WaferRoutesTests, RecoveryRejectsMalformedRequests)
+{
+    const std::vector<std::string> invalidRequests = {
+        // Trailing comma
+        R"({"waferId":"W2","destinationSlot":4,})",
+
+        // Duplicate field
+        R"({"waferId":"W2","waferId":"W3","destinationSlot":4})",
+
+        // Invalid type
+        R"({"waferId":"W2","destinationSlot":"4"})"
+    };
+
+    auto cli = client();
+
+    for (const auto& body : invalidRequests)
+    {
+        SCOPED_TRACE(body);
+
+        const auto before = controller_.wafersSnapshot();
+
+        const auto response = cli.Post(
+            "/api/wafers/recover",
+            body,
+            "application/json"
+        );
+
+        ASSERT_TRUE(response);
+        EXPECT_EQ(response->status, 400);
+        EXPECT_EQ(
+            response->get_header_value("Content-Type"),
+            "application/json"
+        );
+
+        const auto after = controller_.wafersSnapshot();
+        EXPECT_EQ(after.size(), before.size());
+        EXPECT_EQ(
+            controller_.status().state,
+            EquipmentState::Idle
+        );
+    }
+}
+
+TEST_F(WaferRoutesTests, RecoveryRejectsInvalidDestinationSlots)
+{
+    const std::vector<int> invalidSlots = {0, -1, -100};
+
+    auto cli = client();
+
+    for (const int slot : invalidSlots)
+    {
+        SCOPED_TRACE(slot);
+
+        const auto response = cli.Post(
+            "/api/wafers/recover",
+            "{\"waferId\":\"W1\",\"destinationSlot\":" +
+                std::to_string(slot) + "}",
+            "application/json"
+        );
+
+        ASSERT_TRUE(response);
+        EXPECT_EQ(response->status, 422);
+    }
+}
+
+
