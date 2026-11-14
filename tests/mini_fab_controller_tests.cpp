@@ -1407,3 +1407,122 @@ TEST(MiniFabControllerTest, TwoWaferLifecyclePreservesIdentityAndOccupancy)
 }
 
 
+
+TEST(MiniFabControllerTest, InvalidWaferDoesNotBlockValidWafer)
+{
+    SqliteRecipeRepository repository(":memory:");
+    RecipeManager manager(repository);
+    MiniFabController controller(manager);
+
+    ASSERT_TRUE(controller.addRecipe({
+        1, "Fast Etch", 0.01
+    }));
+
+    ASSERT_EQ(
+        controller.registerWafer({
+            "W2", {Station::LoadPort, 4}
+        }),
+        WaferRegistrationResult::Registered
+    );
+
+    // Unknown wafer first, valid wafer second.
+    const auto invalidJob =
+        controller.enqueueJob("W999", 1, 1);
+
+    const auto validJob =
+        controller.enqueueJob("W2", 1, 1);
+
+    ASSERT_NE(invalidJob, 0u);
+    ASSERT_NE(validJob, 0u);
+
+    EXPECT_EQ(controller.pendingJobCount(), 2u);
+
+    // Reject unknown wafer at dispatch.
+    EXPECT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Rejected
+    );
+
+    EXPECT_EQ(
+        controller.jobStatus(invalidJob),
+        JobStatus::Rejected
+    );
+
+    EXPECT_EQ(
+        controller.jobStatus(validJob),
+        JobStatus::Queued
+    );
+
+    EXPECT_EQ(controller.pendingJobCount(), 1u);
+    EXPECT_EQ(controller.status().state, EquipmentState::Idle);
+
+    // W2 must remain executable.
+    ASSERT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Started
+    );
+
+    EXPECT_EQ(
+        controller.jobStatus(validJob),
+        JobStatus::Running
+    );
+
+    ASSERT_TRUE(controller.waitForActiveJobCompletion());
+
+    EXPECT_EQ(
+        controller.jobStatus(validJob),
+        JobStatus::Completed
+    );
+
+    EXPECT_EQ(
+        controller.jobStatus(invalidJob),
+        JobStatus::Rejected
+    );
+
+    // No phantom jobs or equipment occupancy.
+    EXPECT_EQ(controller.pendingJobCount(), 0u);
+    EXPECT_EQ(
+        controller.dispatchNextJob(),
+        DispatchResult::Empty
+    );
+
+    const auto equipment = controller.status();
+
+    EXPECT_EQ(equipment.state, EquipmentState::Idle);
+    EXPECT_FALSE(equipment.robotWaferId.has_value());
+    EXPECT_FALSE(equipment.processModuleWaferId.has_value());
+
+    // Unknown wafer must never appear in inventory.
+    const auto wafers = controller.wafersSnapshot();
+
+    EXPECT_EQ(
+        std::count_if(
+            wafers.begin(),
+            wafers.end(),
+            [](const Wafer& wafer) {
+                return wafer.id == "W999";
+            }
+        ),
+        0
+    );
+
+    const auto w2 = std::find_if(
+        wafers.begin(),
+        wafers.end(),
+        [](const Wafer& wafer) {
+            return wafer.id == "W2";
+        }
+    );
+
+    ASSERT_NE(w2, wafers.end());
+
+    EXPECT_EQ(
+        w2->location,
+        (Location{Station::LoadPort, 4})
+    );
+
+    const auto jobs = controller.jobsSnapshot();
+
+    ASSERT_EQ(jobs.size(), 2u);
+}
+
