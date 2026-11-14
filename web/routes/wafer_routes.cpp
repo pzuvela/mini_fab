@@ -162,15 +162,42 @@ server.Post("/api/wafers/recover",
             }
         );
 
-        if (result == RecoveryResult::Recovered)
-        {
-            reply(200, "status", "Recovered");
-            return;
-        }
 
-        // Temporary mapping until we introduce
-        // more specific manual recovery results.
-        reply(409, "error", "Recovery rejected or failed");
+	switch (result)
+	{
+    		case WaferRecoveryResult::Recovered:
+        		reply(200, "status", "Recovered");
+        		break;
+
+    		case WaferRecoveryResult::EquipmentBusy:
+        		reply(409, "error", "Equipment busy");
+        		break;
+
+    		case WaferRecoveryResult::WaferNotFound:
+        		reply(404, "error", "Wafer not found");
+        		break;
+
+    		case WaferRecoveryResult::InvalidSource:
+        		reply(409, "error", "Wafer is not in ProcessModule");
+        		break;
+
+    		case WaferRecoveryResult::InvalidDestination:
+        		reply(422, "error", "Invalid destination");
+        		break;
+
+    		case WaferRecoveryResult::DestinationOccupied:
+        		reply(409, "error", "Destination occupied");
+        		break;
+
+    		case WaferRecoveryResult::RobotFailed:
+        		reply(500, "error", "Robot movement failed");
+        		break;
+
+    		case WaferRecoveryResult::TrackingFailed:
+        		reply(500, "error", "Wafer tracking failed");
+        		break;
+	}
+
     }
 );
 
