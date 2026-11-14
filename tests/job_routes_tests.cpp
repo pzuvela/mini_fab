@@ -6,6 +6,9 @@
 #include <functional>
 #include <string>
 #include <thread>
+#include <algorithm>
+#include <array>
+#include <latch>
 
 #include "controller/mini_fab_controller.h"
 #include "persistence/sqlite_recipe_repository.h"
@@ -547,4 +550,79 @@ TEST_F(JobRoutesTest, RunRejectsUnknownWafer)
         R"({"error":"Wafer not found"})"
     );
 }
+
+
+TEST_F(JobRoutesTest, ConcurrentDuplicateJobRequestsCreateOnlyOneJob)
+{
+    std::latch startGate(1);
+
+    std::array<int, 2> statuses{0, 0};
+    std::array<std::string, 2> bodies;
+
+    auto submit = [&](std::size_t index)
+    {
+        auto cli = client();
+
+        startGate.wait();
+
+        const auto response = cli.Post(
+            "/api/jobs",
+            "waferId=W1&recipeId=1&processModuleId=1",
+            "application/x-www-form-urlencoded"
+        );
+
+        if (response)
+        {
+            statuses[index] = response->status;
+            bodies[index] = response->body;
+        }
+    };
+
+    std::thread first(submit, 0);
+    std::thread second(submit, 1);
+
+    startGate.count_down();
+
+    first.join();
+    second.join();
+
+    std::sort(statuses.begin(), statuses.end());
+
+    EXPECT_EQ(statuses[0], 201);
+    EXPECT_EQ(statuses[1], 409);
+
+    EXPECT_EQ(controller_.pendingJobCount(), 1u);
+
+    const auto jobs = controller_.jobsSnapshot();
+
+    ASSERT_EQ(jobs.size(), 1u);
+
+    EXPECT_EQ(jobs.front().job.waferId, "W1");
+    EXPECT_EQ(jobs.front().status, JobStatus::Queued);
+
+    const auto created = std::count_if(
+        bodies.begin(),
+        bodies.end(),
+        [](const std::string& body)
+        {
+            return body.find(R"("jobId":)") !=
+                std::string::npos;
+        }
+    );
+
+    EXPECT_EQ(created, 1);
+
+    const auto rejected = std::count_if(
+        bodies.begin(),
+        bodies.end(),
+        [](const std::string& body)
+        {
+            return body.find("Wafer already queued") !=
+                std::string::npos;
+        }
+    );
+
+    EXPECT_EQ(rejected, 1);
+}
+
 
