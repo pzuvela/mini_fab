@@ -111,10 +111,12 @@
 </main>
 
     <script type="module">
-        import { createRunViewModel } from
-            "/js/viewmodel/runViewModel.js";
+        import { createRunViewModel } from "/js/viewmodel/runViewModel.js";
 
 	import { renderEventLog } from "/js/view/eventLogView.js";
+
+	import { bindRunControls } from "/js/view/runControls.js";
+
 
         const vm = createRunViewModel();
 
@@ -266,31 +268,7 @@ elements.recipeDetails.textContent = selectedRecipe
 
 }); // End vm.subscribe() — rendering only!
 
-// Register event handlers ONCE, outside subscribe.
-
-elements.runButton.addEventListener("click", () => {
-    vm.run();
-});
-
-elements.cancelButton.addEventListener("click", () => {
-    void vm.cancelRun();
-});
-
-elements.resetButton.addEventListener("click", () => {
-    void vm.resetEquipment();
-});
-
-elements.recipeSelect.addEventListener("change", event => {
-    const value = event.target.value;
-
-    vm.selectRecipe(
-        value === "" ? null : Number(value)
-    );
-});
-
-elements.waferSelect.addEventListener("change", event => {
-    vm.selectWafer(event.target.value || null);
-});
+bindRunControls(elements, vm);
 
 vm.start();
 
