@@ -41,7 +41,8 @@ private:
     OperationResult process(
         const Wafer& wafer,
         const Recipe& recipe,
-	std::stop_token stopToken
+	std::stop_token stopToken,
+	std::uint64_t runId
     );
 
     OperationResult executeProcessWafer(
@@ -73,7 +74,8 @@ private:
 	Wafer& wafer,
 	const Recipe& recipe,
 	const Location& location,
-	std::stop_token stopToken
+	std::stop_token stopToken,
+	std::uint64_t runId
     );
 
     std::optional<FaultSource> beginRecovery();

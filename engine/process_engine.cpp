@@ -63,7 +63,8 @@ MovementStageResult ProcessEngine::executeMoveWafer(
 OperationResult ProcessEngine::process(
 	const Wafer& wafer,
 	const Recipe& recipe,
-	std::stop_token stopToken
+	std::stop_token stopToken,
+	std::uint64_t runId
 )
 {
 	if (!processModule_.isReady())
@@ -81,7 +82,8 @@ OperationResult ProcessEngine::process(
 
 	eventLog_.record(
 		EventType::ProcessStarted,
-		"Processing wafer " + wafer.id + " with recipe " + recipe.name
+		"Processing wafer " + wafer.id + " with recipe " + recipe.name,
+		runId
 	);
 
 	OperationResult result = processModule_.process(wafer, recipe, stopToken);
@@ -91,19 +93,22 @@ OperationResult ProcessEngine::process(
 		case OperationResult::Completed:
 			eventLog_.record(
 				EventType::ProcessCompleted,
-				"Processing completed for wafer " + wafer.id
+				"Processing completed for wafer " + wafer.id,
+				runId
 			);
 			break;
 		case OperationResult::Cancelled:
 			eventLog_.record(
 				EventType::ProcessCancelled,
-				"Processing cancelled for wafer " + wafer.id
+				"Processing cancelled for wafer " + wafer.id,
+				runId
 			);
 			break;
 		case OperationResult::Failed:
 			eventLog_.record(
 				EventType::ProcessFailed,
-				"Processing failed for wafer " + wafer.id
+				"Processing failed for wafer " + wafer.id,
+				runId
 			);
 			break;
 	}
@@ -255,10 +260,11 @@ OperationResult ProcessEngine::processWaferAtModule(
         Wafer& wafer,
         const Recipe& recipe,
         const Location& originalLocation,
-        std::stop_token stopToken
+        std::stop_token stopToken,
+	std::uint64_t runId
 )
 {
-	OperationResult operationResult = process(wafer, recipe, stopToken);
+	OperationResult operationResult = process(wafer, recipe, stopToken, runId);
 
 	switch (operationResult)
 	{
@@ -325,7 +331,8 @@ OperationResult ProcessEngine::executeProcessWafer(
 			wafer,
 			recipe,
 			originalLocation,
-			stopToken
+			stopToken,
+			runId
 		);
 	}
 
