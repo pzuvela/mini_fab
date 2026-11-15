@@ -193,6 +193,89 @@ New wafers may only be registered at the LoadPort. `WaferManager::updateLocation
 
 These rules validate **destination validity and occupancy**, not the full physical movement path. The process engine coordinates movement, processing, cancellation, and recovery. Multi-module equipment and configurable chamber capacity are future extensions; do not interpret `ProcessModule, slot 2` as a second chamber.
 
+
+## Multi-wafer end-to-end verification
+
+The automated C++ regression tests cover two-wafer registration,
+sequential processing, concurrent-run rejection, cancellation and
+wafer-location recovery.
+
+Run the relevant tests from a web-enabled build:
+
+```bash
+BUILD_WEB=ON ./build.sh
+ctest --test-dir build -R \
+  'RegisteredWafers|SequentialWafers|CancellingW2|ActiveW1Run|RejectedConcurrentW2' \
+  --output-on-failure
+```
+
+### Manual walkthrough
+
+Use a clean simulator state with W1 at LoadPort slot 3.
+The application stores data in `minifab.db` relative to its working
+directory, so use a separate temporary working directory for this
+walkthrough if you want to preserve existing data.
+
+Start the web server and open:
+
+- `/wafers.html` — register and inspect wafers
+- `/recipes.html` — inspect or create recipes
+- `/run.html` — select a wafer and execute a recipe
+
+1. Confirm W1 exists at LoadPort slot 3.
+2. Register W2 at LoadPort slot 4.
+3. Confirm the inventory lists W1 and W2 exactly once each.
+4. Select W1 and a valid recipe, then start processing.
+5. Observe the accepted run ID, processing events and completion.
+6. Select W2 and run the same recipe.
+7. Confirm W2 has a distinct run ID and completes successfully.
+8. Verify equipment is Idle, the robot and process module are empty,
+   and both wafers have returned to their original LoadPort slots.
+9. Start a longer W1 recipe. While W1 is processing, attempt to
+   start W2 directly. The second run should be rejected.
+10. Cancel W1, wait for its terminal event and verify equipment
+    returns to Idle without moving W2.
+
+### HTTP examples
+
+Register W2:
+
+```bash
+curl -i -X POST http://127.0.0.1:8080/api/wafers \
+  -H 'Content-Type: application/json' \
+  -d '{"id":"W2","station":"LoadPort","slot":4}'
+```
+
+Inspect inventory:
+
+```bash
+curl http://127.0.0.1:8080/api/wafers
+```
+
+Run W2 with recipe ID 1, if that recipe exists:
+
+```bash
+curl -i -X POST http://127.0.0.1:8080/api/run \
+  -d 'waferId=W2&recipeId=1'
+```
+
+Inspect equipment and events:
+
+```bash
+curl http://127.0.0.1:8080/api/status
+curl http://127.0.0.1:8080/api/events
+```
+
+Cancel an active run:
+
+```bash
+curl -i -X POST http://127.0.0.1:8080/api/cancel
+```
+
+A successful run request returns HTTP 202 with a run ID.
+Completion or cancellation must be confirmed through subsequent
+events; acceptance does not imply completion.
+
 ## Data and persistence
 
 The application uses `minifab.db` as its local SQLite database, relative to the process working directory. Recipe and event data can survive process restarts.
