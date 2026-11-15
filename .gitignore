@@ -9,6 +9,9 @@ cmake_install.cmake
 CTestTestfile.cmake
 Makefile
 
+# CTest-generated files
+/Testing/
+
 # Compiled binaries / libraries
 *.o
 *.obj
