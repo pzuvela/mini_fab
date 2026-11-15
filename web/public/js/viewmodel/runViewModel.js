@@ -117,7 +117,7 @@ async function refreshEvents() {
 
     const currentTime = now();
 
-    if (now - lastEventRefresh < 1000) return;
+    if (currentTime - lastEventRefresh < 1000) return;
 
     eventsRefreshing = true;
     try {

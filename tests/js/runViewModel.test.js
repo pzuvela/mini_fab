@@ -614,3 +614,22 @@ test("Rejected selected-wafer run reports error", async () => {
     );
 });
 
+test("Event refresh is throttled within one second", async () => {
+    const mock = createMockApi();
+    const vm = await prepareViewModel(mock);
+
+    let calls = 0;
+
+    mock.api.getEvents = async () => {
+        calls++;
+        return { events: [] };
+    };
+
+    vm.advanceTestClock();
+    await vm.refreshEvents();
+    await vm.refreshEvents();
+
+    assert.equal(calls, 1);
+});
+
+
