@@ -836,3 +836,40 @@ TEST_F(JobRoutesTest, CancellingW2ProducesCorrelatedTerminalEvent)
     }));
 }
 
+TEST_F(JobRoutesTest, CancellingW2LeavesEquipmentIdleAndEmpty)
+{
+    auto cli = client();
+
+    ASSERT_TRUE(registerW2ViaHttp(cli));
+    ASSERT_TRUE(controller_.addRecipe({2, "Long Etch", 30.0}));
+
+    const auto runId = startWaferViaHttp(cli, "W2", 2);
+    ASSERT_TRUE(runId.has_value());
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        const auto events = controller_.events();
+
+        return std::any_of(events.begin(), events.end(),
+            [&](const EquipmentEvent& event)
+            {
+                return event.runId == *runId &&
+                       event.type == EventType::ProcessStarted;
+            });
+    }));
+
+    const auto response = cli.Post("/api/cancel");
+    ASSERT_TRUE(response && response->status == 202);
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        return controller_.status().state == EquipmentState::Idle;
+    }));
+
+    const auto snapshot = controller_.status();
+
+    EXPECT_FALSE(snapshot.robotWaferId.has_value());
+    EXPECT_FALSE(snapshot.processModuleWaferId.has_value());
+}
+
+
