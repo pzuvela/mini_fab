@@ -873,3 +873,63 @@ TEST_F(JobRoutesTest, CancellingW2LeavesEquipmentIdleAndEmpty)
 }
 
 
+TEST_F(JobRoutesTest, CancellingW2PreservesWaferLocations)
+{
+    auto cli = client();
+
+    ASSERT_TRUE(registerW2ViaHttp(cli));
+    ASSERT_TRUE(controller_.addRecipe({2, "Long Etch", 30.0}));
+
+    const auto runId = startWaferViaHttp(cli, "W2", 2);
+    ASSERT_TRUE(runId.has_value());
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        const auto events = controller_.events();
+
+        return std::any_of(events.begin(), events.end(),
+            [&](const EquipmentEvent& event)
+            {
+                return event.runId == *runId &&
+                       event.type == EventType::ProcessStarted;
+            });
+    }));
+
+    const auto response = cli.Post("/api/cancel");
+    ASSERT_TRUE(response && response->status == 202);
+
+ASSERT_TRUE(waitUntil([&]()
+{
+    const auto events = controller_.events();
+
+    return std::any_of(events.begin(), events.end(),
+        [&](const EquipmentEvent& event)
+        {
+            return event.runId == *runId &&
+                   event.type == EventType::RunCancelled;
+        });
+}));
+
+const auto wafers = controller_.wafersSnapshot();
+
+const auto findWafer = [&](const std::string& id)
+{
+    return std::find_if(wafers.begin(), wafers.end(),
+        [&](const Wafer& wafer)
+        {
+            return wafer.id == id;
+        });
+};
+
+const auto w1 = findWafer("W1");
+const auto w2 = findWafer("W2");
+
+ASSERT_NE(w1, wafers.end());
+ASSERT_NE(w2, wafers.end());
+
+EXPECT_EQ(w1->location, (Location{Station::LoadPort, 3}));
+EXPECT_EQ(w2->location, (Location{Station::LoadPort, 4}));
+
+}
+
+
