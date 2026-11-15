@@ -643,6 +643,48 @@ namespace
         return runId;
     }
 
+    std::optional<std::uint64_t> startAndCancelW2(
+        httplib::Client& cli, MiniFabController& controller)
+    {
+        if (!registerW2ViaHttp(cli) ||
+            !controller.addRecipe({2, "Long Etch", 30.0}))
+            return std::nullopt;
+
+        const auto runId = startWaferViaHttp(cli, "W2", 2);
+        if (!runId)
+            return std::nullopt;
+
+        if (!waitUntil([&]()
+        {
+            const auto events = controller.events();
+            return std::any_of(events.begin(), events.end(),
+                [&](const EquipmentEvent& event)
+                {
+                    return event.runId == *runId &&
+                           event.type == EventType::ProcessStarted;
+                });
+        }))
+            return std::nullopt;
+
+        const auto response = cli.Post("/api/cancel");
+        if (!response || response->status != 202)
+            return std::nullopt;
+
+        if (!waitUntil([&]()
+        {
+            const auto events = controller.events();
+            return std::any_of(events.begin(), events.end(),
+                [&](const EquipmentEvent& event)
+                {
+                    return event.runId == *runId &&
+                           event.type == EventType::RunCancelled;
+                });
+        }))
+            return std::nullopt;
+
+        return runId;
+    }
+
     bool hasCompletedRun(const MiniFabController& controller, std::uint64_t runId)
     {
         const auto events = controller.events();
@@ -700,6 +742,31 @@ TEST_F(JobRoutesTest, RegisteredW2AppearsInHttpInventory)
     const auto response = cli.Get("/api/wafers");
     ASSERT_TRUE(response);
     EXPECT_NE(response->body.find(R"("id":"W2")"), std::string::npos);
+}
+
+TEST_F(JobRoutesTest, RegisteredWafersAppearExactlyOnceInHttpInventory)
+{
+    auto cli = client();
+    ASSERT_TRUE(registerW2ViaHttp(cli));
+
+    const auto response = cli.Get("/api/wafers");
+    ASSERT_TRUE(response && response->status == 200);
+
+    const auto countId = [&](const std::string& id)
+    {
+        const std::string needle = "\"id\":\"" + id + "\"";
+        std::size_t count = 0;
+        std::size_t pos = 0;
+        while ((pos = response->body.find(needle, pos)) != std::string::npos)
+        {
+            ++count;
+            pos += needle.size();
+        }
+        return count;
+    };
+
+    EXPECT_EQ(countId("W1"), 1u);
+    EXPECT_EQ(countId("W2"), 1u);
 }
 
 TEST_F(JobRoutesTest, SelectedW2RunProducesCorrelatedCompletion)
@@ -839,97 +906,30 @@ TEST_F(JobRoutesTest, CancellingW2ProducesCorrelatedTerminalEvent)
 TEST_F(JobRoutesTest, CancellingW2LeavesEquipmentIdleAndEmpty)
 {
     auto cli = client();
-
-    ASSERT_TRUE(registerW2ViaHttp(cli));
-    ASSERT_TRUE(controller_.addRecipe({2, "Long Etch", 30.0}));
-
-    const auto runId = startWaferViaHttp(cli, "W2", 2);
-    ASSERT_TRUE(runId.has_value());
-
-    ASSERT_TRUE(waitUntil([&]()
-    {
-        const auto events = controller_.events();
-
-        return std::any_of(events.begin(), events.end(),
-            [&](const EquipmentEvent& event)
-            {
-                return event.runId == *runId &&
-                       event.type == EventType::ProcessStarted;
-            });
-    }));
-
-    const auto response = cli.Post("/api/cancel");
-    ASSERT_TRUE(response && response->status == 202);
-
-    ASSERT_TRUE(waitUntil([&]()
-    {
-        return controller_.status().state == EquipmentState::Idle;
-    }));
+    ASSERT_TRUE(startAndCancelW2(cli, controller_).has_value());
 
     const auto snapshot = controller_.status();
-
+    EXPECT_EQ(snapshot.state, EquipmentState::Idle);
     EXPECT_FALSE(snapshot.robotWaferId.has_value());
     EXPECT_FALSE(snapshot.processModuleWaferId.has_value());
 }
 
-
 TEST_F(JobRoutesTest, CancellingW2PreservesWaferLocations)
 {
     auto cli = client();
+    ASSERT_TRUE(startAndCancelW2(cli, controller_).has_value());
 
-    ASSERT_TRUE(registerW2ViaHttp(cli));
-    ASSERT_TRUE(controller_.addRecipe({2, "Long Etch", 30.0}));
-
-    const auto runId = startWaferViaHttp(cli, "W2", 2);
-    ASSERT_TRUE(runId.has_value());
-
-    ASSERT_TRUE(waitUntil([&]()
+    const auto wafers = controller_.wafersSnapshot();
+    const auto findWafer = [&](const std::string& id)
     {
-        const auto events = controller_.events();
+        return std::find_if(wafers.begin(), wafers.end(),
+            [&](const Wafer& wafer) { return wafer.id == id; });
+    };
 
-        return std::any_of(events.begin(), events.end(),
-            [&](const EquipmentEvent& event)
-            {
-                return event.runId == *runId &&
-                       event.type == EventType::ProcessStarted;
-            });
-    }));
+    const auto w1 = findWafer("W1");
+    const auto w2 = findWafer("W2");
+    ASSERT_TRUE(w1 != wafers.end() && w2 != wafers.end());
 
-    const auto response = cli.Post("/api/cancel");
-    ASSERT_TRUE(response && response->status == 202);
-
-ASSERT_TRUE(waitUntil([&]()
-{
-    const auto events = controller_.events();
-
-    return std::any_of(events.begin(), events.end(),
-        [&](const EquipmentEvent& event)
-        {
-            return event.runId == *runId &&
-                   event.type == EventType::RunCancelled;
-        });
-}));
-
-const auto wafers = controller_.wafersSnapshot();
-
-const auto findWafer = [&](const std::string& id)
-{
-    return std::find_if(wafers.begin(), wafers.end(),
-        [&](const Wafer& wafer)
-        {
-            return wafer.id == id;
-        });
-};
-
-const auto w1 = findWafer("W1");
-const auto w2 = findWafer("W2");
-
-ASSERT_NE(w1, wafers.end());
-ASSERT_NE(w2, wafers.end());
-
-EXPECT_EQ(w1->location, (Location{Station::LoadPort, 3}));
-EXPECT_EQ(w2->location, (Location{Station::LoadPort, 4}));
-
+    EXPECT_EQ(w1->location, (Location{Station::LoadPort, 3}));
+    EXPECT_EQ(w2->location, (Location{Station::LoadPort, 4}));
 }
-
-
