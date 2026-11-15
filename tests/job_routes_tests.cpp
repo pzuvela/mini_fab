@@ -965,3 +965,45 @@ TEST_F(JobRoutesTest, ActiveW1RunRejectsConcurrentW2Run)
 }
 
 
+TEST_F(JobRoutesTest, RejectedConcurrentW2RunPreservesInventory)
+{
+    auto cli = client();
+
+    ASSERT_TRUE(registerW2ViaHttp(cli));
+    ASSERT_TRUE(controller_.addRecipe({2, "Long Etch", 30.0}));
+
+    const auto w1RunId = startWaferViaHttp(cli, "W1", 2);
+    ASSERT_TRUE(w1RunId.has_value());
+
+    ASSERT_TRUE(waitUntil([&]()
+    {
+        const auto events = controller_.events();
+
+        return std::any_of(events.begin(), events.end(),
+            [&](const EquipmentEvent& event)
+            {
+                return event.runId == *w1RunId &&
+                       event.type == EventType::ProcessStarted;
+            });
+    }));
+
+    const auto w2RunId = startWaferViaHttp(cli, "W2", 2);
+    ASSERT_FALSE(w2RunId.has_value());
+
+    const auto wafers = controller_.wafersSnapshot();
+
+    const auto w2 = std::find_if(
+        wafers.begin(), wafers.end(),
+        [](const Wafer& wafer)
+        {
+            return wafer.id == "W2";
+        });
+
+    ASSERT_NE(w2, wafers.end());
+    EXPECT_EQ(w2->location, (Location{Station::LoadPort, 4}));
+
+    const auto response = cli.Post("/api/cancel");
+    ASSERT_TRUE(response && response->status == 202);
+}
+
+
